@@ -19,6 +19,7 @@
 #include <stdio.h>
 
 #include "cc_debug.h"
+#include "cc_mm.h"
 
 #include "cc_string.h"
 

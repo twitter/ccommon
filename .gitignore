@@ -22,6 +22,10 @@
 # Logs
 *.log
 
+# Automatically generated files
+COPYING
+INSTALL
+
 # Temporary
 *.swp
 *.~

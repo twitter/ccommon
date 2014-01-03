@@ -14,7 +14,11 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 
 # Initialize automake
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
+
+# Initialize libtool
+LT_INIT
+AC_SUBST([LIBTOOL_DEPS])
 
 # Define macro variables for the package version numbers
 AC_DEFINE(CC_VERSION_MAJOR, CC_MAJOR, [Define the major version number])

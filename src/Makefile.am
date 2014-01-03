@@ -1,4 +1,4 @@
-ccommon_LTLIBRARIES = libccommon
+lib_LTLIBRARIES = libccommon.la
 
 AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
@@ -9,10 +9,18 @@ AM_CFLAGS += -fno-strict-aliasing
 
 LDFLAGS += -rdynamic
 
-libccommon_SOURCES =			\
+libccommon_la_SOURCES =			\
 	cc_type.h					\
 	cc_util.h					\
 	cc_log.c cc_log.h			\
 	cc_mm.c cc_mm.h				\
 	cc_debug.c cc_debug.h		\
 	cc_string.c cc_string.h
+
+include_HEADERS =				\
+	cc_type.h					\
+	cc_util.h					\
+	cc_log.h					\
+	cc_mm.h						\
+	cc_debug.h					\
+	cc_string.h
