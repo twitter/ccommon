@@ -18,10 +18,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "cc_debug.h"
-#include "cc_mm.h"
+#include <cc_debug.h>
+#include <cc_mm.h>
 
-#include "cc_string.h"
+#include <cc_string.h>
 
 /*
  * String (struct string) is a sequence of unsigned char objects terminated

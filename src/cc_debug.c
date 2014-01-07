@@ -18,9 +18,9 @@
 #include <execinfo.h>
 #include <stdlib.h>
 
-#include "cc_log.h"
+#include <cc_log.h>
 
-#include "cc_debug.h"
+#include <cc_debug.h>
 
 void
 cc_log_assert(const char *cond, const char *file, int line, int panic)

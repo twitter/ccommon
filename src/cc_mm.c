@@ -20,10 +20,10 @@
 #include <string.h>
 #include <sys/mman.h>
 
-#include "cc_debug.h"
-#include "cc_log.h"
+#include <cc_debug.h>
+#include <cc_log.h>
 
-#include "cc_mm.h"
+#include <cc_mm.h>
 
 void *
 _cc_alloc(size_t size, const char *name, int line)
