@@ -1,0 +1,6 @@
+## Maintaining configure.ac
+Most projects have outdated configure.ac. Lacking much automating mechanisms, the author of the package has to manually update the macros that often reflect implementation and dependency details. Scripts may help and the auto tools themselves might eventually get better at this, but here are the list of things that often get ignored:
+* check of header file dependencies (`AC_CHECK_HEADERS')
+* version definition
+* check of functions
+
