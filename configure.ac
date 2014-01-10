@@ -1,12 +1,12 @@
 # Define the package version numbers and the bug reporting address
-m4_define([CC_MAJOR], 0)
-m4_define([CC_MINOR], 0)
-m4_define([CC_PATCH], 1)
+m4_define([CC_INTERFACE], 0)
+m4_define([CC_REVISION], 0)
+m4_define([CC_AGE], 0)
 m4_define([CC_BUGS], [yao@twitter.com])
 
 # Initialize autoconf
 AC_PREREQ([2.64])
-AC_INIT([ccommon], [CC_MAJOR.CC_MINOR.CC_PATCH], [CC_BUGS])
+AC_INIT([libccommon], [CC_INTERFACE.CC_REVISION.CC_AGE], [CC_BUGS])
 AC_CONFIG_SRCDIR([src/cc_util.h])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADERS([config.h:config.h.in])
@@ -14,17 +14,14 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 
 # Initialize automake
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([1.10 no-define foreign])
 
 # Initialize libtool
 LT_INIT
-AC_SUBST([LIBTOOL_DEPS])
 
-# Define macro variables for the package version numbers
-AC_DEFINE(CC_VERSION_MAJOR, CC_MAJOR, [Define the major version number])
-AC_DEFINE(CC_VERSION_MINOR, CC_MINOR, [Define the minor version number])
-AC_DEFINE(CC_VERSION_PATCH, CC_PATCH, [Define the patch version number])
-AC_DEFINE(CC_VERSION_STRING, "CC_MAJOR.CC_MINOR.CC_PATCH", [Define the version string])
+# Set library release and version numbers
+AC_SUBST([CCOMMON_RELEASE_VERSION], [CC_INTERFACE.CC_REVISION.CC_AGE])
+AC_SUBST([CCOMMON_SO_VERSION], [CC_INTERFACE:CC_REVISION:CC_AGE])
 
 # Checks for language
 AC_LANG([C])
@@ -104,7 +101,8 @@ AC_MSG_RESULT([$enable_debug])
 
 # Define Makefiles
 AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+                 src/Makefile
+                 ccommon-${CCOMMON_RELEASE_VERSION}.pc:ccommon.pc.in])
 
 # Generate the "configure" script
 AC_OUTPUT

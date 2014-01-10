@@ -61,3 +61,5 @@ INSTALL
 
 Makefile
 Makefile.in
+
+ccommon*.pc

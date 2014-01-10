@@ -1,4 +1,7 @@
-lib_LTLIBRARIES = libccommon.la
+lib_LTLIBRARIES = libccommon-@CCOMMON_RELEASE_VERSION@.la
+
+
+libccommon_@CCOMMON_RELEASE_VERSION@_la_LDFLAGS = -version-info $(CCOMMON_SO_VERSION)
 
 AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
@@ -9,18 +12,17 @@ AM_CFLAGS += -fno-strict-aliasing
 
 LDFLAGS += -rdynamic
 
-libccommon_la_SOURCES =			\
-	cc_type.h					\
-	cc_util.h					\
-	cc_log.c cc_log.h			\
-	cc_mm.c cc_mm.h				\
-	cc_debug.c cc_debug.h		\
-	cc_string.c cc_string.h
+libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
+	cc_log.c							\
+	cc_mm.c								\
+	cc_debug.c							\
+	cc_string.c
 
-include_HEADERS =				\
-	cc_type.h					\
-	cc_util.h					\
-	cc_log.h					\
-	cc_mm.h						\
-	cc_debug.h					\
+ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
+nobase_ccommon_include_HEADERS =		\
+	cc_type.h							\
+	cc_util.h							\
+	cc_log.h							\
+	cc_mm.h								\
+	cc_debug.h							\
 	cc_string.h
