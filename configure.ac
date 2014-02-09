@@ -16,6 +16,7 @@ AC_CANONICAL_SYSTEM
 
 # Initialize automake
 AM_INIT_AUTOMAKE([1.10 no-define foreign])
+AM_SILENT_RULES([yes])
 
 # Initialize libtool
 LT_INIT
