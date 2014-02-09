@@ -1,4 +1,5 @@
-# Define the package version numbers and the bug reporting address
+m4_define([CC_MAJOR], 1)
+m4_define([CC_MINOR], 0)
 m4_define([CC_INTERFACE], 0)
 m4_define([CC_REVISION], 0)
 m4_define([CC_AGE], 0)
@@ -6,7 +7,7 @@ m4_define([CC_BUGS], [yao@twitter.com])
 
 # Initialize autoconf
 AC_PREREQ([2.64])
-AC_INIT([libccommon], [CC_INTERFACE.CC_REVISION.CC_AGE], [CC_BUGS])
+AC_INIT([libccommon], [CC_MAJOR.CC_MINOR], [CC_BUGS])
 AC_CONFIG_SRCDIR([src/cc_util.h])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_HEADERS([config.h:config.h.in])
@@ -20,7 +21,7 @@ AM_INIT_AUTOMAKE([1.10 no-define foreign])
 LT_INIT
 
 # Set library release and version numbers
-AC_SUBST([CCOMMON_RELEASE_VERSION], [CC_INTERFACE.CC_REVISION.CC_AGE])
+AC_SUBST([CCOMMON_RELEASE_VERSION], [CC_MAJOR.CC_MINOR])
 AC_SUBST([CCOMMON_SO_VERSION], [CC_INTERFACE:CC_REVISION:CC_AGE])
 
 # Checks for language
@@ -76,6 +77,9 @@ AC_CHECK_FUNCS([memchr memmove memset])
 AC_CHECK_FUNCS([strchr strndup strtol strtoul strtoull])
 AC_CHECK_FUNCS([backtrace])
 
+# Check whether the test libraries are present
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])
+
 # Check whether to enable debug logs and asserts
 AC_MSG_CHECKING([whether to enable debug logs and asserts])
 AC_ARG_ENABLE([debug],
@@ -102,6 +106,7 @@ AC_MSG_RESULT([$enable_debug])
 # Define Makefiles
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+                 test/Makefile
                  ccommon-${CCOMMON_RELEASE_VERSION}.pc:ccommon.pc.in])
 
 # Generate the "configure" script
