@@ -80,17 +80,17 @@ AC_CHECK_FUNCS([backtrace])
 AC_MSG_CHECKING([whether to enable debug logs and asserts])
 AC_ARG_ENABLE([debug],
 [AS_HELP_STRING(
-    [--enable-debug=@<:@full|yes|log|no@:>@],
+    [--enable-debug=@<:@panic|assert|log|no@:>@],
     [enable debug logs and asserts @<:@default=no@:>@])
   ],
   [],
   [enable_debug=no])
 AS_CASE([x$enable_debug],
-  [xfull], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
+  [xpanic], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
                       [Define to 1 if panic on an assert is enabled])
             AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
            ],
-  [xyes], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
+  [xassert], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
                      [Define to 1 if log on an assert is enabled])
            AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
           ],

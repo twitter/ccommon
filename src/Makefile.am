@@ -8,7 +8,7 @@ AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
-AM_CFLAGS += -fno-strict-aliasing
+AM_CFLAGS += -fstrict-aliasing
 
 LDFLAGS += -rdynamic
 
