@@ -1,0 +1,3 @@
+We will need interface for two types of events: I/O events (e.g. NIO), and timed events (stats, logs, ...)
+
+
