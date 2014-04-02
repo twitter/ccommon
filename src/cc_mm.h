@@ -28,8 +28,6 @@
  *
  * cc_free
  *
- * cc_memcpy
- *
  * cc_mmap
  * cc_munmap
  */
