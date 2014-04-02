@@ -29,8 +29,8 @@
 static uint32_t nfree_mq;   /* # free mbuf */
 static struct mq free_mq; /* free mbuf q */
 
-static size_t mbuf_chunk_size; /* mbuf chunk size - header + data (const) */
-static size_t mbuf_offset;     /* mbuf offset in chunk (const) */
+static size_t mbuf_chunk_size; /* mbuf chunk size (all inclusive, const) */
+static size_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
 static struct mbuf *
 _mbuf_get(void)
@@ -81,11 +81,13 @@ done:
     return mbuf;
 }
 
+/*
+ * get a fully initialized mbuf
+ */
 struct mbuf *
 mbuf_get(void)
 {
     struct mbuf *mbuf;
-    uint8_t *buf;
 
     mbuf = _mbuf_get();
     if (mbuf == NULL) {
@@ -102,6 +104,9 @@ mbuf_get(void)
     return mbuf;
 }
 
+/*
+ * free an mbuf (assuming it has already been unlinked and not corrupted)
+ */
 static void
 mbuf_free(struct mbuf *mbuf)
 {
@@ -116,6 +121,9 @@ mbuf_free(struct mbuf *mbuf)
     cc_free(buf);
 }
 
+/*
+ * put an mbuf back in the free mbuf queue
+ */
 void
 mbuf_put(struct mbuf *mbuf)
 {
@@ -129,8 +137,7 @@ mbuf_put(struct mbuf *mbuf)
 }
 
 /*
- * Rewind the mbuf by discarding any of the read or unread data that it
- * might hold.
+ * reset the mbuf by discarding the read or unread data that it might hold
  */
 void
 mbuf_reset(struct mbuf *mbuf)
@@ -140,8 +147,7 @@ mbuf_reset(struct mbuf *mbuf)
 }
 
 /*
- * Return the size of available data in mbuf. Mbuf cannot contain more than
- * 2^32 bytes (4G).
+ * size of available/unread data in the mbuf- always less than 2^32(4G) bytes
  */
 uint32_t
 mbuf_rsize(struct mbuf *mbuf)
@@ -152,8 +158,7 @@ mbuf_rsize(struct mbuf *mbuf)
 }
 
 /*
- * Return the remaining space size for any new data in mbuf. Mbuf cannot
- * contain more than 2^32 bytes (4G).
+ * size of remaining writable space in the mbuf- always less than 2^32(4G) bytes
  */
 uint32_t
 mbuf_wsize(struct mbuf *mbuf)
@@ -164,8 +169,7 @@ mbuf_wsize(struct mbuf *mbuf)
 }
 
 /*
- * Return the maximum available space size for data in any mbuf. Mbuf cannot
- * contain more than 2^32 bytes (4G).
+ * total capacity of any mbuf, which are fixed sized and 2^32(4G) bytes at most
  */
 size_t
 mbuf_capacity(void)
@@ -174,7 +178,7 @@ mbuf_capacity(void)
 }
 
 /*
- * Insert mbuf at the tail of the mq
+ * insert the mbuf at the tail of the mbuf queue
  */
 void
 mbuf_insert(struct mq *mq, struct mbuf *mbuf)
@@ -184,7 +188,7 @@ mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 }
 
 /*
- * Remove mbuf from the mq
+ * remove the mbuf from the mbuf queue
  */
 void
 mbuf_remove(struct mq *mq, struct mbuf *mbuf)
@@ -196,45 +200,38 @@ mbuf_remove(struct mq *mq, struct mbuf *mbuf)
 }
 
 /*
- * Copy n bytes from memory area rpos to mbuf.
+ * copy n bytes from memory area addr to mbuf.
  *
  * The memory areas should not overlap and the mbuf should have
  * enough space for n bytes.
  */
 void
-mbuf_copy(struct mbuf *mbuf, uint8_t *rpos, size_t n)
+mbuf_copy(struct mbuf *mbuf, uint8_t *addr, size_t n)
 {
     if (n == 0) {
         return;
     }
 
     /* mbuf has space for n bytes */
-    ASSERT(!mbuf_full(mbuf) && n <= mbuf_size(mbuf));
+    ASSERT(!mbuf_full(mbuf) && n <= mbuf_wsize(mbuf));
 
     /* no overlapping copy */
-    ASSERT(rpos < mbuf->start || rpos >= mbuf->end);
+    ASSERT(addr < mbuf->start || addr >= mbuf->end);
 
-    cc_memcpy(mbuf->wpos, rpos, n);
+    cc_memcpy(mbuf->wpos, addr, n);
     mbuf->wpos += n;
 }
 
 /*
- * Split mbuf h into h and t by copying data from h to t. Before
- * the copy, we invoke a precopy handler cb that will copy a predefined
- * string to the head of t.
- *
- * Return new mbuf t, if the split was successful.
+ * split the mbuf by copying data from addr onward to a new mbuf
+ * before the copy, we invoke a precopy handler cb that will copy a predefined
+ * string to the head of the new mbuf
  */
 struct mbuf *
-mbuf_split(struct mq *mq, uint8_t *rpos, mbuf_copy_t cb, void *cbarg)
+mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
 {
-    struct mbuf *mbuf, *nbuf;
+    struct mbuf *nbuf;
     size_t size;
-
-    ASSERT(!STAILQ_EMPTY(mq));
-
-    mbuf = STAILQ_LAST(mq, mbuf, next);
-    ASSERT(rpos >= mbuf->rpos && rpos <= mbuf->wpos);
 
     nbuf = mbuf_get();
     if (nbuf == NULL) {
@@ -247,11 +244,11 @@ mbuf_split(struct mq *mq, uint8_t *rpos, mbuf_copy_t cb, void *cbarg)
     }
 
     /* copy data from mbuf to nbuf */
-    size = (size_t)(mbuf->wpos - rpos);
-    mbuf_copy(nbuf, rpos, size);
+    size = (size_t)(mbuf->wpos - addr);
+    mbuf_copy(nbuf, addr, size);
 
     /* adjust mbuf */
-    mbuf->wpos = rpos;
+    mbuf->wpos = addr;
 
     log_debug(LOG_VVERB, "split into mbuf %p len %"PRIu32" and nbuf %p len "
               "%"PRIu32" copied %zu bytes", mbuf, mbuf_length(mbuf), nbuf,
@@ -260,6 +257,9 @@ mbuf_split(struct mq *mq, uint8_t *rpos, mbuf_copy_t cb, void *cbarg)
     return nbuf;
 }
 
+/*
+ * initialize the mbuf module by setting the module-local constants
+ */
 void
 mbuf_init(size_t chunk_size)
 {
@@ -274,6 +274,9 @@ mbuf_init(size_t chunk_size)
               mbuf_chunk_size, MBUF_HDR_SIZE, mbuf_offset);
 }
 
+/*
+ * de-initialize the mbuf module by releasing all mbufs from the free_mq
+ */
 void
 mbuf_deinit(void)
 {
@@ -283,5 +286,5 @@ mbuf_deinit(void)
         mbuf_free(mbuf);
         nfree_mq--;
     }
-    ASSERT(nfree_mbufq == 0);
+    ASSERT(nfree_mq == 0);
 }

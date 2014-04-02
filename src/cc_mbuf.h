@@ -21,8 +21,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef void (*mbuf_copy_t)(struct mbuf *, void *);
-
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */
     STAILQ_ENTRY(mbuf) next;    /* next mbuf */
@@ -31,6 +29,8 @@ struct mbuf {
     uint8_t            *start;  /* start of buffer (const) */
     uint8_t            *end;    /* end of buffer (const) */
 };
+
+typedef void (*mbuf_copy_t)(struct mbuf *, void *);
 
 STAILQ_HEAD(mq, mbuf);
 
@@ -63,6 +63,6 @@ size_t mbuf_capacity(void);
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *rpos, size_t n);
-struct mbuf *mbuf_split(struct mq *h, uint8_t *rpos, mbuf_copy_t cb, void *cbarg);
+struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
 #endif
