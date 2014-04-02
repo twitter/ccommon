@@ -12,16 +12,19 @@ AM_CFLAGS += -fstrict-aliasing
 LDFLAGS += -rdynamic
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
-	cc_log.c							\
-	cc_mm.c								\
 	cc_debug.c							\
+	cc_log.c							\
+	cc_mbuf.c							\
+	cc_mm.c								\
 	cc_string.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 nobase_ccommon_include_HEADERS =		\
-	cc_type.h							\
-	cc_util.h							\
-	cc_log.h							\
-	cc_mm.h								\
 	cc_debug.h							\
-	cc_string.h
+	cc_log.h							\
+	cc_mbuf.h							\
+	cc_mm.h								\
+	cc_queue.h							\
+	cc_string.h							\
+	cc_type.h							\
+	cc_util.h

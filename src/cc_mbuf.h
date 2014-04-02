@@ -32,7 +32,7 @@ struct mbuf {
     uint8_t            *end;    /* end of buffer (const) */
 };
 
-STAILQ_HEAD(mhdr, mbuf);
+STAILQ_HEAD(mq, mbuf);
 
 #define MBUF_MAGIC      0xdeadbeef
 #define MBUF_MIN_SIZE   512
@@ -56,13 +56,13 @@ void mbuf_init(size_t chunk_size);
 void mbuf_deinit(void);
 struct mbuf *mbuf_get(void);
 void mbuf_put(struct mbuf *mbuf);
-void mbuf_rewind(struct mbuf *mbuf);
-uint32_t mbuf_length(struct mbuf *mbuf);
-uint32_t mbuf_size(struct mbuf *mbuf);
-size_t mbuf_data_size(void);
-void mbuf_insert(struct mhdr *mhdr, struct mbuf *mbuf);
-void mbuf_remove(struct mhdr *mhdr, struct mbuf *mbuf);
-void mbuf_copy(struct mbuf *mbuf, uint8_t *pos, size_t n);
-struct mbuf *mbuf_split(struct mhdr *h, uint8_t *pos, mbuf_copy_t cb, void *cbarg);
+void mbuf_reset(struct mbuf *mbuf);
+uint32_t mbuf_rsize(struct mbuf *mbuf);
+uint32_t mbuf_wsize(struct mbuf *mbuf);
+size_t mbuf_capacity(void);
+void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
+void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
+void mbuf_copy(struct mbuf *mbuf, uint8_t *rpos, size_t n);
+struct mbuf *mbuf_split(struct mq *h, uint8_t *rpos, mbuf_copy_t cb, void *cbarg);
 
 #endif
