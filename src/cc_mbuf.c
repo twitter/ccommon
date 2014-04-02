@@ -16,7 +16,7 @@
  */
 
 #include <stdint.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>

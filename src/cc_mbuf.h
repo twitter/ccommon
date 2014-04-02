@@ -19,7 +19,7 @@
 #define _CC_MBUF_H_
 
 #include <stdint.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */
