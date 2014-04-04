@@ -4,7 +4,8 @@ MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure config.h.in config.h.in~
 ## files, in order to avoid collisions when non-recursive make is used.
 AUTOMAKE_OPTIONS = subdir-objects
 
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4 -I /usr/local/share/aclocal
+# TODO: include default location on Linux if the path exists
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ccommon-$(CCOMMON_RELEASE_VERSION).pc
