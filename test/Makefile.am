@@ -11,6 +11,6 @@ check_util_CFLAGS = @CHECK_CFLAGS@
 check_util_LDADD = $(top_builddir)/src/libcommon.la @CHECK_LIBS@
 
 check_mbuf_SOURCES = check_mbuf.c $(top_builddir)/src/cc_mbuf.h
-check_util_CFLAGS = @CHECK_CFLAGS@
-check_util_LDADD = $(top_builddir)/src/libcommon.la @CHECK_LIBS@
+check_mbuf_CFLAGS = @CHECK_CFLAGS@
+check_mbuf_LDADD = $(top_builddir)/src/libcommon.la @CHECK_LIBS@
 
