@@ -60,9 +60,9 @@ AC_CHECK_HEADERS([stdarg.h stddef.h stdlib.h])
 AC_CHECK_HEADERS([inttypes.h stdint.h])
 AC_CHECK_HEADERS([ctype.h errno.h execinfo.h time.h])
 AC_CHECK_HEADERS([fcntl.h string.h unistd.h])
-AC_CHECK_HEADERS([sys/mman.h sys/stat.h])
+AC_CHECK_HEADERS([sys/mman.h sys/stat.h sys/socket.h])
 #AC_CHECK_HEADERS([sys/ioctl.h sys/time.h sys/uio.h])
-#AC_CHECK_HEADERS([sys/socket.h sys/un.h netinet/in.h arpa/inet.h netdb.h])
+#AC_CHECK_HEADERS([sys/un.h netinet/in.h arpa/inet.h netdb.h])
 #AC_CHECK_HEADERS([sys/epoll.h], [], [AC_MSG_ERROR([required sys/epoll.h header file is missing])])
 
 # Checks for library functions

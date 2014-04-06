@@ -2,6 +2,8 @@ lib_LTLIBRARIES = libccommon-@CCOMMON_RELEASE_VERSION@.la
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_LDFLAGS = -version-info $(CCOMMON_SO_VERSION)
 
+MAINTAINERCLEANFILES = Makefile.in
+
 AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
 AM_CFLAGS = -Wall
@@ -24,6 +26,7 @@ nobase_ccommon_include_HEADERS =		\
 	cc_log.h							\
 	cc_mbuf.h							\
 	cc_mm.h								\
+	cc_nio.h							\
 	cc_queue.h							\
 	cc_string.h							\
 	cc_type.h							\
