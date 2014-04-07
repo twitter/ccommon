@@ -58,6 +58,8 @@ typedef int conn_err_t;
 #define CONN_CLOSE      3
 
 struct conn {
+    void            *owner;         /* owner of this connection */
+
     int             sd;             /* socket descriptor */
     int             family;         /* socket address family */
     socklen_t       addrlen;        /* socket length */
