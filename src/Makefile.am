@@ -18,6 +18,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_log.c							\
 	cc_mbuf.c							\
 	cc_mm.c								\
+	cc_nio.c							\
 	cc_string.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)

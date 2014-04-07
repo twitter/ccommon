@@ -77,6 +77,7 @@ AC_CHECK_FUNCS([socket])
 AC_CHECK_FUNCS([memchr memmove memset])
 AC_CHECK_FUNCS([strchr strndup strtol strtoul strtoull])
 AC_CHECK_FUNCS([backtrace])
+AC_CHECK_FUNCS([read write])
 
 # Check whether the test libraries are present
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])

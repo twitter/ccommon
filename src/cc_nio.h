@@ -18,6 +18,7 @@
 #ifndef __CC_NIO_H_
 #define __cc_NIO_H_
 
+#include <unistd.h>
 #include <sys/socket.h>
 
 #include <cc_func.h>
@@ -42,8 +43,8 @@
  * (Heck, I might even move to C++ for abstract and template.)
  */
 
-//#define CC_EAGAIN   -2
-//#define CC_ENOMEM   -3
+#define CC_EAGAIN   -2
+#define CC_ENOMEM   -3
 typedef int conn_err_t;
 
 #define CONN_RAW        0
@@ -80,8 +81,8 @@ struct conn {
 typedef void (*conn_connect_t)(struct conn *);
 typedef void (*conn_close_t)(struct conn *);
 /* generic handlers, such as when read/write events are triggered */
-typedef rstatus_t (*conn_recv_t)(struct *conn); /* generic recv/read */
-typedef rstatus_t (*conn_send_t)(struct *conn); /* generic send/write */
+typedef rstatus_t (*conn_recv_t)(struct conn *); /* generic recv/read */
+typedef rstatus_t (*conn_send_t)(struct conn *); /* generic send/write */
 
 struct conn_handler {
     conn_connect_t  connect;        /* connect handler */
@@ -96,8 +97,8 @@ struct conn_handler {
  */
 struct msg;
 
-typedef struct msg * (*msg_recv_next_t)(struct conn *) /* recv next msg */
-typedef struct msg * (*msg_send_next_t)(struct conn *) /* send next msg */
+typedef struct msg * (*msg_recv_next_t)(struct conn *); /* recv next msg */
+typedef struct msg * (*msg_send_next_t)(struct conn *); /* send next msg */
 /* trigger next step processing when io is done */
 typedef void (*msg_recv_done_t)(struct conn *, struct msg *); /* post-recv */
 typedef void (*msg_send_done_t)(struct conn *, struct msg *); /* post-send */
@@ -107,6 +108,11 @@ struct msg_handler {
     msg_send_next_t send_next;      /* send next message handler */
     msg_recv_done_t recv_done;      /* receive done handler */
     msg_send_done_t send_done;      /* send done handler */
-}
+};
+
+void conn_init(void);
+void conn_deinit(void);
+
+ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 
 #endif
