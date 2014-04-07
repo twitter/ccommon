@@ -101,7 +101,7 @@ struct msg;
 
 typedef struct msg * (*msg_recv_next_t)(struct conn *); /* recv next msg */
 typedef struct msg * (*msg_send_next_t)(struct conn *); /* send next msg */
-/* trigger next step processing when io is done */
+/* to trigger next step processing when io is done */
 typedef void (*msg_recv_done_t)(struct conn *, struct msg *); /* post-recv */
 typedef void (*msg_send_done_t)(struct conn *, struct msg *); /* post-send */
 
@@ -116,5 +116,6 @@ void conn_init(void);
 void conn_deinit(void);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
+ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);
 
 #endif
