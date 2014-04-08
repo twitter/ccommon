@@ -43,8 +43,8 @@
  * (Heck, I might even move to C++ for abstract and template.)
  */
 
-#define CC_EAGAIN   -2
-#define CC_ENOMEM   -3
+#define CC_EAGAIN       -2
+#define CC_ENOMEM       -3
 typedef int conn_err_t;
 
 #define CONN_RAW        0
