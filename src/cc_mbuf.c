@@ -88,6 +88,7 @@ struct mbuf *
 mbuf_get(void)
 {
     struct mbuf *mbuf;
+    struct mbuf_data data;
 
     mbuf = _mbuf_get();
     if (mbuf == NULL) {

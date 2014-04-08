@@ -15,24 +15,44 @@
  * limitations under the License.
  */
 
+/*
+ * mbuf: a pool of fixed size buffers that can be chained together.
+ *
+ * Each mbuf has two parts: a part that links into a one-directional list; and
+ * a data block for storing data, which has its own read/write positions. It is
+ * a common practice to chain a number of mbufs together to store a message.
+ *
+ * mbuf module allocates a number of mbufs upon initialization or no free mbuf
+ * is available for the next request. Instead of freeing up the mbuf when done,
+ * it can be returned to the pool (mbuf_put). The bulk allocation amortizes the
+ * cost of memory allocation, making it a good candidate for contexts where
+ * small memory allocations are relatively expensive, or when the amount of
+ * message buffer needed is relatively constant.
+ */
+
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
 #include <stdint.h>
 #include <stddef.h>
 
-struct mbuf {
-    uint32_t           magic;   /* mbuf magic (const) */
-    STAILQ_ENTRY(mbuf) next;    /* next mbuf */
-    uint8_t            *rpos;   /* read marker */
-    uint8_t            *wpos;   /* write marker */
-    uint8_t            *start;  /* start of buffer (const) */
-    uint8_t            *end;    /* end of buffer (const) */
+struct mbuf_data {
+    uint32_t            magic;   /* mbuf magic (const) */
+    uint8_t             *rpos;   /* read marker */
+    uint8_t             *wpos;   /* write marker */
+    uint8_t             *start;  /* start of buffer (const) */
+    uint8_t             *end;    /* end of buffer (const) */
 };
+
+/* for STAILQ chaining */
+struct mbuf {
+    STAILQ_ENTRY(mbuf)  next;    /* next mbuf */
+    struct mbuf_data    data;
+};
+STAILQ_HEAD(mq, mbuf);
 
 typedef void (*mbuf_copy_t)(struct mbuf *, void *);
 
-STAILQ_HEAD(mq, mbuf);
 
 #define MBUF_MAGIC      0xdeadbeef
 #define MBUF_MIN_SIZE   512
