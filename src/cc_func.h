@@ -21,6 +21,10 @@
 #define CC_OK        0
 #define CC_ERROR    -1
 
-typedef int rstatus_t; /* generic function return value type */
+#define CC_EAGAIN   -2
+#define CC_ENOMEM   -3
+
+typedef int rstatus_t;  /* generic function return value type */
+typedef int err_t; /* erroneous values for rstatus_t */
 
 #endif

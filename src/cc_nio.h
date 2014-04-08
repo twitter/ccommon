@@ -43,9 +43,6 @@
  * (Heck, I might even move to C++ for abstract and template.)
  */
 
-#define CC_EAGAIN       -2
-#define CC_ENOMEM       -3
-typedef int conn_err_t;
 
 #define CONN_RAW        0
 #define CONN_CLIENT     1
@@ -77,7 +74,7 @@ struct conn {
     unsigned        state:2;        /* connect|connected|eof|close */
     unsigned        flags:12;       /* annotation fields */
 
-    conn_err_t      err;            /* errno */
+    err_t           err;            /* errno */
 };
 
 typedef void (*conn_connect_t)(struct conn *);
