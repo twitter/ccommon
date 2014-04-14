@@ -6,7 +6,7 @@ m4_define([CC_AGE], 0)
 m4_define([CC_BUGS], [yao@twitter.com])
 
 # Initialize autoconf
-AC_PREREQ([2.64])
+AC_PREREQ([2.60])
 AC_INIT([libccommon], [CC_MAJOR.CC_MINOR], [CC_BUGS])
 AC_CONFIG_SRCDIR([src/cc_util.h])
 AC_CONFIG_AUX_DIR([config])

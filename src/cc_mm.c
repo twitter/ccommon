@@ -25,6 +25,11 @@
 
 #include <cc_mm.h>
 
+/* TODO(yao): detect OS in one place and use one variable everywhere */
+#if defined(__APPLE__) && defined(__MACH__)
+#   define MAP_ANONYMOUS MAP_ANON
+#endif
+
 void *
 _cc_alloc(size_t size, const char *name, int line)
 {
