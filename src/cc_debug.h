@@ -23,27 +23,27 @@
  * CC_ASSERT_PANIC or CC_ASSERT_LOG was defined at the moment
  * ASSERT was called.
  */
-#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 /* log and panic */
 
-#define ASSERT(_x) do {                         \
-    if (!(_x)) {                                \
-        cc_assert(#_x, __FILE__, __LINE__, 1);  \
-    }                                           \
+#define ASSERT(_x) do {                             \
+    if (!(_x)) {                                    \
+        cc_log_assert(#_x, __FILE__, __LINE__, 1);  \
+    }                                               \
 } while (0)
 
 #define NOT_REACHED() ASSERT(0)
 
-#elif defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
+#elif defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1 /* just log */
 
-#define ASSERT(_x) do {                         \
-    if (!(_x)) {                                \
-        cc_assert(#_x, __FILE__, __LINE__, 0);  \
-    }                                           \
+#define ASSERT(_x) do {                             \
+    if (!(_x)) {                                    \
+        cc_log_assert(#_x, __FILE__, __LINE__, 0);  \
+    }                                               \
 } while (0)
 
 #define NOT_REACHED() ASSERT(0)
 
-#else
+#else /* ignore all asserts */
 
 #define ASSERT(_x)
 
@@ -51,7 +51,7 @@
 
 #endif
 
-void cc_log_stacktrace(int skip_count);
 void cc_log_assert(const char *cond, const char *file, int line, int panic);
+void cc_log_stacktrace(int skip_count);
 
 #endif
