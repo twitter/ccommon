@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
+#include <cc_array.h>
 #include <cc_func.h>
 #include <cc_queue.h>
 
@@ -39,8 +40,6 @@
  * I'm not exactly sure what will be the right abstraction for misc I/O, having
  * dealt with only network and events. I will revisit this module after gaining
  * more concrete experiences with the generic cases.
- *
- * (Heck, I might even move to C++ for abstract and template.)
  */
 
 
@@ -114,5 +113,7 @@ void conn_deinit(void);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);
+ssize_t conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte);
+ssize_t conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte);
 
 #endif

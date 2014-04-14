@@ -38,7 +38,7 @@ conn_deinit(void)
     log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
 }
 
-/**
+/*
  * try reading nbyte bytes from conn and place the data in buf
  * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
  * returned as a generic error/failure.
@@ -96,6 +96,68 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
     return CC_ERROR;
 }
 
+/*
+ * vector version of conn_recv, using readv to read into an array of bufs
+ */
+ssize_t
+conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
+{
+    /* TODO(yao): this is almost identical with conn_recv except for the call
+     * to cc_readv. Consolidate the two?
+     */
+    ssize_t n;
+
+    ASSERT(array_n(bufv) > 0);
+    ASSERT(nbyte != 0);
+    ASSERT(conn->recv_ready);
+
+    log_debug(LOG_VERB, "recvv on sd %d, total %zu bytes", conn->sd, nbyte);
+
+    for (;;) {
+        n = cc_readv(conn->sd, bufv->data, bufv->nelem);
+
+        log_debug(LOG_VERB, "recvv on sd %d %zd of %zu in %"PRIu32" buffers",
+                  conn->sd, n, nbyte, bufv->nelem);
+
+        if (n > 0) {
+            if (n < (ssize_t) nbyte) {
+                conn->recv_ready = 0;
+            }
+            conn->recv_nbyte += (size_t)n;
+            return n;
+        }
+
+        if (n == 0) {
+            log_warn("recvv on sd %d returned zero", conn->sd);
+            conn->recv_ready = 0;
+            return 0;
+        }
+
+        if (errno == EINTR) {
+            log_debug(LOG_VERB, "recvv on sd %d not ready - eintr", conn->sd);
+            continue;
+        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            conn->recv_ready = 0;
+            log_debug(LOG_VERB, "recvv on sd %d not ready - eagain", conn->sd);
+            return CC_EAGAIN;
+        } else {
+            conn->recv_ready = 0;
+            conn->err = errno;
+            log_error("recvv on sd %d failed: %s", conn->sd, strerror(errno));
+            return CC_ERROR;
+        }
+    }
+
+    NOT_REACHED();
+
+    return CC_ERROR;
+}
+
+/*
+ * try writing nbyte bytes to conn and place the data in buf
+ * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
+ * returned as a generic error/failure.
+ */
 ssize_t
 conn_send(struct conn *conn, void *buf, size_t nbyte)
 {
@@ -133,6 +195,63 @@ conn_send(struct conn *conn, void *buf, size_t nbyte)
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             conn->send_ready = 0;
             log_debug(LOG_VERB, "send on sd %d not ready - EAGAIN", conn->sd);
+            return CC_EAGAIN;
+        } else {
+            conn->send_ready = 0;
+            conn->err = errno;
+            log_error("sendv on sd %d failed: %s", conn->sd, strerror(errno));
+            return CC_ERROR;
+        }
+    }
+
+    NOT_REACHED();
+
+    return CC_ERROR;
+}
+
+/*
+ * vector version of conn_send, using writev to send an array of bufs
+ */
+ssize_t
+conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
+{
+    /* TODO(yao): this is almost identical with conn_send except for the call
+     * to cc_writev. Consolidate the two?
+     */
+    ssize_t n;
+
+    ASSERT(array_n(bufv) > 0);
+    ASSERT(nbyte != 0);
+    ASSERT(conn->send_ready);
+
+    log_debug(LOG_VERB, "sendv on sd %d, total %zu bytes", conn->sd, nbyte);
+
+    for (;;) {
+        n = cc_writev(conn->sd, bufv->data, bufv->nelem);
+
+        log_debug(LOG_VERB, "sendv on sd %d %zd of %zu in %"PRIu32" buffers",
+                  conn->sd, n, nbyte, bufv->nelem);
+
+        if (n > 0) {
+            if (n < (ssize_t) nbyte) {
+                conn->send_ready = 0;
+            }
+            conn->send_nbyte += (size_t)n;
+            return n;
+        }
+
+        if (n == 0) {
+            log_warn("sendv on sd %d returned zero", conn->sd);
+            conn->send_ready = 0;
+            return 0;
+        }
+
+        if (errno == EINTR) {
+            log_debug(LOG_VERB, "sendv on sd %d not ready - eintr", conn->sd);
+            continue;
+        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            conn->send_ready = 0;
+            log_debug(LOG_VERB, "sendv on sd %d not ready - eagain", conn->sd);
             return CC_EAGAIN;
         } else {
             conn->send_ready = 0;
