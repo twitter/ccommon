@@ -154,7 +154,7 @@ conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
 }
 
 /*
- * try writing nbyte bytes to conn and place the data in buf
+ * try writing nbyte to conn and store the data in buf
  * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
  * returned as a generic error/failure.
  */
@@ -216,7 +216,8 @@ ssize_t
 conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with conn_send except for the call
-     * to cc_writev. Consolidate the two?
+     * to cc_writev. Consolidate the two? Revisit these functions when we build
+     * more concrete backend systems.
      */
     ssize_t n;
 
