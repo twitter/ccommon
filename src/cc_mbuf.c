@@ -30,7 +30,7 @@ static uint32_t nfree_mq;   /* # free mbuf */
 static struct mq free_mq; /* free mbuf q */
 
 static size_t mbuf_chunk_size; /* mbuf chunk size (all inclusive, const) */
-static size_t mbuf_offset;     /* mbuf offset/body capacity (const) */
+static size_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
 static struct mbuf *
 _mbuf_get(void)
@@ -45,7 +45,7 @@ _mbuf_get(void)
         nfree_mq--;
         STAILQ_REMOVE_HEAD(&free_mq, next);
 
-        ASSERT(mbuf_get_magic(mbuf) == MBUF_MAGIC);
+        ASSERT(mbuf->magic == MBUF_MAGIC);
         goto done;
     }
 
@@ -74,7 +74,7 @@ _mbuf_get(void)
      *
      */
     mbuf = (struct mbuf *)(buf + mbuf_offset);
-    mbuf->data.magic = MBUF_MAGIC;
+    mbuf->magic = MBUF_MAGIC;
 
 done:
     STAILQ_NEXT(mbuf, next) = NULL;
@@ -94,10 +94,10 @@ mbuf_get(void)
         return NULL;
     }
 
-    mbuf_set_end(mbuf, (uint8_t *)mbuf);
-    mbuf_set_start(mbuf, mbuf_get_end(mbuf) - mbuf_offset);
-    mbuf_set_rpos(mbuf, mbuf_get_start(mbuf));
-    mbuf_set_wpos(mbuf, mbuf_get_start(mbuf));
+    mbuf->end = (uint8_t *)mbuf;
+    mbuf->start = mbuf->end - mbuf_offset;
+    mbuf->rpos = mbuf->start;
+    mbuf->wpos = mbuf->start;
 
     log_debug(LOG_VVERB, "get mbuf %p", mbuf);
 
@@ -112,11 +112,10 @@ mbuf_free(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
-    log_debug(LOG_VVERB, "free mbuf %p with %zu bytes of data", mbuf,
-            mbuf_rsize(mbuf));
+    log_debug(LOG_VVERB, "put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
-    ASSERT(mbuf_get_magic(mbuf) == MBUF_MAGIC);
+    ASSERT(mbuf->magic == MBUF_MAGIC);
 
     buf = (uint8_t *)mbuf - mbuf_offset;
     cc_free(buf);
@@ -128,11 +127,10 @@ mbuf_free(struct mbuf *mbuf)
 void
 mbuf_put(struct mbuf *mbuf)
 {
-    log_debug(LOG_VVERB, "put mbuf %p with %zu bytes of data", mbuf,
-            mbuf_rsize(mbuf));
+    log_debug(LOG_VVERB, "put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
-    ASSERT(mbuf_get_magic(mbuf) == MBUF_MAGIC);
+    ASSERT(mbuf->magic == MBUF_MAGIC);
 
     nfree_mq++;
     STAILQ_INSERT_HEAD(&free_mq, mbuf, next);
@@ -144,30 +142,30 @@ mbuf_put(struct mbuf *mbuf)
 void
 mbuf_reset(struct mbuf *mbuf)
 {
-    mbuf_set_rpos(mbuf, mbuf_get_start(mbuf));
-    mbuf_set_wpos(mbuf, mbuf_get_start(mbuf));
+    mbuf->rpos = mbuf->start;
+    mbuf->wpos = mbuf->start;
 }
 
 /*
  * size of available/unread data in the mbuf- always less than 2^32(4G) bytes
  */
-size_t
+uint32_t
 mbuf_rsize(struct mbuf *mbuf)
 {
-    ASSERT(mbuf_get_wpos(mbuf) >= mbuf_get_rpos(mbuf));
+    ASSERT(mbuf->wpos >= mbuf->rpos);
 
-    return (uint32_t)(mbuf_get_wpos(mbuf) - mbuf_get_rpos(mbuf));
+    return (uint32_t)(mbuf->wpos - mbuf->rpos);
 }
 
 /*
  * size of remaining writable space in the mbuf- always less than 2^32(4G) bytes
  */
-size_t
+uint32_t
 mbuf_wsize(struct mbuf *mbuf)
 {
-    ASSERT(mbuf_get_end(mbuf) >= mbuf_get_wpos(mbuf));
+    ASSERT(mbuf->end >= mbuf->wpos);
 
-    return (uint32_t)(mbuf_get_end(mbuf) - mbuf_get_wpos(mbuf));
+    return (uint32_t)(mbuf->end - mbuf->wpos);
 }
 
 /*
@@ -186,8 +184,7 @@ void
 mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 {
     STAILQ_INSERT_TAIL(mq, mbuf, next);
-    log_debug(LOG_VVERB, "insert mbuf %p with %zu bytes of data", mbuf,
-            mbuf_rsize(mbuf));
+    log_debug(LOG_VVERB, "insert mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 }
 
 /*
@@ -196,8 +193,7 @@ mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 void
 mbuf_remove(struct mq *mq, struct mbuf *mbuf)
 {
-    log_debug(LOG_VVERB, "remove mbuf %p with %zu bytes of data", mbuf,
-            mbuf_rsize(mbuf));
+    log_debug(LOG_VVERB, "remove mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     STAILQ_REMOVE(mq, mbuf, mbuf, next);
     STAILQ_NEXT(mbuf, next) = NULL;
@@ -220,10 +216,10 @@ mbuf_copy(struct mbuf *mbuf, uint8_t *addr, size_t n)
     ASSERT(!mbuf_full(mbuf) && n <= mbuf_wsize(mbuf));
 
     /* no overlapping copy */
-    ASSERT(addr < mbuf_get_start(mbuf) || addr >= mbuf_get_end(mbuf));
+    ASSERT(addr < mbuf->start || addr >= mbuf->end);
 
-    cc_memcpy(mbuf_get_wpos(mbuf), addr, n);
-    mbuf_incr_wpos(mbuf, n);
+    cc_memcpy(mbuf->wpos, addr, n);
+    mbuf->wpos += n;
 }
 
 /*
@@ -248,15 +244,15 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     }
 
     /* copy data from mbuf to nbuf */
-    size = (size_t)(mbuf_get_wpos(mbuf) - addr);
+    size = (size_t)(mbuf->wpos - addr);
     mbuf_copy(nbuf, addr, size);
 
     /* adjust mbuf */
-    mbuf_set_wpos(mbuf, addr);
+    mbuf->wpos = addr;
 
     log_debug(LOG_VVERB, "split into mbuf %p len %"PRIu32" and nbuf %p len "
-              "%"PRIu32" copied %zu bytes", mbuf, mbuf_rsize(mbuf), nbuf,
-              mbuf_rsize(nbuf), size);
+              "%"PRIu32" copied %zu bytes", mbuf, mbuf_length(mbuf), nbuf,
+              mbuf_length(nbuf), size);
 
     return nbuf;
 }
@@ -274,9 +270,8 @@ mbuf_init(size_t chunk_size)
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
 
-    log_debug(LOG_DEBUG, "mbuf: chunk size %zu, body size %zu, data header ",
-            "size %d, total header size %d", mbuf_chunk_size, mbuf_offset,
-            MBUF_DATA_SIZE, MBUF_HDR_SIZE);
+    log_debug(LOG_DEBUG, "mbuf: chunk size %zu, hdr size %d, offset %zu",
+              mbuf_chunk_size, MBUF_HDR_SIZE, mbuf_offset);
 }
 
 /*
