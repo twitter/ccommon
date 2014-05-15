@@ -149,29 +149,51 @@ array_pop(struct array *arr)
     return elem;
 }
 
-void *
-array_push(struct array *arr)
+/*
+ * expands the array by:
+ * 1) doubling, if nelem is less than max_nelem_delta;
+ * 2) adding max_nenem_delta elements
+ */
+rstatus_t
+_array_expand(struct array *arr)
 {
     void *data;
     uint32_t nelem;
     size_t nbyte;
 
+    nelem = arr->nalloc;
+    if (arr->nalloc >= max_nelem_delta) {
+        nelem += max_nelem_delta;
+    } else {
+        nelem *= 2;
+    }
+    nbyte = nelem * arr->size;
+    data = cc_realloc(arr->data, nbyte);
+    if (data == NULL) {
+        return CC_ERROR;
+    }
+
+    arr->data = data;
+    arr->nalloc = nelem;
+    return CC_OK;
+}
+
+/*
+ * push an element to array, returns the position of the new element.
+ * Note: since the content is not passed in, the caller will be responsible for
+ * filling out the data after the function returns with the position to write.
+ */
+void *
+array_push(struct array *arr)
+{
+    rstatus_t status;
+
     if (arr->nelem == arr->nalloc) {
         /* the array is full; expand the data buffer */
-        nelem = arr->nalloc;
-        if (arr->nalloc >= max_nelem_delta) {
-            nelem += max_nelem_delta;
-        } else {
-            nelem *= 2;
-        }
-        nbyte = nelem * arr->size;
-        data = cc_realloc(arr->data, nbyte);
-        if (data == NULL) {
+        status = _array_expand(arr);
+        if (status != CC_OK) {
             return NULL;
         }
-
-        arr->data = data;
-        arr->nalloc = nelem;
     }
 
     arr->nelem++;
