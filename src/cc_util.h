@@ -18,6 +18,9 @@
 #ifndef _CC_UTIL_H_
 #define _CC_UTIL_H_
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/uio.h>
 /*
  * This file should be further split up as the individual sections grow.
  * Candidates:

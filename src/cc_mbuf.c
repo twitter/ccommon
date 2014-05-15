@@ -61,7 +61,7 @@ _mbuf_get(void)
      *
      *   <------------- mbuf_chunk_size ------------->
      *   +-------------------------------------------+
-     *   |       mbuf data          |  mbuf header   |
+     *   |       mbuf body          |  mbuf header   |
      *   |     (mbuf_offset)        | (struct mbuf)  |
      *   +-------------------------------------------+
      *   ^           ^        ^     ^^

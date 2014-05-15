@@ -15,6 +15,22 @@
  * limitations under the License.
  */
 
+/*
+ * mbuf: a pool of fixed size buffers that can be chained together.
+ *
+ * Each mbuf can to be linked into a one-directional list/msg; and two pairs
+ * of pointers: one pair for tracking the start and end of the "body" which
+ * can hold data, another pair that tracks the current reand and write position.
+ *
+ * mbuf module allocates a number of mbufs upon initialization, or when no free
+ * mbuf is available for the current request. Instead of freeing up the memory
+ * when done, it is returned to the pool (mbuf_put). The bulk allocation
+ * amortizes the cost of memory allocation, making it a good candidate when
+ * small memory allocations are relatively expensive, or when the amount of
+ * message buffer needed is relatively constant.
+ */
+
+
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
