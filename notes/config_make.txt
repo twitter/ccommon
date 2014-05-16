@@ -8,3 +8,5 @@ Most projects have outdated configure.ac. Lacking much automating mechanisms, th
 -g3: almost always a good idea
 -fstrict-aliasing: this is currently used, but it breaks twemcache
 
+## Making the case for non-resursive automake
+As pointed out in [this page](https://www.flameeyes.eu/autotools-mythbuster/automake/nonrecursive.html " Non-recursive Automake"), there are several advantages to use non-recursive make. However, a huge Makefile.am is not necessarily more readable than small Makefile.am for each directory. So we use [inclusion](http://karelzak.blogspot.com/2013/02/non-recursive-automake.html) instead.

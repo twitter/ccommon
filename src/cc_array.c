@@ -20,7 +20,7 @@
 #include <stdlib.h>
 
 #include <cc_debug.h>
-#include <cc_func.h>
+#include <cc_define.h>
 #include <cc_mm.h>
 
 #include <cc_array.h>
@@ -154,7 +154,7 @@ array_pop(struct array *arr)
  * 1) doubling, if nelem is less than max_nelem_delta;
  * 2) adding max_nenem_delta elements
  */
-rstatus_t
+static rstatus_t
 _array_expand(struct array *arr)
 {
     void *data;

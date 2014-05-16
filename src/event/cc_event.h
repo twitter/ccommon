@@ -18,7 +18,7 @@
 #ifndef _CC_EVENT_H_
 #define _CC_EVENT_H_
 
-#include <cc_conn.h>
+#include <cc_nio.h>
 
 #define EVENT_SIZE  1024
 
@@ -28,7 +28,7 @@
 
 typedef int (*event_cb_t)(void *, uint32_t);  /* event callback */
 
-#ifdef NC_HAVE_EPOLL
+#ifdef CC_HAVE_EPOLL
 
 struct event_base {
     int                ep;      /* epoll descriptor */
@@ -39,7 +39,7 @@ struct event_base {
     event_cb_t         cb;      /* event callback */
 };
 
-#elif NC_HAVE_KQUEUE
+#elif CC_HAVE_KQUEUE
 
 struct event_base {
     int           kq;           /* kernel event queue descriptor */

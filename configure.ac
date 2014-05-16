@@ -15,7 +15,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 
 # Initialize automake
-AM_INIT_AUTOMAKE([1.10 no-define foreign])
+AM_INIT_AUTOMAKE([1.10 check-news no-define foreign silent-rules subdir-objects
+                  -Wall -Werror])
 AM_SILENT_RULES([yes])
 
 # Initialize libtool
@@ -79,13 +80,58 @@ AC_CHECK_FUNCS([strchr strndup strtol strtoul strtoull])
 AC_CHECK_FUNCS([backtrace])
 AC_CHECK_FUNCS([read write readv writev])
 
+AC_CACHE_CHECK([if epoll works], [ac_cv_epoll_works],
+  AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/epoll.h>
+int
+main(int argc, char **argv)
+{
+    int fd;
+
+    fd = epoll_create(256);
+    if (fd < 0) {
+        perror("epoll_create:");
+        exit(1);
+    }
+    exit(0);
+}
+  ], [ac_cv_epoll_works=yes], [ac_cv_epoll_works=no]))
+AS_IF([test "x$ac_cv_epoll_works" = "xyes"],
+  [AC_DEFINE([HAVE_EPOLL], [1], [Define to 1 if epoll is supported])], [])
+
+AC_CACHE_CHECK([if kqueue works], [ac_cv_kqueue_works],
+  AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+int
+main(int argc, char **argv)
+{
+    int fd;
+
+    fd = kqueue();
+    if (fd < 0) {
+        perror("kqueue:");
+        exit(1);
+    }
+    exit(0);
+}
+  ], [ac_cv_kqueue_works=yes], [ac_cv_kqueue_works=no]))
+AS_IF([test "x$ac_cv_kqueue_works" = "xyes"],
+  [AC_DEFINE([HAVE_KQUEUE], [1], [Define to 1 if kqueue is supported])], [])
+
+
 # Check whether the test libraries are present
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])
 
 # Check whether to enable debug logs and asserts
 AC_MSG_CHECKING([whether to enable debug logs and asserts])
 AC_ARG_ENABLE([debug],
-[AS_HELP_STRING(
+  [AS_HELP_STRING(
     [--enable-debug=@<:@panic|assert|log|no@:>@],
     [enable debug logs and asserts @<:@default=no@:>@])
   ],

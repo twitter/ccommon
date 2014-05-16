@@ -5,13 +5,15 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_LDFLAGS = -version-info $(CCOMMON_SO_VER
 MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+#AM_CPPFLAGS += -I $(top_srcdir)/src/event
 
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
 AM_CFLAGS += -fstrict-aliasing
 
-LDFLAGS += -rdynamic
+AM_LDFLAGS = -rdynamic
+
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_array.c							\
@@ -20,10 +22,12 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_mbuf.c							\
 	cc_mm.c								\
 	cc_nio.c							\
-	cc_string.c
+	cc_string.c							\
+	event/cc_epoll.c					\
+	event/cc_kqueue.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
-nobase_ccommon_include_HEADERS =		\
+ccommon_include_HEADERS =		\
 	cc_array.h							\
 	cc_debug.h							\
 	cc_log.h							\
@@ -32,5 +36,6 @@ nobase_ccommon_include_HEADERS =		\
 	cc_nio.h							\
 	cc_queue.h							\
 	cc_string.h							\
-	cc_type.h							\
-	cc_util.h
+	cc_define.h							\
+	cc_util.h							\
+	event/cc_event.h

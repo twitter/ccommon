@@ -22,7 +22,7 @@
 #include <sys/socket.h>
 
 #include <cc_array.h>
-#include <cc_func.h>
+#include <cc_define.h>
 #include <cc_queue.h>
 
 /* Note(yao): the abstraction of the io module is subject to re-design in the

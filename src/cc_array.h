@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <cc_func.h>
+#include <cc_define.h>
 
 typedef int (*array_compare_t)(const void *, const void *);
 typedef rstatus_t (*array_each_t)(void *, void *);
