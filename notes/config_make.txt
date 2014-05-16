@@ -9,4 +9,4 @@ Most projects have outdated configure.ac. Lacking much automating mechanisms, th
 -fstrict-aliasing: this is currently used, but it breaks twemcache
 
 ## Making the case for non-resursive automake
-As pointed out in [this page](https://www.flameeyes.eu/autotools-mythbuster/automake/nonrecursive.html " Non-recursive Automake"), there are several advantages to use non-recursive make. However, a huge Makefile.am is not necessarily more readable than small Makefile.am for each directory. So we use [inclusion](http://karelzak.blogspot.com/2013/02/non-recursive-automake.html) instead.
+As pointed out in [this page](https://www.flameeyes.eu/autotools-mythbuster/automake/nonrecursive.html " Non-recursive Automake"), there are several advantages to use non-recursive make. However, a huge Makefile.am is not necessarily more readable than smaller Makefile.am for each directory. Given the size of the code base and how it is structured, I think it makes sense to have separate Makefiles for source and tests, while we can maintain a single Makefile.am for each.
