@@ -18,6 +18,34 @@
 #ifndef __CC_FUNC_H__
 #define __CC_FUNC_H__
 
+
+#ifdef HAVE_DEBUG_LOG
+# define CC_DEBUG_LOG 1
+#endif
+
+#ifdef HAVE_ASSERT_PANIC
+# define CC_ASSERT_PANIC 1
+#endif
+
+#ifdef HAVE_ASSERT_LOG
+# define CC_ASSERT_LOG 1
+#endif
+
+#ifdef HAVE_EPOLL
+# define CC_HAVE_EPOLL 1
+#elif HAVE_KQUEUE
+# define CC_HAVE_KQUEUE 1
+#endif
+
+#ifdef HAVE_LITTLE_ENDIAN
+# define CC_LITTLE_ENDIAN 1
+#endif
+
+#ifdef HAVE_BACKTRACE
+# define CC_HAVE_BACKTRACE 1
+#endif
+
+
 #define CC_OK        0
 #define CC_ERROR    -1
 

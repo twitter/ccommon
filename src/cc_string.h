@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cc_type.h>
+#include <cc_define.h>
 
 struct string {
     uint32_t len;   /* string length */
