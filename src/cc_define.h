@@ -18,7 +18,6 @@
 #ifndef __CC_FUNC_H__
 #define __CC_FUNC_H__
 
-/* TODO(yao): rename this file as cc_define.h instead? */
 
 #ifdef HAVE_DEBUG_LOG
 # define CC_DEBUG_LOG 1

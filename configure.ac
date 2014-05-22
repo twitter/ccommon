@@ -133,8 +133,7 @@ AS_IF([test "x$ac_cv_kqueue_works" = "xyes"],
       [AC_DEFINE([HAVE_KQUEUE], [1], [Define to 1 if kqueue is supported])], [])
 
 AS_IF([test "x$ac_cv_epoll_works" = "xno" &&
-       test "x$ac_cv_kqueue_works" = "xno" &&
-       test "x$ac_cv_evports_works" = "xno"],
+       test "x$ac_cv_kqueue_works" = "xno"],
       [AC_MSG_ERROR([either epoll or kqueue support is required])], [])
 
 
