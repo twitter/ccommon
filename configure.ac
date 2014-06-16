@@ -64,8 +64,7 @@ AC_TYPE_UID_T
 # Checks for header files
 AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([stdarg.h stddef.h stdlib.h])
-#AC_CHECK_HEADERS([float.h limits.h])
-AC_CHECK_HEADERS([inttypes.h stdint.h])
+AC_CHECK_HEADERS([inttypes.h stdint.h limits.h])
 AC_CHECK_HEADERS([ctype.h errno.h execinfo.h time.h])
 AC_CHECK_HEADERS([fcntl.h string.h unistd.h])
 AC_CHECK_HEADERS([sys/mman.h sys/stat.h sys/socket.h sys/types.h sys/uio.h])

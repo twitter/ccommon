@@ -22,6 +22,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_mbuf.c							\
 	cc_mm.c								\
 	cc_nio.c							\
+	cc_stream.c							\
 	cc_string.c							\
 	event/cc_epoll.c					\
 	event/cc_kqueue.c
@@ -30,12 +31,13 @@ ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =		\
 	cc_array.h							\
 	cc_debug.h							\
+	cc_define.h							\
 	cc_log.h							\
 	cc_mbuf.h							\
 	cc_mm.h								\
 	cc_nio.h							\
 	cc_queue.h							\
+	cc_stream.h							\
 	cc_string.h							\
-	cc_define.h							\
 	cc_util.h							\
 	event/cc_event.h

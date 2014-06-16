@@ -16,14 +16,13 @@
  */
 
 #ifndef __CC_NIO_H_
-#define __cc_NIO_H_
+#define __CC_NIO_H_
 
 #include <unistd.h>
 #include <sys/socket.h>
 
 #include <cc_array.h>
 #include <cc_define.h>
-#include <cc_queue.h>
 
 /* Note(yao): the abstraction of the io module is subject to re-design in the
  * near future.
@@ -54,8 +53,6 @@
 #define CONN_CLOSE      3
 
 struct conn {
-    void            *owner;         /* owner of this connection */
-
     int             sd;             /* socket descriptor */
     int             family;         /* socket address family */
     socklen_t       addrlen;        /* socket length */

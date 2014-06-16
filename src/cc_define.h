@@ -52,6 +52,8 @@
 #define CC_EAGAIN   -2
 #define CC_ENOMEM   -3
 
+#define CC_ENOBUF   -4
+
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */
 

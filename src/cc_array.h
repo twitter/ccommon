@@ -35,19 +35,19 @@ struct array {
 
 
 static inline uint32_t
-array_get_nalloc(const struct array *arr)
+array_nalloc(const struct array *arr)
 {
     return arr->nalloc;
 }
 
 static inline size_t
-array_get_size(const struct array *arr)
+array_size(const struct array *arr)
 {
     return arr->size;
 }
 
 static inline uint32_t
-array_get_nelem(const struct array *arr)
+array_nelem(const struct array *arr)
 {
     return arr->nelem;
 }

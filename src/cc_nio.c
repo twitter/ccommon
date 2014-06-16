@@ -97,7 +97,7 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
 }
 
 /*
- * vector version of conn_recv, using readv to read into an array of bufs
+ * vector version of conn_recv, using readv to read into a mbuf array
  */
 ssize_t
 conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)

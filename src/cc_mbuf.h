@@ -37,6 +37,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <cc_queue.h>
+
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */
     STAILQ_ENTRY(mbuf) next;    /* next mbuf */
