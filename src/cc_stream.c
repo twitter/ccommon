@@ -53,6 +53,7 @@ msg_recv(struct stream *stream, size_t nbyte)
     ASSERT(stream != NULL);
     ASSERT(stream->iobuf != NULL);
     ASSERT(stream->iobuf->rbuf != NULL);
+    ASSERT(stream->handler != NULL);
     ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
 
     rbuf = stream->iobuf->rbuf;
@@ -118,7 +119,8 @@ msg_recv(struct stream *stream, size_t nbyte)
 
     log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n, stream->type);
 
-    status = handler->pos_recv(stream, (size_t)n);
+    ASSERT(handler->post_recv != NULL);
+    status = handler->post_recv(stream, (size_t)n);
 
 done:
     /* NOTE(yao): do we need to create another read event in case of error? */
@@ -145,6 +147,7 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     ASSERT(stream != NULL);
     ASSERT(stream->iobuf != NULL);
     ASSERT(stream->iobuf->wbuf != NULL);
+    ASSERT(stream->handler != NULL);
     ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
 
     wbuf = stream->iobuf->wbuf;
@@ -201,7 +204,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
 
     log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n, stream->type);
 
-    status = handler->pos_send(stream, (size_t)n);
+    ASSERT(handler->post_send != NULL);
+    status = handler->post_send(stream, (size_t)n);
 
 done:
     /* NOTE(yao): do we need to create another write event in case of error? */

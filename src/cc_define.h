@@ -19,6 +19,10 @@
 #define __CC_FUNC_H__
 
 
+#ifdef HAVE_LITTLE_ENDIAN
+# define CC_LITTLE_ENDIAN 1
+#endif
+
 #ifdef HAVE_DEBUG_LOG
 # define CC_DEBUG_LOG 1
 #endif
@@ -35,10 +39,6 @@
 # define CC_HAVE_EPOLL 1
 #elif HAVE_KQUEUE
 # define CC_HAVE_KQUEUE 1
-#endif
-
-#ifdef HAVE_LITTLE_ENDIAN
-# define CC_LITTLE_ENDIAN 1
 #endif
 
 #ifdef HAVE_BACKTRACE

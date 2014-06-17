@@ -58,10 +58,10 @@ struct stream;
 typedef rstatus_t (*msg_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
-    msg_handler_t pre_recv; /* callback before msg received */
-    msg_handler_t pos_recv; /* callback after msg received */
-    msg_handler_t pre_send; /* callback before msg sent */
-    msg_handler_t pos_send; /* callback after msg sent */
+    msg_handler_t pre_recv;  /* callback before msg received */
+    msg_handler_t post_recv; /* callback after msg received */
+    msg_handler_t pre_send;  /* callback before msg sent */
+    msg_handler_t post_send; /* callback after msg sent */
 } stream_handler_t;
 
 typedef struct stream_buf {
