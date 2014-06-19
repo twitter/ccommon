@@ -34,9 +34,13 @@
 
 /* recv nbyte at most and store it in rbuf associated with the stream.
  * Uses at most the next CC_IOV_MAX segments/mbufs. Stream buffer must provide
- * enough capacity, otherwise CC_NOBUF is returned.
+ * enough capacity, otherwise CC_NOMEM is returned.
  * callback pre_recv, if not NULL, is called before receiving data
  * callback pos_recv, if not NULL, is called after receiving data
+ *
+ * the role of pre_recv is some sort of check- back pressure? buffer readiness?
+ * post_recv is the callback that is suppose to deal with the received data,
+ * and that's why we won't call it if no data is received
  */
 rstatus_t
 msg_recv(struct stream *stream, size_t nbyte)
@@ -59,13 +63,8 @@ msg_recv(struct stream *stream, size_t nbyte)
     rbuf = stream->iobuf->rbuf;
     handler = stream->handler;
 
-    /* call pre_recv (if not NULL), abort if return is abnormal */
     if (handler->pre_recv != NULL) {
-        status = handler->pre_recv(stream, nbyte);
-        if (status != CC_OK) {
-            log_debug(LOG_VERB, "pre_recv callback returned error, aborting");
-            goto done;
-        }
+        handler->pre_recv(stream, nbyte);
     }
 
     /* build the iov array from rbuf, include enough mbufs to fit nbyte  */
@@ -86,30 +85,40 @@ msg_recv(struct stream *stream, size_t nbyte)
         capacity += ciov->iov_len;
     }
 
-    if (capacity != nbyte) {
+    if (capacity < nbyte) {
         log_debug(LOG_VERB, "not enough capacity in rbuf at %p: nbyte %zu, "
                 "capacity %zu, array nelem %"PRIu32, rbuf, nbyte, capacity,
                 array_nelem(&recvv));
 
-        status = CC_ENOBUF;
-        goto done;
+        return CC_ENOMEM;
     }
 
+    /* receive based on channel type, and schedule retries if necessary */
     switch (stream->type) {
     case CHANNEL_TCP:   /* TCP socket */
         n = conn_recvv(stream->channel, &recvv, nbyte);
         if (n < 0) {
             if (n == CC_EAGAIN) {
+                log_debug(LOG_VERB, "recv on stream %p of type %d returns "
+                        "rescuable error: EAGAIN", stream, stream->type);
+
                 status = CC_OK;
             } else {
+                log_debug(LOG_VERB, "recv on stream %p of type %d returns "
+                        "other error: %d", stream, stream->type, n);
+
                 status = CC_ERROR;
             }
-            goto done;
+        } else if (n == nbyte) {
+            status = CC_ERETRY;
         }
+
         break;
+
     case CHANNEL_UNKNOWN:
         log_error("stream channel type unknown");
         status = CC_ERROR;
+
         break;
 
     default:
@@ -117,13 +126,13 @@ msg_recv(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n, stream->type);
+    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
+            stream->type);
 
-    ASSERT(handler->post_recv != NULL);
-    status = handler->post_recv(stream, (size_t)n);
+    if (n > 0 && handler->post_recv != NULL) {
+        handler->post_recv(stream, (size_t)n);
+    }
 
-done:
-    /* NOTE(yao): do we need to create another read event in case of error? */
     return status;
 }
 
@@ -132,7 +141,11 @@ done:
  * Uses at most the next CC_IOV_MAX segments/mbufs.
  * callback pre_send, if not NULL, is called before sending data
  * callback pos_send, if not NULL, is called after sending data
- */
+ *
+ * the role of pre_send is some sort of check- buffer readiness? bookkeeping?
+ * post_send is the callback that is suppose to clean up the buffer after data
+ * is sent, and that's why we won't call it if no data is actually sent
+*/
 rstatus_t msg_send(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
@@ -153,13 +166,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     wbuf = stream->iobuf->wbuf;
     handler = stream->handler;
 
-    /* call pre_recv (if not NULL), abort if return is abnormal */
     if (handler->pre_send != NULL) {
-        status = handler->pre_send(stream, nbyte);
-        if (status != CC_OK) {
-            log_debug(LOG_VERB, "pre_recv callback returned error, aborting");
-            goto done;
-        }
+        handler->pre_send(stream, nbyte);
     }
 
     /* build the iov array from wbuf, include data available up to nbyte */
@@ -180,17 +188,33 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
         content += ciov->iov_len;
     }
 
+    if (content == 0) {
+        log_debug(LOG_VERB, "no data to send in wbuf at %p", wbuf);
+
+        return CC_EEMPTY;
+    }
+
+    /* send based on channel type, and schedule retries if necessary */
     switch (stream->type) {
     case CHANNEL_TCP:   /* TCP socket */
-        n = conn_sendv(stream->channel, &sendv, nbyte);
+        n = conn_sendv(stream->channel, &sendv, content);
+
         if (n < 0) {
             if (n == CC_EAGAIN) {
-                status = CC_OK;
+                log_debug(LOG_VERB, "send on stream %p of type %d returns "
+                        "rescuable error: EAGAIN", stream, stream->type);
+                return CC_ERETRY;
             } else {
-                status = CC_ERROR;
+                log_debug(LOG_VERB, "send on stream %p of type %d returns "
+                        "other error: %d", stream, stream->type, n);
+                return CC_ERROR;
             }
-            goto done;
         }
+
+        if (n < content) {
+            status = CC_ERETRY;
+        }
+
         break;
     case CHANNEL_UNKNOWN:
         log_error("stream channel type unknown");
@@ -202,12 +226,12 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n, stream->type);
+    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
+            stream->type);
 
-    ASSERT(handler->post_send != NULL);
-    status = handler->post_send(stream, (size_t)n);
+    if (n > 0 && handler->post_send != NULL) {
+        handler->post_send(stream, (size_t)n);
+    }
 
-done:
-    /* NOTE(yao): do we need to create another write event in case of error? */
     return status;
 }

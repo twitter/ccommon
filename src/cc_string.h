@@ -85,7 +85,7 @@ int string_compare(const struct string *s1, const struct string *s2);
     (str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7) &&                                          \
         (((uint32_t *) m)[2] == ((c11 << 24) | (c10 << 16) | (c9 << 8) | c8)))
 
-#else
+#else // BIG ENDIAN
 
 #define str4cmp(m, c0, c1, c2, c3)                                                          \
     (m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3)
@@ -114,7 +114,7 @@ int string_compare(const struct string *s1, const struct string *s2);
 #define str12cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)                       \
     (str11cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) && m[11] == c11)
 
-#endif
+#endif // CC_LITTLE_ENDIAN
 
 
 /*

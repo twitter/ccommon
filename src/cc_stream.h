@@ -55,7 +55,7 @@ typedef void * channel_t;
 
 struct stream;
 
-typedef rstatus_t (*msg_handler_t)(struct stream *stream, size_t nbyte);
+typedef void (*msg_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
     msg_handler_t pre_recv;  /* callback before msg received */
@@ -86,6 +86,10 @@ struct stream {
 /* channel/medium agnostic data IO */
 rstatus_t msg_recv(struct stream *stream, size_t nbyte);
 rstatus_t msg_send(struct stream *stream, size_t nbyte);
+
+/* NOTE(yao): a yield mechanism for the caller to postpone I/O to the future,
+ * especially recv. This can be used to avoid starvation and improve fairness.
+ */
 
 /* NOTE(yao): we choose not to implement receiving and sending from raw bufs
  * for now, so everything has to be copied into stream's message buffer first,

@@ -63,12 +63,12 @@ struct event_base *event_base_create(int size, event_cb_t cb);
 void event_base_destroy(struct event_base *evb);
 
 /* NIO event APIs */
-int event_add_ni(struct event_base *evb, struct conn *c); /* network in */
-int event_del_ni(struct event_base *evb, struct conn *c);
-int event_add_no(struct event_base *evb, struct conn *c); /* network out */
-int event_del_no(struct event_base *evb, struct conn *c);
-int event_add_nc(struct event_base *evb, struct conn *c); /* network conn */
-int event_del_nc(struct event_base *evb, struct conn *c);
+int event_add_read(struct event_base *evb, struct stream *stream);
+int event_del_read(struct event_base *evb, struct stream *stream);
+int event_add_write(struct event_base *evb, struct stream *stream);
+int event_del_write(struct event_base *evb, struct stream *stream);
+int event_register(struct event_base *evb, struct stream *stream);
+int event_deregister(struct event_base *evb, struct stream *stream);
 
 /* timed event APIs */
 int event_time_wait(struct event_base *evb, int timeout);

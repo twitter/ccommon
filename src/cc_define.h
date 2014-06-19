@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __CC_FUNC_H__
-#define __CC_FUNC_H__
+#ifndef __CC_DEFINE_H__
+#define __CC_DEFINE_H__
 
 
 #ifdef HAVE_LITTLE_ENDIAN
@@ -50,9 +50,10 @@
 #define CC_ERROR    -1
 
 #define CC_EAGAIN   -2
-#define CC_ENOMEM   -3
+#define CC_ERETRY   -3
 
-#define CC_ENOBUF   -4
+#define CC_ENOMEM   -4
+#define CC_EEMPTY   -5
 
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */
