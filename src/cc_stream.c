@@ -55,6 +55,7 @@ msg_recv(struct stream *stream, size_t nbyte)
     ssize_t n = 0; /* bytes actually received */
 
     ASSERT(stream != NULL);
+    ASSERT(stream->type != CHANNEL_UNKNOWN);
     ASSERT(stream->iobuf != NULL);
     ASSERT(stream->iobuf->rbuf != NULL);
     ASSERT(stream->handler != NULL);
@@ -115,12 +116,6 @@ msg_recv(struct stream *stream, size_t nbyte)
 
         break;
 
-    case CHANNEL_UNKNOWN:
-        log_error("stream channel type unknown");
-        status = CC_ERROR;
-
-        break;
-
     default:
         NOT_REACHED();
         status = CC_ERROR;
@@ -158,6 +153,7 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     ssize_t n = 0; /* bytes actually received */
 
     ASSERT(stream != NULL);
+    ASSERT(stream->type != CHANNEL_UNKNOWN);
     ASSERT(stream->iobuf != NULL);
     ASSERT(stream->iobuf->wbuf != NULL);
     ASSERT(stream->handler != NULL);
@@ -215,10 +211,6 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
             status = CC_ERETRY;
         }
 
-        break;
-    case CHANNEL_UNKNOWN:
-        log_error("stream channel type unknown");
-        status = CC_ERROR;
         break;
 
     default:

@@ -1,4 +1,4 @@
-Having an abstraction over communication channels (TCP, UDP, Unix Domain Socket, file, shared memory....) can isolate higher level logic from details specific to the channel media and peculiarities. For example, decisions like whether retry is needed, when and how, or even possible, should be contained with the module that understands the channels. Higher level logic only needs to know three responses: successed, delayed, aborted, which correspond to three follow-up actions: proceed, wait, abort.
+Having an abstraction over communication channels (TCP, UDP, Unix Domain Socket, file, shared memory....) can isolate higher level logic from details specific to the channel media and peculiarities. For example, decisions like whether retry is needed, when and how, or even possible, should be contained with the module that understands the channels. Higher level logic only needs to know three responses: succeeded, delayed (retry needed), aborted, which correspond to three follow-up actions: proceed, wait, abort.
 
 In the context of cache backends, there's some fundamental asymmetry in the interfaces for input and output.
 
