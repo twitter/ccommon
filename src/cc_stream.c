@@ -112,6 +112,8 @@ msg_recv(struct stream *stream, size_t nbyte)
             }
         } else if (n == nbyte) {
             status = CC_ERETRY;
+        } else {
+            status = CC_OK;
         }
 
         break;
@@ -209,6 +211,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
 
         if (n < content) {
             status = CC_ERETRY;
+        } else {
+            status = CC_OK;
         }
 
         break;
