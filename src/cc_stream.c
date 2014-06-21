@@ -33,8 +33,7 @@
 #endif
 
 /* recv nbyte at most and store it in rbuf associated with the stream.
- * Uses at most the next CC_IOV_MAX segments/mbufs. Stream buffer must provide
- * enough capacity, otherwise CC_NOMEM is returned.
+ * Stream buffer must provide enough capacity, otherwise CC_NOMEM is returned.
  * callback pre_recv, if not NULL, is called before receiving data
  * callback pos_recv, if not NULL, is called after receiving data
  *
@@ -46,50 +45,29 @@ rstatus_t
 msg_recv(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
+    struct conn *c = NULL;
     rstatus_t status;
-    struct array recvv;
-    struct iovec *ciov, iov[CC_IOV_MAX];
-    struct mbuf *mbuf, *nbuf;
-    struct mq *rbuf;
     size_t capacity;
     ssize_t n = 0; /* bytes actually received */
 
     ASSERT(stream != NULL);
     ASSERT(stream->type != CHANNEL_UNKNOWN);
-    ASSERT(stream->iobuf != NULL);
-    ASSERT(stream->iobuf->rbuf != NULL);
+    ASSERT(stream->rbuf != NULL);
     ASSERT(stream->handler != NULL);
     ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
 
-    rbuf = stream->iobuf->rbuf;
     handler = stream->handler;
 
+    /* rbuf shouldn't be deallocated after this, do we need an assert below? */
     if (handler->pre_recv != NULL) {
         handler->pre_recv(stream, nbyte);
     }
 
-    /* build the iov array from rbuf, include enough mbufs to fit nbyte  */
-    array_data_assign(&recvv, CC_IOV_MAX, sizeof(iov[0]), iov);
-    for (mbuf = STAILQ_FIRST(rbuf), capacity = 0;
-         mbuf != NULL && capacity < nbyte && array_nelem(&recvv) < CC_IOV_MAX;
-         mbuf = nbuf) {
-        nbuf = STAILQ_NEXT(mbuf, next);
-
-        if (mbuf_full(mbuf)) {
-            continue;
-        }
-
-        ciov = array_push(&recvv);
-        ciov->iov_base = mbuf->wpos;
-        ciov->iov_len = MIN(mbuf_wsize(mbuf), nbyte - capacity);
-
-        capacity += ciov->iov_len;
-    }
-
+    capacity = mbuf_wsize(stream->rbuf);
     if (capacity < nbyte) {
-        log_debug(LOG_VERB, "not enough capacity in rbuf at %p: nbyte %zu, "
-                "capacity %zu, array nelem %"PRIu32, rbuf, nbyte, capacity,
-                array_nelem(&recvv));
+        log_debug(LOG_VERB, "not enough capacity in rbuf at %p of stream at %p:"
+                "nbyte %zu, write capacity %zu", stream->rbuf, stream, nbyte,
+                capacity);
 
         return CC_ENOMEM;
     }
@@ -97,7 +75,8 @@ msg_recv(struct stream *stream, size_t nbyte)
     /* receive based on channel type, and schedule retries if necessary */
     switch (stream->type) {
     case CHANNEL_TCP:   /* TCP socket */
-        n = conn_recvv(stream->channel, &recvv, nbyte);
+        c = stream->channel;
+        n = conn_recv(c, stream->rbuf->wpos, nbyte);
         if (n < 0) {
             if (n == CC_EAGAIN) {
                 log_debug(LOG_VERB, "recv on stream %p of type %d returns "
@@ -105,11 +84,23 @@ msg_recv(struct stream *stream, size_t nbyte)
 
                 status = CC_OK;
             } else {
+                c->handler->close(c);
+
                 log_debug(LOG_VERB, "recv on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
+                log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+                    stream, stream->type);
 
                 status = CC_ERROR;
             }
+        } else if (n == 0) {
+            /* temp solution, it doesn't work if we yield or in proxy mode */
+            c->handler->close(c);
+
+            log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+                    stream, stream->type);
+
+            status = CC_OK;
         } else if (n == nbyte) {
             status = CC_ERETRY;
         } else {
@@ -135,7 +126,6 @@ msg_recv(struct stream *stream, size_t nbyte)
 
 
 /* send nbyte at most from data stored in wbuf associated with the stream.
- * Uses at most the next CC_IOV_MAX segments/mbufs.
  * callback pre_send, if not NULL, is called before sending data
  * callback pos_send, if not NULL, is called after sending data
  *
@@ -146,48 +136,28 @@ msg_recv(struct stream *stream, size_t nbyte)
 rstatus_t msg_send(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
+    struct conn *c = NULL;
     rstatus_t status;
-    struct array sendv;
-    struct iovec *ciov, iov[CC_IOV_MAX];
-    struct mbuf *mbuf, *nbuf;
-    struct mq *wbuf;
     size_t content;
     ssize_t n = 0; /* bytes actually received */
 
     ASSERT(stream != NULL);
     ASSERT(stream->type != CHANNEL_UNKNOWN);
-    ASSERT(stream->iobuf != NULL);
-    ASSERT(stream->iobuf->wbuf != NULL);
+    ASSERT(stream->wbuf != NULL);
     ASSERT(stream->handler != NULL);
     ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
 
-    wbuf = stream->iobuf->wbuf;
     handler = stream->handler;
 
     if (handler->pre_send != NULL) {
         handler->pre_send(stream, nbyte);
     }
 
-    /* build the iov array from wbuf, include data available up to nbyte */
-    array_data_assign(&sendv, CC_IOV_MAX, sizeof(iov[0]), iov);
-    for (mbuf = STAILQ_FIRST(wbuf), content = 0;
-         mbuf != NULL && content < nbyte && array_nelem(&sendv) < CC_IOV_MAX;
-         mbuf = nbuf) {
-        nbuf = STAILQ_NEXT(mbuf, next);
-
-        if (mbuf_empty(mbuf)) {
-            continue;
-        }
-
-        ciov = array_push(&sendv);
-        ciov->iov_base = mbuf->rpos;
-        ciov->iov_len = MIN(mbuf_rsize(mbuf), nbyte - content);
-
-        content += ciov->iov_len;
-    }
+    content = mbuf_rsize(stream->wbuf);
 
     if (content == 0) {
-        log_debug(LOG_VERB, "no data to send in wbuf at %p", wbuf);
+        log_debug(LOG_VERB, "no data to send in wbuf at %p of stream %p",
+                stream->wbuf, stream);
 
         return CC_EEMPTY;
     }
@@ -195,7 +165,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     /* send based on channel type, and schedule retries if necessary */
     switch (stream->type) {
     case CHANNEL_TCP:   /* TCP socket */
-        n = conn_sendv(stream->channel, &sendv, content);
+        c = stream->channel;
+        n = conn_send(stream->channel, stream->wbuf->rpos, content);
 
         if (n < 0) {
             if (n == CC_EAGAIN) {
@@ -203,8 +174,13 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
                         "rescuable error: EAGAIN", stream, stream->type);
                 return CC_ERETRY;
             } else {
+                c->handler->close(c);
+
                 log_debug(LOG_VERB, "send on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
+                log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+                    stream, stream->type);
+
                 return CC_ERROR;
             }
         }

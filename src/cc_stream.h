@@ -64,14 +64,14 @@ typedef struct stream_handler {
     msg_handler_t post_send; /* callback after msg sent */
 } stream_handler_t;
 
-typedef struct stream_buf {
-    struct mq   *rbuf;
-    struct mq   *wbuf;
-} stream_buf_t;
-
 /* Note(yao): should we use function pointers for the underlying actions and
  * initialized them with the proper channel-specific version when we create the
  * stream? (FYI: This style is used by nanomsg.)
+ *
+ * we can also support using vector read and write, especially write, but that
+ * doesn't necessarily require a vector-ed write buffer (only the iov needs to
+ * know where each block of memory starts and ends). For write, the assmebly
+ * of that arry should happen outside of the stream module.
  */
 struct stream {
     void               *owner;     /* owner of the stream */
@@ -79,7 +79,8 @@ struct stream {
     channel_type_t     type;       /* type of the communication channels */
     channel_t          channel;    /* underlying bi-directional channels */
 
-    stream_buf_t       *iobuf;     /* data buffer */
+    struct mbuf        *rbuf;      /* read buffer */
+    struct mbuf        *wbuf;      /* write buffer */
     stream_handler_t   *handler;   /* stream handlers */
 };
 

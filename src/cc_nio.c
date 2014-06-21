@@ -70,7 +70,7 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
         if (n == 0) {
             conn->recv_ready = 0;
             conn->state = CONN_EOF;
-            log_debug(LOG_INFO, "recv on sd %d eof rb %zu sb %zu", conn->sd,
+            log_debug(LOG_INFO, "recv on sd %d eof rb  %zu sb %zu", conn->sd,
                       conn->recv_bytes, conn->send_bytes);
             return n;
         }
