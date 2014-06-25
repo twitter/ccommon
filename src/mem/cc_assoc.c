@@ -26,18 +26,18 @@ assoc_print_all(void)
     }
 }
 
-rstatus_t 
-assoc_init(void) 
+rstatus_t
+assoc_init(void)
 {
     head = NULL;
     return CC_OK;
 }
 
-void 
+void
 assoc_deinit(void)
 {
     struct node *next;
-    
+
     for(; head != NULL; head = next) {
 	next = head->next;
 	free(head);
@@ -60,7 +60,7 @@ static struct node *get_node(const char *key, size_t nkey) {
 
 struct item *assoc_find(const char *key, size_t nkey) {
     struct node *node = get_node(key, nkey);
-    
+
     if(node != NULL) {
 	return node->it;
     }
@@ -97,7 +97,7 @@ void assoc_delete(const char *key, size_t nkey) {
     if(node->prev != NULL) {
 	node->prev->next = node->next;
     }
-    
+
     if(node->next != NULL) {
 	node->next->prev = node->prev;
     }

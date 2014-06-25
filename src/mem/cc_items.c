@@ -127,7 +127,7 @@ item_2_slab(struct item *it)
 /*
  * With the current system, the refcount for each slab might not be completely
  * accurate, since if there are 2 items chained in the same slab, the number of
- * references to the slab increases twice when the item is referenced once. 
+ * references to the slab increases twice when the item is referenced once.
  * However, this should not cause any issues as of right now, since we only use
  * refcount to see if anybody is using the slab.
  */
@@ -157,7 +157,7 @@ item_release_refcount(struct item *it)
     /*assert(pthread_mutex_trylock(&cache_lock) != 0);*/
     assert(it->magic == ITEM_MAGIC);
     assert(it->refcount > 0);
-    
+
     it->refcount--;
 
     for(; it != NULL; it = it->next_node) {
@@ -205,7 +205,7 @@ item_free(struct item *it)
 
 	assert(!item_is_linked(prev));
 	assert(!item_is_slabbed(prev));
-	assert(prev->refcount == 0);	
+	assert(prev->refcount == 0);
 
 	/* Free prev */
 	prev->flags &= ~ITEM_CHAINED;
@@ -233,7 +233,7 @@ item_reuse(struct item *it)
 {
     struct item *prev;
     struct slab *evicted = item_2_slab(it);
-    
+
     /*assert(pthread_mutex_trylock(&cache_lock) != 0);*/
     assert(it->magic == ITEM_MAGIC);
     assert(!item_is_slabbed(it));
@@ -275,8 +275,8 @@ uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
 }
 
 /*
- * Allocate an item. We allocate an item by consuming the next free item from 
- * the item's slab class. 
+ * Allocate an item. We allocate an item by consuming the next free item from
+ * the item's slab class.
  */
 
 static struct item *
@@ -290,7 +290,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     do {
 	/* Get slab id based on nbyte, and nkey if first node */
 	id = slab_id(item_ntotal(
-			 (it == NULL) ? nkey : 0, nbyte, 
+			 (it == NULL) ? nkey : 0, nbyte,
 			 (it == NULL) ? settings.use_cas : false));
 
 	/* If remaining data cannot fit into a single item, allocate the
@@ -303,15 +303,15 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
 	if(current_node == NULL) {
 	    /* Could not successfully allocate item(s) */
-	    fprintf(stderr, "server error on allocating item in slab %hhu\n", 
+	    fprintf(stderr, "server error on allocating item in slab %hhu\n",
 		    id);
 	    return NULL;
 	}
 
 	if(it == NULL) {
 	    it = current_node;
-	}	
-	
+	}
+
 	assert(current_node->id == id);
 	assert(!item_is_linked(current_node));
 	assert(!item_is_slabbed(current_node));
@@ -324,9 +324,9 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	   for this after the loop finishes */
 	current_node->flags |= ITEM_CHAINED;
 	current_node->head = it;
-	
+
 	current_node->dataflags = dataflags;
-	current_node->exptime = exptime;	
+	current_node->exptime = exptime;
 
 	if(current_node == it) {
 	    /* If this is the first node in the chain */
@@ -340,8 +340,8 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
 	/* Set nbyte equal to either the number of bytes left or the number
 	   of bytes that can fit in the item, whichever is less */
-	current_node->nbyte = 
-	    (nbyte < slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1) ? 
+	current_node->nbyte =
+	    (nbyte < slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1) ?
 	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1;
 
 	nbyte -= current_node->nbyte;
@@ -352,7 +352,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	}
 	prev_node = current_node;
     } while(nbyte != 0);
-   
+
     item_acquire_refcount(it);
 
     if(it->next_node == NULL) {
@@ -396,7 +396,7 @@ item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
 }
 
 /*
- * Link an item into the hash table. In the case of a chained item, only the 
+ * Link an item into the hash table. In the case of a chained item, only the
  * head gets linked.
  */
 static void
@@ -429,7 +429,7 @@ _item_unlink(struct item *it)
     assert(it->head == it);
 
     fprintf(stderr, "unlink item %s at offset %u with flags %hhu id %hhu\n",
-	    item_key(it), it->offset, it->flags, it->id);    
+	    item_key(it), it->offset, it->flags, it->id);
 
     if (item_is_linked(it)) {
         it->flags &= ~ITEM_LINKED;
@@ -532,7 +532,7 @@ _item_get(const char *key, size_t nkey)
         _item_unlink(it);
 	fprintf(stderr, "item %s nuked\n", key);
         return NULL;
-    }    
+    }
 
     item_acquire_refcount(it);
 
@@ -612,7 +612,7 @@ _item_cas(struct item *it)
 
     /* oit is not NULL, some item was found */
     if (item_get_cas(it) != item_get_cas(oit)) {
-	fprintf(stderr, "cas mismatch %llu != %llu on item %s\n", 
+	fprintf(stderr, "cas mismatch %llu != %llu on item %s\n",
 		item_get_cas(oit), item_get_cas(it), item_key(it));
 	_item_remove(oit);
 	return CAS_EXISTS;
@@ -727,7 +727,7 @@ item_tail(struct item *it)
 {
     assert(it != NULL);
     for(; it->next_node != NULL; it = it->next_node);
-    return it; 
+    return it;
 }
 
 static item_annex_result_t
@@ -740,7 +740,7 @@ _item_append(struct item *it)
 
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
-    }   
+    }
     assert(it->next_node == NULL);
 
     key = item_key(it);
@@ -772,7 +772,7 @@ _item_append(struct item *it)
 	/* oit refcount must be decremented */
     } else {
 	/* Append command where a new item needs to be allocated */
-	nit = _item_alloc(item_key(oit_tail), oit_tail->nkey, 
+	nit = _item_alloc(item_key(oit_tail), oit_tail->nkey,
 			  oit->dataflags, oit->exptime, total_nbyte);
 
 	if(nit == NULL) {
@@ -784,11 +784,11 @@ _item_append(struct item *it)
 	   first node should be able to contain at least all of oit's tail
 	   node */
 	memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
-	
+
 	if(!item_is_chained(nit)) {
 	    /* Only one additional node was allocated, so the entirety of
 	       it should be able to fit in the remainder of nit */
-	    memcpy(item_data(nit) + oit_tail->nbyte, item_data(it), 
+	    memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   it->nbyte);
 	} else {
 	    /* One node was not enough, so nit contains 2 nodes. */
@@ -798,7 +798,7 @@ _item_append(struct item *it)
 	       then the second */
 	    uint32_t nit_amount_copied = slab_item_size(nit->id)
 		- ITEM_HDR_SIZE - oit_tail->nbyte - oit_tail->nkey - 1;
-		
+
 	    memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   nit_amount_copied);
 
@@ -806,7 +806,7 @@ _item_append(struct item *it)
 	    memcpy(item_data(nit->next_node), item_data(it) + nit_amount_copied,
 		   it->nbyte - nit_amount_copied);
 	}
-	    
+
 	if(!item_is_chained(oit)) {
 	    _item_relink(oit, nit);
 	    /* Both oit and nit should have refcount decremented */
@@ -821,7 +821,7 @@ _item_append(struct item *it)
 	    nit->flags &= ~ITEM_RALIGN;
 
 	    /* set nit_prev to the second to last node of the oit chain */
-	    for(nit_prev = oit; nit_prev->next_node->next_node != NULL; 
+	    for(nit_prev = oit; nit_prev->next_node->next_node != NULL;
 		nit_prev = nit_prev->next_node);
 
 	    /* make nit the new tail of oit */
@@ -843,7 +843,7 @@ _item_append(struct item *it)
 
     fprintf(stderr, "annex successfully to item %s, new id %hhu\n",
 	    item_key(oit), nid);
-    
+
     if(oit != NULL) {
 	fprintf(stderr, "removing oit\n");
 	_item_remove(oit);
@@ -864,7 +864,7 @@ item_append(struct item *it)
 }
 
 static item_annex_result_t
-_item_prepend(struct item *it) 
+_item_prepend(struct item *it)
 {
     char *key;
     struct item *oit, *nit = NULL;
@@ -873,7 +873,7 @@ _item_prepend(struct item *it)
 
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
-    }  
+    }
     assert(it->next_node == NULL);
 
     key = item_key(it);
@@ -886,9 +886,9 @@ _item_prepend(struct item *it)
 
     total_nbyte = oit->nbyte + it->nbyte;
     nid = item_slabid(oit->nkey, total_nbyte);
-	
+
     if(nid == oit->id && item_is_raligned(oit)) {
-	/* oit head is raligned, and can contain the new data. Simply 
+	/* oit head is raligned, and can contain the new data. Simply
 	   prepend the data at the beginning of oit, not needing to
 	   allocate more space. */
 	memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
@@ -905,7 +905,7 @@ _item_prepend(struct item *it)
 	}
 
 	assert(nit->next_node == NULL);
-	    
+
 	/* Right align nit, copy over data */
 	nit->flags |= ITEM_RALIGN;
 	memcpy(item_data(nit), item_data(it), it->nbyte);
@@ -919,7 +919,7 @@ _item_prepend(struct item *it)
 	_item_relink(oit, nit);
     } else {
 	/* One node is not enough to contain original data + new data. First
-	   allocate a node with id slabclass_max_id then another smaller 
+	   allocate a node with id slabclass_max_id then another smaller
 	   node to contain the head */
 	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
 			  oit->exptime, total_nbyte);
@@ -930,26 +930,26 @@ _item_prepend(struct item *it)
 	}
 
 	assert(nit->next_node->next_node == NULL);
-	    
+
 	if(nit->next_node->nbyte < oit->nbyte) {
-	    /* nit->next cannot contain all of oit; copy the last 
+	    /* nit->next cannot contain all of oit; copy the last
 	       nit->next->nbyte bytes of oit to nit->next */
-	    memcpy(item_data(nit->next_node), item_data(oit) + oit->nbyte - 
+	    memcpy(item_data(nit->next_node), item_data(oit) + oit->nbyte -
 		   nit->next_node->nbyte, nit->next_node->nbyte);
-		
+
 	    /* copy the rest to nit */
 	    memcpy(item_data(nit), item_data(it), it->nbyte);
 	    memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte -
 		   nit->next_node->nbyte);
 	} else {
-	    /* nit->next can contain all of oit; copy all of oit into 
+	    /* nit->next can contain all of oit; copy all of oit into
 	       nit->next, along with as much of it as will fit */
 	    memcpy(item_data(nit->next_node), item_data(it) + nit->nbyte,
 		   it->nbyte - nit->nbyte);
-	    memcpy(item_data(nit->next_node) + it->nbyte - nit->nbyte, 
+	    memcpy(item_data(nit->next_node) + it->nbyte - nit->nbyte,
 		   item_data(oit), oit->nbyte);
-		
-	    memcpy(item_data(nit), item_data(it), nit->nbyte);      	
+
+	    memcpy(item_data(nit), item_data(it), nit->nbyte);
 	}
 
 	nit->next_node->next_node = oit->next_node;
@@ -960,7 +960,7 @@ _item_prepend(struct item *it)
     }
 
     fprintf(stderr, "annex successfully to item %s\n", item_key(oit));
-    
+
     if(oit != NULL) {
 	_item_remove(oit);
     }
@@ -969,7 +969,7 @@ _item_prepend(struct item *it)
 	_item_remove(nit);
     }
 
-    return ANNEX_OK;    
+    return ANNEX_OK;
 }
 
 item_annex_result_t
@@ -1091,7 +1091,7 @@ item_total_nbyte(struct item *it) {
     uint32_t nbyte = 0;
 
     assert(it->head == it);
-    
+
     for(; it != NULL; it = it->next_node) {
 	nbyte += it->nbyte;
     }

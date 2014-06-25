@@ -15,7 +15,7 @@ static struct item *create_item(void *key, uint8_t nkey, void *val, uint32_t nva
 static void check_annex_status(item_annex_result_t ret);
 static void check_delta_status(item_delta_result_t ret);
 
-void 
+void
 store_key_val(void *key, uint8_t nkey, void *val, uint32_t nval)
 {
     struct item *new_item = create_item(key, nkey, val, nval);
@@ -48,12 +48,12 @@ replace_key_val(void *key, uint8_t nkey, void *val, uint32_t nval)
     item_remove(new_item);
 }
 
-void 
+void
 append_val(void *key, uint8_t nkey, void *val, uint32_t nval)
 {
     struct item *it = create_item(key, nkey, val, nval);
 
-    check_annex_status(item_append(it));  
+    check_annex_status(item_append(it));
 
     item_remove(it);
 }
@@ -128,7 +128,7 @@ delete_key_val(void *key, uint8_t nkey)
  * Creates an item and initializes its data with val.
  */
 static struct item *
-create_item(void *key, uint8_t nkey, void *val, uint32_t nval) 
+create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 {
     struct item *ret, *iter;
     uint32_t amt_copied = 0;
@@ -173,5 +173,5 @@ check_delta_status(item_delta_result_t ret)
     } else if(ret == DELTA_EOM) {
 	printf("Not enough memory for that!\n");
     }
-	
+
 }

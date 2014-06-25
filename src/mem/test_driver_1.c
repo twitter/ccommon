@@ -16,7 +16,7 @@ init_settings(void) {
     settings.use_freeq = true;
     settings.use_cas = false;
     settings.maxbytes = 8448;
-    settings.slab_size = 1056;  
+    settings.slab_size = 1056;
     settings.profile[1] = 128;
     settings.profile[2] = 256;
     settings.profile[3] = 512;
@@ -25,8 +25,8 @@ init_settings(void) {
     settings.oldest_live = 6000;
 }
 
-int 
-main(void) 
+int
+main(void)
 {
     rstatus_t return_status;
     char *val, *buf;
@@ -37,7 +37,7 @@ main(void)
 
     return_status = assoc_init();
     if(return_status != CC_OK) {
-	fprintf(stderr, "fatal: assoc_init failed! error code %d\n", 
+	fprintf(stderr, "fatal: assoc_init failed! error code %d\n",
 		return_status);
 	return 1;
     }
@@ -63,7 +63,7 @@ main(void)
     printf("foobar val: %s\n", val);
     assert(strcmp(val, "foobarfoobar") == 0);
     free(val);
-    
+
     /* Replace value for key foobar (should go through, since foobar is already
        in the server) */
     printf("@@@ Replacing value for key foobar @@@\n");
@@ -89,7 +89,7 @@ main(void)
     val = get_val("baz", 3);
     assert(val == NULL);
 
-    /* Add value for key baz (should go through, since baz is not yet in the 
+    /* Add value for key baz (should go through, since baz is not yet in the
        server) */
     printf("@@@ Adding value for key baz @@@\n");
     add_key_val("baz", 3, "qux", 3);
@@ -140,7 +140,7 @@ main(void)
     assert(strcmp(val, "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooofoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarfoobarbazqux") == 0);
     free(val);
 
-    /* Append value to key foo that is already chained and will require 
+    /* Append value to key foo that is already chained and will require
        rechaining */
     printf("@@@ Appending value to key foo that is already chained and will require rechaining @@@\n");
     append_val("foo", 3, buf, 940);

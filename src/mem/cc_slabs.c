@@ -71,14 +71,14 @@ slab_print(void)
     struct slabclass *p;
 
     printf("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
-	   "total memory: %zu\n\n", settings.slab_size, SLAB_HDR_SIZE, 
+	   "total memory: %zu\n\n", settings.slab_size, SLAB_HDR_SIZE,
 	   ITEM_HDR_SIZE, settings.maxbytes);
 
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
         p = &slabclass[id];
 
 	printf("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n\n",
-	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE, 
+	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE,
 	       slab_size() - p->nitem * p->size);
     }
 }
@@ -557,7 +557,7 @@ slab_get(uint8_t id)
         return CC_OK;
     }
 
-    return CC_ENOMEM;    
+    return CC_ENOMEM;
 }
 
 /*
@@ -631,7 +631,7 @@ _slab_get_item(uint8_t id)
 
     it->magic = ITEM_MAGIC;
 
-    fprintf(stderr, "get new item at offset %u with id %hhu\n", it->offset, 
+    fprintf(stderr, "get new item at offset %u with id %hhu\n", it->offset,
 	    it->id);
 
     return it;

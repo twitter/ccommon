@@ -5,7 +5,7 @@
 
 /*
  * This interface module provides a way to interact with the cache to store
- * and retrieve key/value pairs. 
+ * and retrieve key/value pairs.
  */
 
 /*
@@ -14,7 +14,7 @@
 void store_key_val(void *key, uint8_t nkey, void *val, uint32_t nval);
 
 /*
- * Store the key value pair, but only if the server does not already hold data 
+ * Store the key value pair, but only if the server does not already hold data
  * for that key.
  */
 void add_key_val(void *key, uint8_t nkey, void *val, uint32_t nval);
@@ -32,7 +32,7 @@ void append_val(void *key, uint8_t nkey, void *val, uint32_t nval);
 
 
 /*
- * Prepends val to the end of the item with the corresponding key 
+ * Prepends val to the end of the item with the corresponding key
  */
 void prepend_val(void *key, uint8_t nkey, void *val, uint32_t nval);
 

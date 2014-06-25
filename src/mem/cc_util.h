@@ -18,4 +18,4 @@ typedef int rstatus_t; /* return type */
 
 bool mc_strtoull_len(const char *str, uint64_t *out, size_t len);
 
-#endif 
+#endif

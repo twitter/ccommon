@@ -121,7 +121,7 @@ typedef enum item_delta_result {
 struct item {
     uint32_t          magic;      /* item magic (const) */
     TAILQ_ENTRY(item) i_tqe;      /* link in the free q */
-    SLIST_ENTRY(item) h_sle;      /* link in hash */    
+    SLIST_ENTRY(item) h_sle;      /* link in hash */
     rel_time_t        atime;      /* last access time in secs */
     rel_time_t        exptime;    /* expiry time in secs */
     uint32_t          nbyte;      /* data size */
