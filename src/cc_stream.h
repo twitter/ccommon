@@ -82,6 +82,8 @@ struct stream {
     struct mbuf        *rbuf;      /* read buffer */
     struct mbuf        *wbuf;      /* write buffer */
     stream_handler_t   *handler;   /* stream handlers */
+
+    void               *data;      /* stream data: e.g. request queue */
 };
 
 /* channel/medium agnostic data IO */
