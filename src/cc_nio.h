@@ -16,7 +16,7 @@
  */
 
 #ifndef __CC_NIO_H_
-#define __cc_NIO_H_
+#define __CC_NIO_H_
 
 #include <unistd.h>
 #include <sys/socket.h>

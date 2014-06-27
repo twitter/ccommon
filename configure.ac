@@ -26,9 +26,6 @@ AM_INIT_AUTOMAKE([1.10 check-news no-define foreign silent-rules subdir-objects
                   -Wall -Werror])
 AM_SILENT_RULES([yes])
 
-# Initialize libtool
-LT_INIT
-
 # Set library release and version numbers
 AC_SUBST([CCOMMON_RELEASE_VERSION], [CC_MAJOR.CC_MINOR])
 AC_SUBST([CCOMMON_SO_VERSION], [CC_INTERFACE:CC_REVISION:CC_AGE])
@@ -40,6 +37,9 @@ AC_LANG([C])
 AC_PROG_CC
 AC_PROG_MAKE_SET
 AM_PROG_AR
+
+# Initialize libtool
+LT_INIT
 
 # Checks for typedefs, structures, and compiler characteristics
 AC_C_INLINE

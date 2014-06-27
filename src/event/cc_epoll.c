@@ -19,12 +19,17 @@
 
 #ifdef CC_HAVE_EPOLL
 
+#include <string.h>
 #include <unistd.h>
 #include <sys/epoll.h>
+#include <sys/errno.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
+#include <cc_mm.h>
 #include <cc_nio.h>
+
+#include <cc_event.h>
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
@@ -96,7 +101,7 @@ event_base_destroy(struct event_base *evb)
  * create a timed event with event base function and timeout (in millisecond)
  */
 int
-event_wait(struct event_base *evb, int timeout)
+event_time_wait(struct event_base *evb, int timeout)
 {
     int ep = evb->ep;
     struct epoll_event *event = evb->event;
