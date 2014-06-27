@@ -15,9 +15,19 @@
  * limitations under the License.
  */
 
+#include <cc_define.h>
+
 #ifdef CC_HAVE_KQUEUE
 
+#include <string.h>
 #include <sys/event.h>
+#include <sys/errno.h>
+
+#include <cc_debug.h>
+#include <cc_log.h>
+#include <cc_mm.h>
+
+#include <cc_event.h>
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
@@ -101,144 +111,9 @@ event_base_destroy(struct event_base *evb)
     cc_free(evb);
 }
 
-int
-event_add_in(struct event_base *evb, struct conn *c)
-{
-    struct kevent *event;
-
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(evb->nchange < evb->nevent);
-
-    if (c->recv_active) {
-        return 0;
-    }
-
-    event = &evb->change[evb->nchange++];
-    EV_SET(event, c->sd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, c);
-
-    c->recv_active = 1;
-
-    return 0;
-}
 
 int
-event_del_in(struct event_base *evb, struct conn *c)
-{
-    struct kevent *event;
-
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(evb->nchange < evb->nevent);
-
-    if (!c->recv_active) {
-        return 0;
-    }
-
-    event = &evb->change[evb->nchange++];
-    EV_SET(event, c->sd, EVFILT_READ, EV_DELETE, 0, 0, c);
-
-    c->recv_active = 0;
-
-    return 0;
-}
-
-int
-event_add_out(struct event_base *evb, struct conn *c)
-{
-    struct kevent *event;
-
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(c->recv_active);
-    ASSERT(evb->nchange < evb->nevent);
-
-    if (c->send_active) {
-        return 0;
-    }
-
-    event = &evb->change[evb->nchange++];
-    EV_SET(event, c->sd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, c);
-
-    c->send_active = 1;
-
-    return 0;
-}
-
-int
-event_del_out(struct event_base *evb, struct conn *c)
-{
-    struct kevent *event;
-
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(c->recv_active);
-    ASSERT(evb->nchange < evb->nevent);
-
-    if (!c->send_active) {
-        return 0;
-    }
-
-    event = &evb->change[evb->nchange++];
-    EV_SET(event, c->sd, EVFILT_WRITE, EV_DELETE, 0, 0, c);
-
-    c->send_active = 0;
-
-    return 0;
-}
-
-int
-event_add_conn(struct event_base *evb, struct conn *c)
-{
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(!c->recv_active);
-    ASSERT(!c->send_active);
-    ASSERT(evb->nchange < evb->nevent);
-
-    event_add_in(evb, c);
-    event_add_out(evb, c);
-
-    return 0;
-}
-
-int
-event_del_conn(struct event_base *evb, struct conn *c)
-{
-    int i;
-
-    ASSERT(evb->kq > 0);
-    ASSERT(c != NULL);
-    ASSERT(c->sd > 0);
-    ASSERT(evb->nchange < evb->nevent);
-
-    event_del_out(evb, c);
-    event_del_in(evb, c);
-
-    /*
-     * Now, eliminate pending events for c->sd (there should be at most one
-     * other event). This is important because we will close c->sd and free
-     * c when we return.
-     */
-    for (i = evb->nprocessed + 1; i < evb->nreturned; i++) {
-        struct kevent *ev = &evb->event[i];
-        if (ev->ident == (uintptr_t)c->sd) {
-            ev->flags = 0;
-            ev->filter = 0;
-            break;
-        }
-    }
-
-    return 0;
-}
-
-int
-event_wait(struct event_base *evb, int timeout)
+event_time_wait(struct event_base *evb, int timeout)
 {
     int kq = evb->kq;
     struct timespec ts, *tsp;
