@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include <cc_define.h>
+
 #ifdef CC_HAVE_EPOLL
 
 #include <unistd.h>

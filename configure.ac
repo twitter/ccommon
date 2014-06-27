@@ -39,6 +39,7 @@ AC_LANG([C])
 # Checks for programs
 AC_PROG_CC
 AC_PROG_MAKE_SET
+AM_PROG_AR
 
 # Checks for typedefs, structures, and compiler characteristics
 AC_C_INLINE

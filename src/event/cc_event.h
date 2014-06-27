@@ -18,6 +18,7 @@
 #ifndef _CC_EVENT_H_
 #define _CC_EVENT_H_
 
+#include <cc_define.h>
 #include <cc_nio.h>
 
 #define EVENT_SIZE  1024
