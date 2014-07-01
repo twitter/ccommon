@@ -165,6 +165,14 @@ AS_CASE([x$enable_debug],
   [AC_MSG_FAILURE([invalid value ${enable_debug} for --enable-debug])])
 AC_MSG_RESULT([$enable_debug])
 
+# Check if we're a little-endian or a big-endian system
+AC_C_BIGENDIAN(
+  [AC_DEFINE(HAVE_BIG_ENDIAN, 1, [Define to 1 if machine is big endian])],
+  [AC_DEFINE(HAVE_LITTLE_ENDIAN, 1, [Define to 1 if machine is little endian])],
+  [AC_MSG_ERROR([endianess of this machine is unknown])],
+  [AC_MSG_ERROR([universial endianess not supported])]
+)
+
 # Define Makefiles
 AC_CONFIG_FILES([Makefile
                  src/Makefile

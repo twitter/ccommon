@@ -1,6 +1,6 @@
 #include "cc_interface.h"
 #include "cc_settings.h"
-#include "cc_assoc.h"
+#include "cc_hash_table.h"
 #include "cc_slabs.h"
 
 #include <assert.h>
@@ -35,9 +35,9 @@ main(void)
     time_init();
     item_init();
 
-    return_status = assoc_init();
+    return_status = hash_table_init();
     if(return_status != CC_OK) {
-	fprintf(stderr, "fatal: assoc_init failed! error code %d\n",
+	fprintf(stderr, "fatal: hash_table_init failed! error code %d\n",
 		return_status);
 	return 1;
     }

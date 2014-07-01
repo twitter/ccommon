@@ -1,41 +1,30 @@
 /*
- * twemcache - Twitter memcached.
- * Copyright (c) 2012, Twitter, Inc.
- * All rights reserved.
+ * ccommon - a cache common library.
+ * Copyright (C) 2013 Twitter, Inc.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * * Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- * * Neither the name of the Twitter nor the names of its contributors
- *   may be used to endorse or promote products derived from this software
- *   without specific prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL TWITTER, INC. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #ifndef _CC_ITEMS_H_
 #define _CC_ITEMS_H_
 
-#include "cc_queue.h"
-#include "cc_time.h"
+#include <mem/cc_queue.h>
+#include <mem/cc_time.h>
+#include <cc_debug.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <assert.h>
 
 typedef enum item_flags {
     ITEM_LINKED  = 1,  /* item in hash */
@@ -45,6 +34,9 @@ typedef enum item_flags {
     ITEM_CHAINED = 16, /* item is chained */
 } item_flags_t;
 
+/*
+ * Item operation return types
+ */
 typedef enum item_set_result {
     SET_OK
 } item_set_result_t;
@@ -85,7 +77,7 @@ typedef enum item_delta_result {
 } item_delta_result_t;
 
 /*
- * Every item chunk in the twemcache starts with an header (struct item)
+ * Every item chunk in the cache starts with an header (struct item)
  * followed by item data. An item is essentially a chunk of memory
  * carved out of a slab. Every item is owned by its parent slab
  *
@@ -169,6 +161,9 @@ TAILQ_HEAD(item_tqh, item);
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
 
+/*
+ * Item flag getters
+ */
 static inline bool
 item_has_cas(struct item *it) {
     return (it->flags & ITEM_CAS);
@@ -194,10 +189,13 @@ item_is_chained(struct item *it) {
     return (it->flags & ITEM_CHAINED);
 }
 
+/*
+ * Item CAS operations
+ */
 static inline uint64_t
 item_get_cas(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
+    ASSERT(it->magic == ITEM_MAGIC);
 
     if (item_has_cas(it)) {
         return *((uint64_t *)it->end);
@@ -209,7 +207,7 @@ item_get_cas(struct item *it)
 static inline void
 item_set_cas(struct item *it, uint64_t cas)
 {
-    assert(it->magic == ITEM_MAGIC);
+    ASSERT(it->magic == ITEM_MAGIC);
 
     if (item_has_cas(it)) {
         *((uint64_t *)it->end) = cas;
@@ -220,12 +218,15 @@ item_set_cas(struct item *it, uint64_t cas)
 #pragma GCC diagnostic pop
 #endif
 
+/*
+ * Get the location of the item's key
+ */
 static inline char *
 item_key(struct item *it)
 {
     char *key;
 
-    assert(it->magic == ITEM_MAGIC);
+    ASSERT(it->magic == ITEM_MAGIC);
 
     key = it->end;
     if (item_has_cas(it)) {
@@ -235,6 +236,9 @@ item_key(struct item *it)
     return key;
 }
 
+/*
+ * Get the total size of an item given key size, data size, and cas
+ */
 static inline size_t
 item_ntotal(uint8_t nkey, uint32_t nbyte, bool use_cas)
 {
@@ -246,42 +250,77 @@ item_ntotal(uint8_t nkey, uint32_t nbyte, bool use_cas)
     return ntotal;
 }
 
+/*
+ * Get the size of the item (header + key + data)
+ */
 static inline size_t
 item_size(struct item *it)
 {
-
-    assert(it->magic == ITEM_MAGIC);
+    ASSERT(it->magic == ITEM_MAGIC);
 
     return item_ntotal(it->nkey, it->nbyte, item_has_cas(it));
 }
 
+/*
+ * Initialize/deinitialize item related facilities
+ */
 void item_init(void);
 void item_deinit(void);
 
+/* Get location of item payload */
 char * item_data(struct item *it);
+
+/* Get the slab that this item belongs to */
 struct slab *item_2_slab(struct item *it);
 
+/* Initialize the header of an item */
 void item_hdr_init(struct item *it, uint32_t offset, uint8_t id);
 
+/* Get the slab id required for an item with key size nkey and data size nbyte */
 uint8_t item_slabid(uint8_t nkey, uint32_t nbyte);
+
+/* Allocate an item with the given parameters */
 struct item *item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t exptime, uint32_t nbyte);
 
+/* Make an item with zero refcount available for reuse. Frees all nodes in
+   different slabs, and opens up nodes in provided node's slabs for reuse. */
 void item_reuse(struct item *it);
 
+/* Decrement the refcount on an item; frees item if it is unlinked and its
+   refcount drops to zero */
 void item_remove(struct item *it);
-void item_touch(struct item *it);
 
+/* Get linked item with given key */
 struct item *item_get(const char *key, size_t nkey);
 
+/* Links an item into the hash table; if one already exists with the same key,
+   the new item replaces the old one. */
 void item_set(struct item *it);
+
+/* Check-and-set; if the item has not been updated since the client last fetched
+   it, then it is replaced. */
 item_cas_result_t item_cas(struct item *it);
+
+/* Store this item, but only if the server does not already hold data for this
+   key. */
 item_add_result_t item_add(struct item *it);
+
+/* Store this item, but only if the server already holds data for this key */
 item_replace_result_t item_replace(struct item *it);
+
+/* Append given item's data onto end of linked item's data */
 item_annex_result_t item_append(struct item *it);
+
+/* Prepend given item's data at beginning of linked item's data */
 item_annex_result_t item_prepend(struct item *it);
+
+/* Perform increment/decrement operation on item with given key */
 item_delta_result_t item_delta(char *key, size_t nkey, bool incr, uint64_t delta);
+
+/* Unlink an item. Removes it if its refcount drops to zero. */
 item_delete_result_t item_delete(char *key, size_t nkey);
 
-uint32_t item_total_nbyte(struct item *it);
+/* Get total data size of item (sum of nbyte for all nodes) */
+uint64_t item_total_nbyte(struct item *it);
 
 #endif

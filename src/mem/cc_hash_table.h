@@ -15,24 +15,28 @@
  * limitations under the License.
  */
 
-#ifndef _CC_TIME_H_
-#define _CC_TIME_H_
+#ifndef _CC_HASH_TABLE_H_
+#define _CC_HASH_TABLE_H_
 
-#include <sys/time.h>
+#include <cc_define.h>
+#include <stdlib.h>
 
-/*
- * Time relative to server start time in seconds.
- *
- * On systems where size(time_t) > sizeof(unsigned int), this gives
- * us space savings over tracking absolute unix time of type time_t
- */
-typedef unsigned int rel_time_t;
+#define HASH_MAX_POWER  32
 
-void time_update(void);
-rel_time_t time_now(void);
-time_t time_now_abs(void);
-time_t time_started(void);
-rel_time_t time_reltime(time_t exptime);
-void time_init(void);
+/* Initialize hash table */
+rstatus_t hash_table_init(void);
 
-#endif
+/* Destroy hash table */
+void hash_table_deinit(void);
+
+
+/* Find the item associated with the given key */
+struct item *hash_table_find(const char *key, size_t nkey);
+
+/* Insert the item into the hash table */
+void hash_table_insert(struct item *it);
+
+/* Delete the item with the given key from the hash table */
+void hash_table_delete(const char *key, size_t nkey);
+
+#endif /* _CC_HASH_TABLE_H_ */

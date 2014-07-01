@@ -10,12 +10,13 @@ AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
-AM_CFLAGS += -fstrict-aliasing
+AM_CFLAGS += -fstrict-aliasing -flat_namespace
+AM_CPPFLAGS += -l $(top_srcdir)/src/mem
 
-AM_LDFLAGS = -rdynamic
+AM_LDFLAGS = -rdynamic -Wl -flat_namespace
 
 
-libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
+libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_array.c							\
 	cc_debug.c							\
 	cc_log.c							\
@@ -23,8 +24,15 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_mm.c								\
 	cc_nio.c							\
 	cc_string.c							\
-	event/cc_epoll.c					\
-	event/cc_kqueue.c
+	event/cc_epoll.c						\
+	event/cc_kqueue.c						\
+	mem/cc_hash_table.c						\
+	mem/cc_interface.c						\
+	mem/cc_items.c							\
+	mem/cc_settings.c						\
+	mem/cc_slabs.c							\
+	mem/cc_time.c							\
+	mem/cc_hash.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =		\
@@ -38,4 +46,12 @@ ccommon_include_HEADERS =		\
 	cc_string.h							\
 	cc_define.h							\
 	cc_util.h							\
-	event/cc_event.h
+	event/cc_event.h						\
+	mem/cc_hash_table.h						\
+	mem/cc_interface.h						\
+	mem/cc_items.h							\
+	mem/cc_queue.h							\
+	mem/cc_settings.h						\
+	mem/cc_slabs.h							\
+	mem/cc_time.h							\
+	mem/cc_hash.h

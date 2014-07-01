@@ -1,13 +1,31 @@
-#include "cc_interface.h"
+/*
+ * ccommon - a cache common library.
+ * Copyright (C) 2013 Twitter, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#include "cc_assoc.h"
-#include "cc_items.h"
-#include "cc_slabs.h"
-#include "cc_settings.h"
-#include "cc_time.h"
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mem/cc_interface.h>
+
+#include <mem/cc_hash_table.h>
+#include <mem/cc_items.h>
+#include <mem/cc_slabs.h>
+#include <mem/cc_settings.h>
+#include <mem/cc_time.h>
+#include <cc_debug.h>
+#include <cc_mm.h>
+#include <cc_log.h>
+
 #include <string.h>
 #include <limits.h>
 
@@ -30,7 +48,7 @@ add_key_val(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_add(new_item) == ADD_EXISTS) {
-	printf("server already holds data for that key, value not stored.\n");
+	log_stderr("Server already holds data for key %s, value not stored.\n", key);
     }
 
     item_remove(new_item);
@@ -42,7 +60,7 @@ replace_key_val(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_replace(new_item) == REPLACE_NOT_FOUND) {
-	printf("server does not hold data for that key, value not stored.\n");
+	log_stderr("Server does not hold data for key %s, value not stored\n", key);
     }
 
     item_remove(new_item);
@@ -94,23 +112,26 @@ get_val(void *key, uint8_t nkey)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	printf("No item with key %s!\n", key);
+	log_stderr("No item with key %s!\n", key);
 	return NULL;
     }
 
-    val = malloc(item_total_nbyte(it) + 1);
+    /* allocate buffer for value */
+    val = cc_alloc(item_total_nbyte(it) + 1);
     val[item_total_nbyte(it)] = '\0';
     if(val == NULL) {
-	printf("Not enough memory for that!\n");
+	log_stderr("Not enough memory to store val\n");
 	return NULL;
     }
 
+    /* copy value into buffer */
     for(iter = it; iter != NULL; iter = iter->next_node) {
 	memcpy(val + amt_copied, item_data(iter), iter->nbyte);
 	amt_copied += iter->nbyte;
     }
 
     item_remove(it);
+
     return val;
 }
 
@@ -118,9 +139,9 @@ void
 delete_key_val(void *key, uint8_t nkey)
 {
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
-	printf("No such key!\n");
+	log_stderr("key %s does not exist\n", key);
     } else {
-	printf("Item %s deleted\n", key);
+	log_stderr("Item %s deleted\n", key);
     }
 }
 
@@ -137,41 +158,47 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
        yet. */
     ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
     if(ret == NULL) {
-	printf("Not enough memory for that!\n");
+	log_stderr("Not enough memory to allocate item\n");
 	return NULL;
     }
 
+    /* Copy over data in val */
     for(iter = ret; iter != NULL; iter = iter->next_node) {
 	memcpy(item_data(iter), (char*)val + amt_copied, iter->nbyte);
 	amt_copied += iter->nbyte;
     }
 
-    assert(amt_copied == nval);
+    ASSERT(amt_copied == nval);
     return ret;
 }
 
+/*
+ * Handle append/prepend return value
+ */
 static void
 check_annex_status(item_annex_result_t ret)
 {
     if(ret == ANNEX_OVERSIZED) {
-	printf("Annex too large! Data to be annexed must be able to fit in one"
-	       " item.\n");
+	log_stderr("Annex operation too large; data to be annexed must be able "
+		   "to fit in one unchained item.\n");
     } else if(ret == ANNEX_NOT_FOUND) {
-	printf("No item with that key!\n");
+	log_stderr("Cannot annex: no item with that key found.\n");
     } else if(ret == ANNEX_EOM) {
-	printf("Not enough memory for that!\n");
+	log_stderr("Cannot annex: not enough memory.\n");
     }
 }
 
+/*
+ * Handle increment/decrement return value
+ */
 static void
 check_delta_status(item_delta_result_t ret)
 {
     if(ret == DELTA_NOT_FOUND) {
-	printf("No item with that key!\n");
+	log_stderr("Cannot perform delta operation: no item with that key found.\n");
     } else if(ret == DELTA_NON_NUMERIC) {
-	printf("Value is non numeric, cannot perform delta operation!\n");
+	log_stderr("Cannot perform delta operation: value is not numeric.\n");
     } else if(ret == DELTA_EOM) {
-	printf("Not enough memory for that!\n");
+	log_stderr("Cannot perform delta operation: not enough memory.\n");
     }
-
 }

@@ -1,45 +1,318 @@
 /*
- * twemcache - Twitter memcached.
- * Copyright (c) 2012, Twitter, Inc.
- * All rights reserved.
+ * ccommon - a cache common library.
+ * Copyright (C) 2013 Twitter, Inc.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * * Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- * * Neither the name of the Twitter nor the names of its contributors
- *   may be used to endorse or promote products derived from this software
- *   without specific prior written permission.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "cc_items.h"
 #include "cc_settings.h"
-#include "cc_assoc.h"
-#include "cc_util.h"
+#include "cc_hash_table.h"
+#include <cc_debug.h>
+#include <cc_log.h>
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-
-extern struct settings settings;
+#include <stdio.h>
+#include <ctype.h>
 
 /*pthread_mutex_t cache_lock;*/                     /* lock protecting lru q and hash */
 static uint64_t cas_id;                         /* unique cas id */
+
+static uint64_t item_next_cas(void);
+static bool item_expired(struct item *it);
+static void item_acquire_refcount(struct item *it);
+static void item_release_refcount(struct item *it);
+static void item_free(struct item *it);
+static struct item *item_tail(struct item *it);
+static void skip_space(const char **str, size_t *len);
+static bool strtoull_len(const char *str, uint64_t *out, size_t len);
+
+static struct item *_item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
+				rel_time_t exptime, uint32_t nbyte);
+static void _item_link(struct item *it);
+static void _item_unlink(struct item *it);
+static void _item_remove(struct item *it);
+static void _item_relink(struct item *it, struct item *nit);
+static struct item *_item_get(const char *key, size_t nkey);
+static void _item_set(struct item *it);
+static item_cas_result_t _item_cas(struct item *it);
+static item_add_result_t _item_add(struct item *it);
+static item_replace_result_t _item_replace(struct item *it);
+static item_annex_result_t _item_append(struct item *it);
+static item_annex_result_t _item_prepend(struct item *it);
+static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
+				       uint64_t delta);
+
+#define INCR_MAX_STORAGE_LEN 24
+
+void
+item_init(void)
+{
+    log_stderr("item header size: %zu\n", ITEM_HDR_SIZE);
+
+    /*pthread_mutex_init(&cache_lock, NULL);*/
+
+    cas_id = 0ULL;
+}
+
+void
+item_deinit(void)
+{
+}
+
+char *
+item_data(struct item *it)
+{
+    char *data;
+
+    ASSERT(it->magic == ITEM_MAGIC);
+
+    if (item_is_raligned(it)) {
+        data = (char *)it + slab_item_size(it->id) - it->nbyte;
+    } else {
+        data = it->end + it->nkey + 1; /* 1 for terminal '\0' in key */
+        if (item_has_cas(it)) {
+            data += sizeof(uint64_t);
+        }
+    }
+
+    return data;
+}
+
+struct slab *
+item_2_slab(struct item *it)
+{
+    struct slab *slab;
+
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(it->offset < settings.slab_size);
+
+    /* Beginning of slab is located at it->offset bytes behind it */
+    slab = (struct slab *)((uint8_t *)it - it->offset);
+
+    ASSERT(slab->magic == SLAB_MAGIC);
+
+    return slab;
+}
+
+void
+item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
+{
+    ASSERT(offset >= SLAB_HDR_SIZE && offset < settings.slab_size);
+
+    it->magic = ITEM_MAGIC;
+    it->offset = offset;
+    it->id = id;
+    it->refcount = 0;
+    it->flags = 0;
+    it->next_node = NULL;
+    it->head = NULL;
+}
+
+/*
+ * It may be possible to reallocate individual nodes of chained items, so that
+ * evicting a slab does not necessarily evict all items with nodes in that
+ * slab; this is a possibility worth considering later
+ */
+void
+item_reuse(struct item *it)
+{
+    struct item *prev;
+    struct slab *evicted = item_2_slab(it);
+
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(item_is_linked(it->head));
+    ASSERT(it->head->refcount == 0);
+
+    /* Unlink head of item */
+    it->head->flags &= ~ITEM_LINKED;
+    hash_table_delete(item_key(it->head), it->head->nkey);
+
+    for(prev = it = it->head; prev != NULL; prev = it) {
+	if(it != NULL) {
+	    it = it->next_node;
+	}
+
+	/* Remove any chaining structure */
+	prev->next_node = NULL;
+	prev->head = NULL;
+
+	/* If the node is not in the slab we are evicting, free it */
+	if(item_2_slab(prev) != evicted) {
+	    item_free(prev);
+	}
+    }
+
+    log_stderr("reuse %s item %s at offset %d with id %hhu",
+	    item_expired(it) ? "expired" : "evicted", item_key(it),
+	    it->offset, it->id);
+}
+
+uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
+{
+    /* Calculate total size of item, get slab id using the size */
+    return slab_id(item_ntotal(nkey, nbyte, settings.use_cas));
+}
+
+struct item *
+item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
+           rel_time_t exptime, uint32_t nbyte)
+{
+    struct item *it;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    it = _item_alloc(key, nkey, dataflags, exptime, nbyte);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return it;
+}
+
+void
+item_remove(struct item *it)
+{
+    /*pthread_mutex_lock(&cache_lock);*/
+    _item_remove(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+}
+
+struct item *
+item_get(const char *key, size_t nkey)
+{
+    struct item *it;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    it = _item_get(key, nkey);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return it;
+}
+
+void
+item_set(struct item *it)
+{
+    /*pthread_mutex_lock(&cache_lock);*/
+    _item_set(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+}
+
+item_cas_result_t
+item_cas(struct item *it)
+{
+    item_cas_result_t ret;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_cas(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+item_add_result_t
+item_add(struct item *it)
+{
+    item_add_result_t ret;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_add(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+item_replace_result_t
+item_replace(struct item *it)
+{
+    item_replace_result_t ret;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_replace(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+item_annex_result_t
+item_append(struct item *it)
+{
+    item_annex_result_t ret;
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_append(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+item_annex_result_t
+item_prepend(struct item *it)
+{
+    item_annex_result_t ret;
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_prepend(it);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+item_delta_result_t
+item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
+{
+    item_delta_result_t ret;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_delta(key, nkey, incr, delta);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+/*
+ * Unlink an item and remove it (if its refcount drops to zero).
+ */
+item_delete_result_t
+item_delete(char *key, size_t nkey)
+{
+    item_delete_result_t ret = DELETE_OK;
+    struct item *it;
+
+    /*pthread_mutex_lock(&cache_lock);*/
+    it = _item_get(key, nkey);
+    ASSERT(it->head == it);
+    if (it != NULL) {
+        _item_unlink(it);
+        _item_remove(it);
+    } else {
+        ret = DELETE_NOT_FOUND;
+    }
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
+}
+
+uint64_t
+item_total_nbyte(struct item *it) {
+    uint32_t nbyte = 0;
+
+    ASSERT(it->head == it);
+
+    for(; it != NULL; it = it->next_node) {
+	nbyte += it->nbyte;
+    }
+
+    return nbyte;
+}
 
 /*
  * Returns the next cas id for a new item. Minimum cas value
@@ -61,85 +334,25 @@ item_next_cas(void)
 static bool
 item_expired(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
+    ASSERT(it->magic == ITEM_MAGIC);
 
     return (it->exptime > 0 && it->exptime < time_now()) ? true : false;
 }
 
 /*
- * Initialize cache_lock and cas_id
- */
-void
-item_init(void)
-{
-    fprintf(stderr, "item header size: %zu\n", ITEM_HDR_SIZE);
-
-    /*pthread_mutex_init(&cache_lock, NULL);*/
-
-    cas_id = 0ULL;
-}
-
-void
-item_deinit(void)
-{
-}
-
-/*
- * Get start location of item payload
- */
-char *
-item_data(struct item *it)
-{
-    char *data;
-
-    assert(it->magic == ITEM_MAGIC);
-
-    if (item_is_raligned(it)) {
-        data = (char *)it + slab_item_size(it->id) - it->nbyte;
-    } else {
-        data = it->end + it->nkey + 1; /* 1 for terminal '\0' in key */
-        if (item_has_cas(it)) {
-            data += sizeof(uint64_t);
-        }
-    }
-
-    return data;
-}
-
-/*
- * Get the slab that contains this item.
- */
-struct slab *
-item_2_slab(struct item *it)
-{
-    struct slab *slab;
-
-    assert(it->magic == ITEM_MAGIC);
-    assert(it->offset < settings.slab_size);
-
-    slab = (struct slab *)((uint8_t *)it - it->offset);
-
-    assert(slab->magic == SLAB_MAGIC);
-
-    return slab;
-}
-
-/*
+ * Increment the number of references to the given item
+ *
  * With the current system, the refcount for each slab might not be completely
  * accurate, since if there are 2 items chained in the same slab, the number of
  * references to the slab increases twice when the item is referenced once.
  * However, this should not cause any issues as of right now, since we only use
  * refcount to see if anybody is using the slab.
  */
-
-/*
- * Increment the number of references to the given item
- */
 static void
 item_acquire_refcount(struct item *it)
 {
-    /*assert(pthread_mutex_trylock(&cache_lock) != 0);*/
-    assert(it->magic == ITEM_MAGIC);
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+    ASSERT(it->magic == ITEM_MAGIC);
 
     it->refcount++;
 
@@ -154,9 +367,9 @@ item_acquire_refcount(struct item *it)
 static void
 item_release_refcount(struct item *it)
 {
-    /*assert(pthread_mutex_trylock(&cache_lock) != 0);*/
-    assert(it->magic == ITEM_MAGIC);
-    assert(it->refcount > 0);
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(it->refcount > 0);
 
     it->refcount--;
 
@@ -166,32 +379,15 @@ item_release_refcount(struct item *it)
 }
 
 /*
- * Initialize item header
- */
-void
-item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
-{
-    assert(offset >= SLAB_HDR_SIZE && offset < settings.slab_size);
-
-    it->magic = ITEM_MAGIC;
-    it->offset = offset;
-    it->id = id;
-    it->refcount = 0;
-    it->flags = 0;
-    it->next_node = NULL;
-    it->head = NULL;
-}
-
-/*
  * Free an item by putting it on the free queue for the slab class
  */
 static void
 item_free(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
-    assert(!item_is_linked(it));
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_linked(it));
 
-    fprintf(stderr, "Freeing item %s...\n", item_key(it));
+    log_stderr("Freeing item %s...\n", item_key(it));
 
     /* Keep two pointers to the chain of items, one to do the freeing (prev) and
        the other to keep a handle on the rest of the chain (it) */
@@ -203,9 +399,9 @@ item_free(struct item *it)
 	    it = it->next_node;
 	}
 
-	assert(!item_is_linked(prev));
-	assert(!item_is_slabbed(prev));
-	assert(prev->refcount == 0);
+	ASSERT(!item_is_linked(prev));
+	ASSERT(!item_is_slabbed(prev));
+	ASSERT(prev->refcount == 0);
 
 	/* Free prev */
 	prev->flags &= ~ITEM_CHAINED;
@@ -215,70 +411,59 @@ item_free(struct item *it)
     }
 }
 
-/*
- * Make an item with zero refcount available for reuse by unlinking
- * it from the hash.
- *
- * Don't free the item yet because that would make it unavailable
- * for reuse.
- */
-
-/*
- * It may be possible to reallocate individual nodes of chained items, so that
- * evicting a slab does not necessarily evict all items with nodes in that
- * slab; this is a possibility worth considering later
- */
-void
-item_reuse(struct item *it)
+/* Get the last node in an item chain. */
+static struct item *
+item_tail(struct item *it)
 {
-    struct item *prev;
-    struct slab *evicted = item_2_slab(it);
-
-    /*assert(pthread_mutex_trylock(&cache_lock) != 0);*/
-    assert(it->magic == ITEM_MAGIC);
-    assert(!item_is_slabbed(it));
-    assert(item_is_linked(it->head));
-    assert(it->head->refcount == 0);
-
-    it->head->flags &= ~ITEM_LINKED;
-    assoc_delete(item_key(it->head), it->head->nkey);
-
-    for(prev = it = it->head; prev != NULL; prev = it) {
-	if(it != NULL) {
-	    it = it->next_node;
-	}
-
-	prev->next_node = NULL;
-	prev->head = NULL;
-
-	/* If the node is not in the slab we are evicting, free it */
-	if(item_2_slab(prev) != evicted) {
-	    item_free(prev);
-	}
-    }
-
-    fprintf(stderr, "reuse %s item %s at offset %d with id %hhu",
-	    item_expired(it) ? "expired" : "evicted", item_key(it),
-	    it->offset, it->id);
+    ASSERT(it != NULL);
+    for(; it->next_node != NULL; it = it->next_node);
+    return it;
 }
 
-uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
+/* Skip spaces in str */
+static void
+skip_space(const char **str, size_t *len)
 {
-    size_t ntotal;
-    uint8_t id;
+    while(*len > 0 && isspace(**str)) {
+	(*str)++;
+	(*len)--;
+    }
+}
 
-    ntotal = item_ntotal(nkey, nbyte, settings.use_cas);
+/* Convert string to integer, used for delta */
+static bool
+strtoull_len(const char *str, uint64_t *out, size_t len)
+{
+    *out = 0ULL;
 
-    id = slab_id(ntotal);
+    skip_space(&str, &len);
 
-    return id;
+    while (len > 0 && (*str) >= '0' && (*str) <= '9') {
+        if (*out >= UINT64_MAX / 10) {
+            /*
+             * At this point the integer is considered out of range,
+             * by doing so we convert integers up to (UINT64_MAX - 6)
+             */
+            return false;
+        }
+        *out = *out * 10 + *str - '0';
+        str++;
+        len--;
+    }
+
+    skip_space(&str, &len);
+
+    if (len == 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /*
  * Allocate an item. We allocate an item by consuming the next free item from
  * the item's slab class.
  */
-
 static struct item *
 _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    exptime, uint32_t nbyte)
@@ -303,7 +488,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
 	if(current_node == NULL) {
 	    /* Could not successfully allocate item(s) */
-	    fprintf(stderr, "server error on allocating item in slab %hhu\n",
+	    log_stderr("server error on allocating item in slab %hhu\n",
 		    id);
 	    return NULL;
 	}
@@ -312,13 +497,13 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    it = current_node;
 	}
 
-	assert(current_node->id == id);
-	assert(!item_is_linked(current_node));
-	assert(!item_is_slabbed(current_node));
-	assert(current_node->offset != 0);
-	assert(current_node->refcount == 0);
-	assert(current_node->next_node == NULL);
-	assert(current_node->head == NULL);
+	ASSERT(current_node->id == id);
+	ASSERT(!item_is_linked(current_node));
+	ASSERT(!item_is_slabbed(current_node));
+	ASSERT(current_node->offset != 0);
+	ASSERT(current_node->refcount == 0);
+	ASSERT(current_node->next_node == NULL);
+	ASSERT(current_node->head == NULL);
 
 	/* Default behavior is to set the chained flag to true, we double check
 	   for this after the loop finishes */
@@ -345,7 +530,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1;
 
 	nbyte -= current_node->nbyte;
-	fprintf(stderr, "bytes allocated for this node: %u\n", current_node->nbyte);
+	log_stderr("bytes allocated for this node: %u\n", current_node->nbyte);
 
 	if(prev_node != NULL) {
 	    prev_node->next_node = current_node;
@@ -375,22 +560,9 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
     item_set_cas(it, 0);
 
-    fprintf(stderr, "alloc item %s at offset %u with id %hhu expiry %u "
+    log_stderr("alloc item %s at offset %u with id %hhu expiry %u "
 	    " refcount %hu\n", item_key(it), it->offset, it->id, it->exptime,
 	    it->refcount);
-
-    return it;
-}
-
-struct item *
-item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
-           rel_time_t exptime, uint32_t nbyte)
-{
-    struct item *it;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    it = _item_alloc(key, nkey, dataflags, exptime, nbyte);
-    /*pthread_mutex_unlock(&cache_lock);*/
 
     return it;
 }
@@ -402,41 +574,38 @@ item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
 static void
 _item_link(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
-    assert(!item_is_linked(it));
-    assert(!item_is_slabbed(it));
-    assert(it->nkey != 0);
-    assert(it->head == it);
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_linked(it));
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(it->nkey != 0);
+    ASSERT(it->head == it);
 
-    fprintf(stderr, "link item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("link item %s at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
 
     it->flags |= ITEM_LINKED;
     item_set_cas(it, item_next_cas());
 
-    assoc_insert(it);
-    //item_link_q(it, true);
+    hash_table_insert(it);
 }
 
 /*
- * Unlinks an item from the hash table. Free an unlinked
- * item if it's refcount is zero.
+ * Unlinks an item from the hash table. Free an unlinked item if its refcount is
+ * zero.
  */
 static void
 _item_unlink(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
-    assert(it->head == it);
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(it->head == it);
 
-    fprintf(stderr, "unlink item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("unlink item %s at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
 
     if (item_is_linked(it)) {
         it->flags &= ~ITEM_LINKED;
 
-        assoc_delete(item_key(it), it->nkey);
-
-        //item_unlink_q(it);
+        hash_table_delete(item_key(it), it->nkey);
 
         if (it->refcount == 0) {
             item_free(it);
@@ -451,11 +620,11 @@ _item_unlink(struct item *it)
 static void
 _item_remove(struct item *it)
 {
-    assert(it->magic == ITEM_MAGIC);
-    assert(!item_is_slabbed(it));
-    assert(it->head == it);
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(it->head == it);
 
-    fprintf(stderr, "remove item %s at offset %u with flags %hhu id %hhu "
+    log_stderr("remove item %s at offset %u with flags %hhu id %hhu "
 	    "refcount %hu\n", item_key(it), it->offset, it->flags, it->id,
 	    it->refcount);
 
@@ -468,29 +637,21 @@ _item_remove(struct item *it)
     }
 }
 
-void
-item_remove(struct item *it)
-{
-    /*pthread_mutex_lock(&cache_lock);*/
-    _item_remove(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
-}
-
 /*
  * Replace one item with another in the hash table.
  */
 static void
 _item_relink(struct item *it, struct item *nit)
 {
-    assert(it->magic == ITEM_MAGIC);
-    assert(!item_is_slabbed(it));
-    assert(it->head == it);
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(it->head == it);
 
-    assert(nit->magic == ITEM_MAGIC);
-    assert(!item_is_slabbed(nit));
-    assert(nit->head == nit);
+    ASSERT(nit->magic == ITEM_MAGIC);
+    ASSERT(!item_is_slabbed(nit));
+    ASSERT(nit->head == nit);
 
-    fprintf(stderr, "relink item %s at offset %u id %hhu with one at offset "
+    log_stderr("relink item %s at offset %u id %hhu with one at offset "
 	    "%u id %hhu\n", item_key(it), it->offset, it->id, nit->offset,
 	    nit->id);
 
@@ -498,14 +659,11 @@ _item_relink(struct item *it, struct item *nit)
     _item_link(nit);
 }
 
-/*** TODO: consider putting expired items that we encounter here directly into
-     the free queue ***/
-
 /*
  * Return an item if it hasn't been marked as expired, lazily expiring
  * item as-and-when needed
  *
- * When a non-null item is returned, it's the callers responsibily to
+ * When a non-null item is returned, it's the callers responsibility to
  * release refcount on the item
  */
 static struct item *
@@ -513,49 +671,31 @@ _item_get(const char *key, size_t nkey)
 {
     struct item *it;
 
-    it = assoc_find(key, nkey);
+    it = hash_table_find(key, nkey);
     if (it == NULL) {
-	fprintf(stderr, "get item %s not found\n", key);
+	log_stderr("get item %s not found\n", key);
         return NULL;
     }
 
-    assert(it->head == it);
+    ASSERT(it->head == it);
 
     if (it->exptime != 0 && it->exptime <= time_now()) {
         _item_unlink(it);
-	fprintf(stderr, "get item %s expired and nuked\n", key);
+	log_stderr("get item %s expired and nuked\n", key);
         return NULL;
     }
 
     if (settings.oldest_live != 0 && settings.oldest_live <= time_now() &&
         it->atime <= settings.oldest_live) {
         _item_unlink(it);
-	fprintf(stderr, "item %s nuked\n", key);
+	log_stderr("item %s nuked\n", key);
         return NULL;
     }
 
     item_acquire_refcount(it);
 
-    fprintf(stderr, "Refcounts: ");
-    for(struct item *iter = it; iter != NULL; iter = iter->next_node) {
-	fprintf(stderr, "%hu ", iter->refcount);
-    }
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "get item %s found at offset %u with flags %hhu id %hhu\n",
+    log_stderr("get item %s found at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
-
-    return it;
-}
-
-struct item *
-item_get(const char *key, size_t nkey)
-{
-    struct item *it;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    it = _item_get(key, nkey);
-    /*pthread_mutex_unlock(&cache_lock);*/
 
     return it;
 }
@@ -571,7 +711,7 @@ _item_set(struct item *it)
     char *key;
     struct item *oit;
 
-    assert(it->head == it);
+    ASSERT(it->head == it);
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -582,16 +722,8 @@ _item_set(struct item *it)
         _item_remove(oit);
     }
 
-    fprintf(stderr, "store item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("store item %s at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
-}
-
-void
-item_set(struct item *it)
-{
-    /*pthread_mutex_lock(&cache_lock);*/
-    _item_set(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
 }
 
 /*
@@ -612,29 +744,17 @@ _item_cas(struct item *it)
 
     /* oit is not NULL, some item was found */
     if (item_get_cas(it) != item_get_cas(oit)) {
-	fprintf(stderr, "cas mismatch %llu != %llu on item %s\n",
+	log_stderr("cas mismatch %llu != %llu on item %s\n",
 		item_get_cas(oit), item_get_cas(it), item_key(it));
 	_item_remove(oit);
 	return CAS_EXISTS;
     }
 
     _item_relink(oit, it);
-    fprintf(stderr, "cas item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("cas item %s at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
     _item_remove(oit);
     return CAS_OK;
-}
-
-item_cas_result_t
-item_cas(struct item *it)
-{
-    item_cas_result_t ret;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_cas(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
 }
 
 /*
@@ -648,7 +768,7 @@ _item_add(struct item *it)
     char *key;
     struct item *oit;
 
-    assert(it->head == it);
+    ASSERT(it->head == it);
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -661,21 +781,9 @@ _item_add(struct item *it)
 
         ret = ADD_OK;
 
-	fprintf(stderr, "add item %s at offset %u with flags %hhu id %hhu\n",
+	log_stderr("add item %s at offset %u with flags %hhu id %hhu\n",
 		item_key(it), it->offset, it->flags, it->id);
     }
-
-    return ret;
-}
-
-item_add_result_t
-item_add(struct item *it)
-{
-    item_add_result_t ret;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_add(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
 
     return ret;
 }
@@ -690,14 +798,14 @@ _item_replace(struct item *it)
     char *key;
     struct item *oit;
 
-    assert(it->head == it);
+    ASSERT(it->head == it);
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
     if (oit == NULL) {
         ret = REPLACE_NOT_FOUND;
     } else {
-	fprintf(stderr, "replace oit %s at offset %u with flags %hhu id %hhu\n",
+	log_stderr("replace oit %s at offset %u with flags %hhu id %hhu\n",
 		item_key(oit), oit->offset, oit->flags, oit->id);
 
         _item_relink(oit, it);
@@ -707,27 +815,6 @@ _item_replace(struct item *it)
     }
 
     return ret;
-}
-
-item_replace_result_t
-item_replace(struct item *it)
-{
-    item_replace_result_t ret;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_replace(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
-}
-
-/* Get the last node in an item chain. */
-static struct item *
-item_tail(struct item *it)
-{
-    assert(it != NULL);
-    for(; it->next_node != NULL; it = it->next_node);
-    return it;
 }
 
 static item_annex_result_t
@@ -741,7 +828,7 @@ _item_append(struct item *it)
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
-    assert(it->next_node == NULL);
+    ASSERT(it->next_node == NULL);
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -749,7 +836,7 @@ _item_append(struct item *it)
 	return ANNEX_NOT_FOUND;
     }
 
-    assert(!item_is_slabbed(oit));
+    ASSERT(!item_is_slabbed(oit));
 
     oit_tail = item_tail(oit);
 
@@ -792,7 +879,7 @@ _item_append(struct item *it)
 		   it->nbyte);
 	} else {
 	    /* One node was not enough, so nit contains 2 nodes. */
-	    assert(nit->next_node != NULL);
+	    ASSERT(nit->next_node != NULL);
 
 	    /* Two additional nodes were allocated, so fill the first one
 	       then the second */
@@ -812,9 +899,9 @@ _item_append(struct item *it)
 	    /* Both oit and nit should have refcount decremented */
 	    _item_remove(nit);
 	} else {
-	    struct item *nit_prev;
+	    struct item *nit_prev, *iter;
 
-	    assert(oit->next_node != NULL);
+	    ASSERT(oit->next_node != NULL);
 
 	    /* nit will be the new tail of oit, so set the chained flag */
 	    nit->flags |= ITEM_CHAINED;
@@ -831,7 +918,7 @@ _item_append(struct item *it)
 	    nit->refcount--;
 
 	    /* set head in all new nodes */
-	    for(struct item *iter = nit; iter != NULL; iter = iter->next_node) {
+	    for(iter = nit; iter != NULL; iter = iter->next_node) {
 		iter->head = oit;
 	    }
 
@@ -841,26 +928,15 @@ _item_append(struct item *it)
 	}
     }
 
-    fprintf(stderr, "annex successfully to item %s, new id %hhu\n",
+    log_stderr("annex successfully to item %s, new id %hhu\n",
 	    item_key(oit), nid);
 
     if(oit != NULL) {
-	fprintf(stderr, "removing oit\n");
+	log_stderr("removing oit\n");
 	_item_remove(oit);
     }
 
     return ANNEX_OK;
-}
-
-item_annex_result_t
-item_append(struct item *it)
-{
-    item_annex_result_t ret;
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_append(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
 }
 
 static item_annex_result_t
@@ -874,7 +950,7 @@ _item_prepend(struct item *it)
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
-    assert(it->next_node == NULL);
+    ASSERT(it->next_node == NULL);
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -882,7 +958,7 @@ _item_prepend(struct item *it)
 	return ANNEX_NOT_FOUND;
     }
 
-    assert(!item_is_slabbed(oit));
+    ASSERT(!item_is_slabbed(oit));
 
     total_nbyte = oit->nbyte + it->nbyte;
     nid = item_slabid(oit->nkey, total_nbyte);
@@ -896,6 +972,8 @@ _item_prepend(struct item *it)
 	item_set_cas(oit, item_next_cas());
     } else if(nid != SLABCLASS_INVALID_ID) {
 	/* only one larger node is needed to contain the data */
+	struct item *iter;
+
 	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
 			  oit->exptime, total_nbyte);
 
@@ -904,7 +982,7 @@ _item_prepend(struct item *it)
 	    return ANNEX_EOM;
 	}
 
-	assert(nit->next_node == NULL);
+	ASSERT(nit->next_node == NULL);
 
 	/* Right align nit, copy over data */
 	nit->flags |= ITEM_RALIGN;
@@ -913,7 +991,7 @@ _item_prepend(struct item *it)
 
 	/* Replace oit with nit */
 	nit->next_node = oit->next_node;
-	for(struct item *iter = nit; iter != NULL; iter = iter->next_node) {
+	for(iter = nit; iter != NULL; iter = iter->next_node) {
 	    iter->head = nit;
 	}
 	_item_relink(oit, nit);
@@ -921,6 +999,8 @@ _item_prepend(struct item *it)
 	/* One node is not enough to contain original data + new data. First
 	   allocate a node with id slabclass_max_id then another smaller
 	   node to contain the head */
+	struct item *iter;
+
 	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
 			  oit->exptime, total_nbyte);
 
@@ -929,7 +1009,7 @@ _item_prepend(struct item *it)
 	    return ANNEX_EOM;
 	}
 
-	assert(nit->next_node->next_node == NULL);
+	ASSERT(nit->next_node->next_node == NULL);
 
 	if(nit->next_node->nbyte < oit->nbyte) {
 	    /* nit->next cannot contain all of oit; copy the last
@@ -953,13 +1033,13 @@ _item_prepend(struct item *it)
 	}
 
 	nit->next_node->next_node = oit->next_node;
-	for(struct item *iter = nit; iter != NULL; iter = iter->next_node) {
+	for(iter = nit; iter != NULL; iter = iter->next_node) {
 	    iter->head = nit;
 	}
 	_item_relink(oit, nit);
     }
 
-    fprintf(stderr, "annex successfully to item %s\n", item_key(oit));
+    log_stderr("annex successfully to item %s\n", item_key(oit));
 
     if(oit != NULL) {
 	_item_remove(oit);
@@ -970,17 +1050,6 @@ _item_prepend(struct item *it)
     }
 
     return ANNEX_OK;
-}
-
-item_annex_result_t
-item_prepend(struct item *it)
-{
-    item_annex_result_t ret;
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_prepend(it);
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
 }
 
 /*
@@ -1001,13 +1070,13 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
         return DELTA_NOT_FOUND;
     }
 
-    assert(it->head == it);
+    ASSERT(it->head == it);
 
     /* it is not NULL, needs to have reference count decremented */
 
     ptr = item_data(it);
 
-    if (!mc_strtoull_len(ptr, &value, it->nbyte)) {
+    if (!strtoull_len(ptr, &value, it->nbyte)) {
 	_item_remove(it);
 	return DELTA_NON_NUMERIC;
     }
@@ -1021,7 +1090,7 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
     }
 
     res = snprintf(buf, INCR_MAX_STORAGE_LEN, "%llu", value);
-    assert(res < INCR_MAX_STORAGE_LEN);
+    ASSERT(res < INCR_MAX_STORAGE_LEN);
     if (res > it->nbyte) { /* need to realloc */
         struct item *new_it;
 
@@ -1049,52 +1118,4 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
     _item_remove(it);
 
     return ret;
-}
-
-item_delta_result_t
-item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
-{
-    item_delta_result_t ret;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_delta(key, nkey, incr, delta);
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
-}
-
-/*
- * Unlink an item and remove it (if its refcount drops to zero).
- */
-item_delete_result_t
-item_delete(char *key, size_t nkey)
-{
-    item_delete_result_t ret = DELETE_OK;
-    struct item *it;
-
-    /*pthread_mutex_lock(&cache_lock);*/
-    it = _item_get(key, nkey);
-    assert(it->head == it);
-    if (it != NULL) {
-        _item_unlink(it);
-        _item_remove(it);
-    } else {
-        ret = DELETE_NOT_FOUND;
-    }
-    /*pthread_mutex_unlock(&cache_lock);*/
-
-    return ret;
-}
-
-uint32_t
-item_total_nbyte(struct item *it) {
-    uint32_t nbyte = 0;
-
-    assert(it->head == it);
-
-    for(; it != NULL; it = it->next_node) {
-	nbyte += it->nbyte;
-    }
-
-    return nbyte;
 }
