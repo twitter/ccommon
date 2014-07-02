@@ -11,7 +11,6 @@ AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
 AM_CFLAGS += -fstrict-aliasing -flat_namespace
-AM_CPPFLAGS += -l $(top_srcdir)/src/mem
 
 AM_LDFLAGS = -rdynamic -Wl -flat_namespace
 

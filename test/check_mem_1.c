@@ -1,4 +1,5 @@
 #include <check.h>
+
 #include "../src/mem/cc_interface.h"
 #include "../src/mem/cc_settings.h"
 #include "../src/mem/cc_hash_table.h"

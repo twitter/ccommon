@@ -18,8 +18,8 @@
 #ifndef _CC_SETTINGS_H_
 #define _CC_SETTINGS_H_
 
-#include "cc_slabs.h"
-#include "cc_time.h"
+#include <mem/cc_slabs.h>
+#include <mem/cc_time.h>
 
 #include <stdbool.h>
 #include <stdint.h>

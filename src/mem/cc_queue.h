@@ -47,8 +47,8 @@
  * $FreeBSD: src/sys/sys/queue.h,v 1.73 2010/02/20 01:05:30 emaste Exp $
  */
 
-#ifndef _MC_QUEUE_H_
-#define _MC_QUEUE_H_
+#ifndef _CC_QUEUE_H_
+#define _CC_QUEUE_H_
 
 /*#define __offsetof(type, field) ((size_t)(&((type *)NULL)->field))*/
 

@@ -28,11 +28,22 @@
  */
 typedef unsigned int rel_time_t;
 
+/* Update the current time */
 void time_update(void);
+
+/* Get the current time */
 rel_time_t time_now(void);
+
+/* Get the current absolute time (not time since process began) */
 time_t time_now_abs(void);
+
+/* Get the time the process started */
 time_t time_started(void);
+
+/* Get time relative to process start given absolute time */
 rel_time_t time_reltime(time_t exptime);
+
+/* Initialize time; record process start time */
 void time_init(void);
 
 #endif

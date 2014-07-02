@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-#include "cc_items.h"
-#include "cc_settings.h"
-#include "cc_hash_table.h"
+#include <mem/cc_items.h>
+#include <mem/cc_settings.h>
+#include <mem/cc_hash_table.h>
+#include <mem/cc_slabs.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 
@@ -480,7 +481,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
 	/* If remaining data cannot fit into a single item, allocate the
 	   biggest item possible */
-	if (id == SLABCLASS_INVALID_ID) {
+	if (id == SLABCLASS_CHAIN_ID) {
 	    id = slabclass_max_id;
 	}
 
@@ -867,7 +868,7 @@ _item_append(struct item *it)
 	    return ANNEX_EOM;
 	}
 
-	/* Regardless of whether nid == SLABCLASS_INVALID_ID or not, nit's
+	/* Regardless of whether nid == SLABCLASS_CHAIN_ID or not, nit's
 	   first node should be able to contain at least all of oit's tail
 	   node */
 	memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
@@ -970,7 +971,7 @@ _item_prepend(struct item *it)
 	memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
 	oit->nbyte = total_nbyte;
 	item_set_cas(oit, item_next_cas());
-    } else if(nid != SLABCLASS_INVALID_ID) {
+    } else if(nid != SLABCLASS_CHAIN_ID) {
 	/* only one larger node is needed to contain the data */
 	struct item *iter;
 

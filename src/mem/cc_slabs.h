@@ -18,10 +18,12 @@
 #ifndef _CC_SLABS_H_
 #define _CC_SLABS_H_
 
-#include "cc_items.h"
-#include "cc_queue.h"
-#include "../cc_define.h"
-#include <assert.h>
+#include <mem/cc_queue.h>
+#include <mem/cc_time.h>
+#include <mem/cc_items.h>
+#include <cc_define.h>
+
+#include <stdlib.h>
 #include <stdint.h>
 #include <limits.h>
 
@@ -135,28 +137,49 @@ struct slabclass {
  * Slabclass id is an unsigned byte. So, maximum number of slab classes
  * cannot exceeded 256
  *
- * We use id = 255 as an invalid id and id = 0 for aggregation. This means
- * that we can have at most 254 usable slab classes
+ * We use id = 255 as an id reserved for chained items and id = 0 for
+ * aggregation. This means that we can have at most 254 usable slab classes.
  */
 #define SLABCLASS_MIN_ID        1
 #define SLABCLASS_MAX_ID        (UCHAR_MAX - 1)
-#define SLABCLASS_INVALID_ID    UCHAR_MAX
+#define SLABCLASS_CHAIN_ID      UCHAR_MAX
 #define SLABCLASS_MAX_IDS       UCHAR_MAX
 
 extern uint8_t slabclass_max_id;
 
+/* Return the usable space for item sized chunks that would be carved out of a
+   given slab */
 size_t slab_size(void);
+
+/* Print information about all slabs */
 void slab_print(void);
+
+/* Increment the refcount on the given slab */
 void slab_acquire_refcount(struct slab *slab);
+
+/* Decrement the refcount on the given slab */
 void slab_release_refcount(struct slab *slab);
+
+/* Return the item size given a slab id */
 size_t slab_item_size(uint8_t id);
+
+/* Returns the id of the slab which can store an item of a given size. */
 uint8_t slab_id(size_t size);
 
+/* Initialize/deinitialize slab related facilities */
 rstatus_t slab_init(void);
 void slab_deinit(void);
 
+/* Get an item from a slab with the provided ID */
 struct item *slab_get_item(uint8_t id);
+
+/* Put an item back into the slab (frees the item, allowing it to be used
+   again) */
 void slab_put_item(struct item *it);
+
+/* Touch the slab LRU queue by moving the given slab to the tail of the slab LRU
+   queue, but only if it hasn't been moved within the last
+   SLAB_LRU_UPDATE_INTERVAL seconds */
 void slab_lruq_touch(struct slab *slab, bool allocated);
 
 #endif

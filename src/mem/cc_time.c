@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-#include "cc_settings.h"
+#include <mem/cc_time.h>
+
+#include <mem/cc_settings.h>
+
 #include <stdio.h>
 
 /*
@@ -87,10 +90,6 @@ time_started(void)
     return process_started;
 }
 
-/*
- * Given time value that's either unix time or delta from current unix
- * time, return the time relative to process start.
- */
 rel_time_t
 time_reltime(time_t exptime)
 {
