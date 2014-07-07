@@ -20,16 +20,14 @@
  * in when the rest of the memory manager is multithreaded
  */
 
-#include <mem/cc_hash_table.h>
-#include <mem/cc_items.h>
-#include <mem/cc_queue.h>
-#include <mem/cc_hash.h>
-#include <mem/cc_settings.h>
-#include <cc_mm.h>
+#include <hash/cc_hash_table.h>
+
+#include <hash/cc_hash.h>
 #include <cc_debug.h>
 #include <cc_log.h>
-
-#include <string.h>
+#include <cc_mm.h>
+#include <cc_string.h>
+#include <mem/cc_queue.h>
 
 #define HASHSIZE(_n) (1UL << (_n))
 #define HASHMASK(_n) (HASHSIZE(_n) - 1)
@@ -37,28 +35,23 @@
 #define HASH_DEFAULT_MOVE_SIZE  1
 #define HASH_DEFAULT_POWER      16
 
-static struct item_slh *primary_hashtable;  /* primary (main) hash table */
-static uint32_t nhash_item;                 /* # items in hash table */
-static uint32_t hash_power;                 /* # buckets = 2^hash_power */
-
 static struct item_slh *hash_table_create(uint32_t table_size);
-static struct item_slh *hash_table_get_bucket(const char *key, size_t nkey);
+static struct item_slh *hash_table_get_bucket(const char *key, size_t nkey, struct hash_table *table);
 
 rstatus_t
-hash_table_init(void)
+hash_table_init(uint32_t hash_power, struct hash_table *table)
 {
     uint32_t hashtable_size;
 
     /* init hash table values */
-    primary_hashtable = NULL;
-    hash_power = settings.hash_power > 0 ? settings.hash_power :
-	HASH_DEFAULT_POWER;
-    nhash_item = 0;
-    hashtable_size = HASHSIZE(hash_power);
+    table->primary_hashtable = NULL;
+    table->hash_power = hash_power > 0 ? hash_power : HASH_DEFAULT_POWER;
+    table->nhash_item = 0;
+    hashtable_size = HASHSIZE(table->hash_power);
 
     /* allocate hash table */
-    primary_hashtable = hash_table_create(hashtable_size);
-    if(primary_hashtable == NULL) {
+    table->primary_hashtable = hash_table_create(hashtable_size);
+    if(table->primary_hashtable == NULL) {
 	/* Not enough memory to allocate hash table */
 	return CC_ENOMEM;
     }
@@ -67,15 +60,15 @@ hash_table_init(void)
 }
 
 void
-hash_table_deinit(void)
+hash_table_deinit(struct hash_table *table)
 {
-    if(primary_hashtable != NULL) {
-	cc_free(primary_hashtable);
+    if(table->primary_hashtable != NULL) {
+	cc_free(table->primary_hashtable);
     }
 }
 
 struct item *
-hash_table_find(const char *key, size_t nkey)
+hash_table_find(const char *key, size_t nkey, struct hash_table *table)
 {
     struct item_slh *bucket;
     struct item *it;
@@ -83,13 +76,13 @@ hash_table_find(const char *key, size_t nkey)
 
     ASSERT(key != NULL && nkey != 0);
 
-    bucket = hash_table_get_bucket(key, nkey);
+    bucket = hash_table_get_bucket(key, nkey, table);
 
     /* search bucket for item */
     for(depth = 0, it = SLIST_FIRST(bucket);
 	it != NULL;
 	++depth, it = SLIST_NEXT(it, h_sle)) {
-	if((nkey == it->nkey) && memcmp(key, item_key(it), nkey) == 0) {
+	if((nkey == it->nkey) && cc_memcmp(key, item_key(it), nkey) == 0) {
 	    return it;
 	}
     }
@@ -98,34 +91,34 @@ hash_table_find(const char *key, size_t nkey)
 }
 
 void
-hash_table_insert(struct item *it)
+hash_table_insert(struct item *it, struct hash_table *table)
 {
     struct item_slh *bucket;
 
-    ASSERT(hash_table_find(item_key(it), it->nkey) == NULL);
+    ASSERT(hash_table_find(item_key(it), it->nkey, table) == NULL);
 
     /* insert item at the head of the bucket */
-    bucket = hash_table_get_bucket(item_key(it), it->nkey);
+    bucket = hash_table_get_bucket(item_key(it), it->nkey, table);
     SLIST_INSERT_HEAD(bucket, it, h_sle);
 
-    ++nhash_item;
+    ++(table->nhash_item);
 }
 
 void
-hash_table_delete(const char *key, size_t nkey)
+hash_table_remove(const char *key, size_t nkey, struct hash_table *table)
 {
     struct item_slh *bucket;
     struct item *it, *prev;
 
-    ASSERT(hash_table_find(key, nkey) != NULL);
+    ASSERT(hash_table_find(key, nkey, table) != NULL);
 
-    bucket = hash_table_get_bucket(key, nkey);
+    bucket = hash_table_get_bucket(key, nkey, table);
 
-    /* search bucket for item to be deleted */
+    /* search bucket for item to be removed */
     for(prev = NULL, it = SLIST_FIRST(bucket);
 	it != NULL;
 	prev = it, it = SLIST_NEXT(it, h_sle)) {
-	if((nkey == it->nkey) && memcmp(key, item_key(it), nkey) == 0) {
+	if((nkey == it->nkey) && cc_memcmp(key, item_key(it), nkey) == 0) {
 	    break;
 	}
     }
@@ -136,7 +129,7 @@ hash_table_delete(const char *key, size_t nkey)
 	SLIST_REMOVE_AFTER(prev, h_sle);
     }
 
-    --nhash_item;
+    --(table->nhash_item);
 }
 
 /*
@@ -165,7 +158,8 @@ hash_table_create(uint32_t table_size)
  * Obtain the bucket that would contain the item with the given key
  */
 static struct item_slh *
-hash_table_get_bucket(const char *key, size_t nkey)
+hash_table_get_bucket(const char *key, size_t nkey, struct hash_table *table)
 {
-    return &primary_hashtable[hash(key, nkey, 0) & HASHMASK(hash_power)];
+    return &(table->primary_hashtable[hash(key, nkey, 0) &
+				      HASHMASK(table->hash_power)]);
 }

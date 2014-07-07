@@ -21,10 +21,11 @@
 #include <mem/cc_queue.h>
 #include <mem/cc_time.h>
 #include <cc_debug.h>
+#include <cc_define.h>
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef enum item_flags {
     ITEM_LINKED  = 1,  /* item in hash */
@@ -264,7 +265,7 @@ item_size(struct item *it)
 /*
  * Initialize/deinitialize item related facilities
  */
-void item_init(void);
+rstatus_t item_init(uint32_t hash_power);
 void item_deinit(void);
 
 /* Get location of item payload */
@@ -322,5 +323,8 @@ item_delete_result_t item_delete(char *key, size_t nkey);
 
 /* Get total data size of item (sum of nbyte for all nodes) */
 uint64_t item_total_nbyte(struct item *it);
+
+/* Get the number of nodes in the item */
+uint32_t item_num_nodes(struct item *it);
 
 #endif

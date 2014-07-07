@@ -19,12 +19,11 @@
 
 #include <mem/cc_items.h>
 #include <mem/cc_settings.h>
+#include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_debug.h>
 
 #include <stdlib.h>
-#include <string.h>
 
 /*
  * Struct containing information regarding the slab structure on the heap

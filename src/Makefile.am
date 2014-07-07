@@ -25,13 +25,13 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_string.c							\
 	event/cc_epoll.c						\
 	event/cc_kqueue.c						\
-	mem/cc_hash_table.c						\
-	mem/cc_interface.c						\
+	hash/cc_hash.c							\
+	hash/cc_hash_table.c						\
+	mem/cc_mem_interface.c						\
 	mem/cc_items.c							\
 	mem/cc_settings.c						\
 	mem/cc_slabs.c							\
-	mem/cc_time.c							\
-	mem/cc_hash.c
+	mem/cc_time.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =		\
@@ -46,11 +46,11 @@ ccommon_include_HEADERS =		\
 	cc_define.h							\
 	cc_util.h							\
 	event/cc_event.h						\
-	mem/cc_hash_table.h						\
-	mem/cc_interface.h						\
+	hash/cc_hash.h							\
+	hash/cc_hash_table.h						\
+	mem/cc_mem_interface.h						\
 	mem/cc_items.h							\
 	mem/cc_queue.h							\
 	mem/cc_settings.h						\
 	mem/cc_slabs.h							\
-	mem/cc_time.h							\
-	mem/cc_hash.h
+	mem/cc_time.h

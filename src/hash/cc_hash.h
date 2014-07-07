@@ -19,6 +19,7 @@
 #define _CC_HASH_H_
 
 #include <cc_define.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 

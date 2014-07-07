@@ -15,6 +15,6 @@
  * limitations under the License.
  */
 
-#include "cc_settings.h"
+#include <mem/cc_settings.h>
 
 struct settings settings;

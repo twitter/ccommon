@@ -54,6 +54,7 @@ int string_compare(const struct string *s1, const struct string *s2);
 /*
  * Wrapper around common routines for manipulating C character strings
  *
+ * cc_memcmp
  * cc_memcpy
  * cc_memmove
  * cc_memchr
@@ -69,6 +70,9 @@ int string_compare(const struct string *s1, const struct string *s2);
  * cc_scnprintf
  * cc_vscnprintf
  */
+#define cc_memcmp(_p1, _p2, _n)                                 \
+    memcmp(_p1, _p2, (size_t)(_n))
+
 #define cc_memcpy(_d, _c, _n)                                   \
     memcpy(_d, _c, (size_t)(_n))
 

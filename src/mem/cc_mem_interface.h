@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-#ifndef _CC_INTERFACE_H_
-#define _CC_INTERFACE_H_
+#ifndef _CC_MEM_INTERFACE_H_
+#define _CC_MEM_INTERFACE_H_
 
+#include <stdbool.h>
 #include <stdint.h>
+#include <sys/uio.h>
 
 /*
  * This interface module provides a way to interact with the cache to store
@@ -28,19 +30,19 @@
 /*
  * Store the key value pair in the cache. Overwrites if the key already exists.
  */
-void store_key_val(void *key, uint8_t nkey, void *val, uint32_t nval);
+void store_key(void *key, uint8_t nkey, void *val, uint32_t nval);
 
 /*
  * Store the key value pair, but only if the server does not already hold data
  * for that key.
  */
-void add_key_val(void *key, uint8_t nkey, void *val, uint32_t nval);
+void add_key(void *key, uint8_t nkey, void *val, uint32_t nval);
 
 /*
  * Store the key value pair, but only if the server already holds data for that
  * key.
  */
-void replace_key_val(void *key, uint8_t nkey, void *val, uint32_t nval);
+void replace_key(void *key, uint8_t nkey, void *val, uint32_t nval);
 
 /*
  * Appends val to the end of the item with the corresponding key
@@ -64,14 +66,35 @@ void increment_val(void *key, uint8_t nkey, uint64_t delta);
 void decrement_val(void *key, uint8_t nkey, uint64_t delta);
 
 /*
- * Retrieves the value corresponding with the provided key. User is responsible
- * for freeing the value that is retrieved.
+ * Get the size of the value (in bytes) associated with the given key.
  */
-void *get_val(void *key, uint8_t nkey);
+uint64_t get_val_size(void *key, uint8_t nkey);
+
+/*
+ * Get the number of nodes for the item with the given key
+ */
+size_t get_num_nodes(void *key, uint8_t nkey);
+
+/*
+ * Grants access to the value associated to the given key by making it accessible
+ * via the vector parameter. User is responsible for allocating a large enough
+ * struct iovec array (must be able to contain at least as many struct iovec as
+ * the number of nodes in the item associated with key). Returns true on success
+ * and false on failure.
+ */
+bool get_val_ref(void *key, uint8_t nkey, struct iovec *vector);
+
+/*
+ * Retrieves the value corresponding with the provided key, and copies it over
+ * to the provided buffer. Copying starts at offset, and is performed until all
+ * of the data is copied, or until buf_size bytes are copied. Returns true on
+ * success and false on failure.
+ */
+bool get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset);
 
 /*
  * Removes a key/value pair from the cache.
  */
-void delete_key_val(void *key, uint8_t nkey);
+void remove_key(void *key, uint8_t nkey);
 
-#endif
+#endif /* _CC_MEM_INTERFACE_ */

@@ -16,18 +16,20 @@
  */
 
 #include <mem/cc_items.h>
+
 #include <mem/cc_settings.h>
-#include <mem/cc_hash_table.h>
 #include <mem/cc_slabs.h>
 #include <cc_debug.h>
 #include <cc_log.h>
+#include <cc_string.h>
+#include <hash/cc_hash_table.h>
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /*pthread_mutex_t cache_lock;*/                     /* lock protecting lru q and hash */
+static struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
 
 static uint64_t item_next_cas(void);
@@ -57,14 +59,16 @@ static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
 
 #define INCR_MAX_STORAGE_LEN 24
 
-void
-item_init(void)
+rstatus_t
+item_init(uint32_t hash_power)
 {
     log_stderr("item header size: %zu\n", ITEM_HDR_SIZE);
 
     /*pthread_mutex_init(&cache_lock, NULL);*/
 
     cas_id = 0ULL;
+
+    return hash_table_init(hash_power, &mem_hash_table);
 }
 
 void
@@ -140,7 +144,7 @@ item_reuse(struct item *it)
 
     /* Unlink head of item */
     it->head->flags &= ~ITEM_LINKED;
-    hash_table_delete(item_key(it->head), it->head->nkey);
+    hash_table_remove(item_key(it->head), it->head->nkey, &mem_hash_table);
 
     for(prev = it = it->head; prev != NULL; prev = it) {
 	if(it != NULL) {
@@ -303,9 +307,11 @@ item_delete(char *key, size_t nkey)
 }
 
 uint64_t
-item_total_nbyte(struct item *it) {
-    uint32_t nbyte = 0;
+item_total_nbyte(struct item *it)
+{
+    uint64_t nbyte = 0;
 
+    ASSERT(it != NULL);
     ASSERT(it->head == it);
 
     for(; it != NULL; it = it->next_node) {
@@ -313,6 +319,17 @@ item_total_nbyte(struct item *it) {
     }
 
     return nbyte;
+}
+
+uint32_t
+item_num_nodes(struct item *it)
+{
+    uint32_t num_nodes = 0;
+
+    ASSERT(it != NULL);
+
+    for(; it != NULL; it = it->next_node, ++num_nodes);
+    return num_nodes;
 }
 
 /*
@@ -556,7 +573,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     }
 
     /* copy item key */
-    memcpy(item_key(it), key, nkey);
+    cc_memcpy(item_key(it), key, nkey);
     *(item_key(it) + nkey) = '\0';
 
     item_set_cas(it, 0);
@@ -587,7 +604,7 @@ _item_link(struct item *it)
     it->flags |= ITEM_LINKED;
     item_set_cas(it, item_next_cas());
 
-    hash_table_insert(it);
+    hash_table_insert(it, &mem_hash_table);
 }
 
 /*
@@ -606,7 +623,7 @@ _item_unlink(struct item *it)
     if (item_is_linked(it)) {
         it->flags &= ~ITEM_LINKED;
 
-        hash_table_delete(item_key(it), it->nkey);
+        hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
 
         if (it->refcount == 0) {
             item_free(it);
@@ -672,7 +689,7 @@ _item_get(const char *key, size_t nkey)
 {
     struct item *it;
 
-    it = hash_table_find(key, nkey);
+    it = hash_table_find(key, nkey, &mem_hash_table);
     if (it == NULL) {
 	log_stderr("get item %s not found\n", key);
         return NULL;
@@ -851,7 +868,7 @@ _item_append(struct item *it)
 	 * the existing data. Otherwise, allocate a new item and store the
 	 * payload left-aligned.
 	 */
-	memcpy(item_data(oit_tail) + oit->nbyte, item_data(it), it->nbyte);
+	cc_memcpy(item_data(oit_tail) + oit->nbyte, item_data(it), it->nbyte);
 
 	/* Set the new data size and cas */
 	oit->nbyte = total_nbyte;
@@ -871,12 +888,12 @@ _item_append(struct item *it)
 	/* Regardless of whether nid == SLABCLASS_CHAIN_ID or not, nit's
 	   first node should be able to contain at least all of oit's tail
 	   node */
-	memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
+	cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
 
 	if(!item_is_chained(nit)) {
 	    /* Only one additional node was allocated, so the entirety of
 	       it should be able to fit in the remainder of nit */
-	    memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
+	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   it->nbyte);
 	} else {
 	    /* One node was not enough, so nit contains 2 nodes. */
@@ -887,11 +904,11 @@ _item_append(struct item *it)
 	    uint32_t nit_amount_copied = slab_item_size(nit->id)
 		- ITEM_HDR_SIZE - oit_tail->nbyte - oit_tail->nkey - 1;
 
-	    memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
+	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   nit_amount_copied);
 
 	    /* Copy the remaining data into the second node */
-	    memcpy(item_data(nit->next_node), item_data(it) + nit_amount_copied,
+	    cc_memcpy(item_data(nit->next_node), item_data(it) + nit_amount_copied,
 		   it->nbyte - nit_amount_copied);
 	}
 
@@ -968,7 +985,7 @@ _item_prepend(struct item *it)
 	/* oit head is raligned, and can contain the new data. Simply
 	   prepend the data at the beginning of oit, not needing to
 	   allocate more space. */
-	memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
+	cc_memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
 	oit->nbyte = total_nbyte;
 	item_set_cas(oit, item_next_cas());
     } else if(nid != SLABCLASS_CHAIN_ID) {
@@ -987,8 +1004,8 @@ _item_prepend(struct item *it)
 
 	/* Right align nit, copy over data */
 	nit->flags |= ITEM_RALIGN;
-	memcpy(item_data(nit), item_data(it), it->nbyte);
-	memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
+	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
+	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
 
 	/* Replace oit with nit */
 	nit->next_node = oit->next_node;
@@ -1015,22 +1032,22 @@ _item_prepend(struct item *it)
 	if(nit->next_node->nbyte < oit->nbyte) {
 	    /* nit->next cannot contain all of oit; copy the last
 	       nit->next->nbyte bytes of oit to nit->next */
-	    memcpy(item_data(nit->next_node), item_data(oit) + oit->nbyte -
+	    cc_memcpy(item_data(nit->next_node), item_data(oit) + oit->nbyte -
 		   nit->next_node->nbyte, nit->next_node->nbyte);
 
 	    /* copy the rest to nit */
-	    memcpy(item_data(nit), item_data(it), it->nbyte);
-	    memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte -
+	    cc_memcpy(item_data(nit), item_data(it), it->nbyte);
+	    cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte -
 		   nit->next_node->nbyte);
 	} else {
 	    /* nit->next can contain all of oit; copy all of oit into
 	       nit->next, along with as much of it as will fit */
-	    memcpy(item_data(nit->next_node), item_data(it) + nit->nbyte,
+	    cc_memcpy(item_data(nit->next_node), item_data(it) + nit->nbyte,
 		   it->nbyte - nit->nbyte);
-	    memcpy(item_data(nit->next_node) + it->nbyte - nit->nbyte,
+	    cc_memcpy(item_data(nit->next_node) + it->nbyte - nit->nbyte,
 		   item_data(oit), oit->nbyte);
 
-	    memcpy(item_data(nit), item_data(it), nit->nbyte);
+	    cc_memcpy(item_data(nit), item_data(it), nit->nbyte);
 	}
 
 	nit->next_node->next_node = oit->next_node;
@@ -1102,7 +1119,7 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
 	    return DELTA_EOM;
         }
 
-        memcpy(item_data(new_it), buf, res);
+        cc_memcpy(item_data(new_it), buf, res);
         _item_relink(it, new_it);
         _item_remove(it);
         it = new_it;
@@ -1112,7 +1129,7 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
          * the item, we need to update the CAS on the existing item
          */
         item_set_cas(it, item_next_cas());
-        memcpy(item_data(it), buf, res);
+        cc_memcpy(item_data(it), buf, res);
         it->nbyte = res;
     }
 

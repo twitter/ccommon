@@ -31,7 +31,7 @@
  * whether it's big or little-endian. HAVE_LITTLE_ENDIAN and HAVE_BIG_ENDIAN
  * are set in the configure script.
  */
-#include "cc_hash.h"
+#include <hash/cc_hash.h>
 
 #if defined HAVE_BIG_ENDIAN && HAVE_BIG_ENDIAN == 1
 # define HASH_LITTLE_ENDIAN 0

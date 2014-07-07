@@ -19,24 +19,32 @@
 #define _CC_HASH_TABLE_H_
 
 #include <cc_define.h>
+#include <mem/cc_items.h>
+
 #include <stdlib.h>
 
 #define HASH_MAX_POWER  32
 
+struct hash_table {
+    struct item_slh *primary_hashtable;  /* primary (main) hash table */
+    /* struct item_slh *old_hashtable */ /* secondary hash table will be necessary once the hash module is multi threaded */
+    uint32_t nhash_item;                 /* # items in hash table */
+    uint32_t hash_power;                 /* # buckets = 2^hash_power */
+};
+
 /* Initialize hash table */
-rstatus_t hash_table_init(void);
+rstatus_t hash_table_init(uint32_t hash_power, struct hash_table *table);
 
 /* Destroy hash table */
-void hash_table_deinit(void);
-
+void hash_table_deinit(struct hash_table *table);
 
 /* Find the item associated with the given key */
-struct item *hash_table_find(const char *key, size_t nkey);
+struct item *hash_table_find(const char *key, size_t nkey, struct hash_table *table);
 
 /* Insert the item into the hash table */
-void hash_table_insert(struct item *it);
+void hash_table_insert(struct item *it, struct hash_table *table);
 
-/* Delete the item with the given key from the hash table */
-void hash_table_delete(const char *key, size_t nkey);
+/* Remove the item with the given key from the hash table */
+void hash_table_remove(const char *key, size_t nkey, struct hash_table *table);
 
 #endif /* _CC_HASH_TABLE_H_ */

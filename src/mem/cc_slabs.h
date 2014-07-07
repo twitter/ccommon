@@ -18,14 +18,14 @@
 #ifndef _CC_SLABS_H_
 #define _CC_SLABS_H_
 
+#include <mem/cc_items.h>
 #include <mem/cc_queue.h>
 #include <mem/cc_time.h>
-#include <mem/cc_items.h>
 #include <cc_define.h>
 
-#include <stdlib.h>
-#include <stdint.h>
 #include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 /*
  * Every slab (struct slab) in the twemcache starts with a slab header

@@ -1,15 +1,17 @@
 #include <check.h>
 
-#include "../src/mem/cc_interface.h"
+#include "../src/mem/cc_mem_interface.h"
 #include "../src/mem/cc_settings.h"
-#include "../src/mem/cc_hash_table.h"
 #include "../src/mem/cc_slabs.h"
 #include "../src/mem/cc_items.h"
 #include "../src/cc_define.h"
+#include "../src/hash/cc_hash_table.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
 
 void init_settings(void);
 
@@ -21,7 +23,6 @@ init_settings(void) {
     settings.use_cas = false;
     settings.maxbytes = 8448;
     settings.slab_size = 1056;
-    settings.hash_power = 16;
     settings.profile[1] = 128;
     settings.profile[2] = 256;
     settings.profile[3] = 512;
@@ -34,14 +35,15 @@ START_TEST(check_mem_basic)
 {
     rstatus_t return_status;
     char *val;
+    struct iovec *vector;
+    ssize_t bytes;
 
     init_settings();
     time_init();
-    item_init();
 
-    return_status = hash_table_init();
+    return_status = item_init(0); /* Parameter is hash table power, 0 for default. */
     if(return_status != CC_OK) {
-	ck_abort_msg("Assoc init failed! Error code %d", return_status);
+	ck_abort_msg("Item init failed! Error code %d", return_status);
     }
 
     return_status = slab_init();
@@ -49,16 +51,26 @@ START_TEST(check_mem_basic)
 	ck_abort_msg("Slab init failed! Error code %d", return_status);
     }
 
-    store_key_val("foo", 3, "bar", 3);
-    store_key_val("foobar", 6, "foobarfoobar", 12);
+    store_key("foo", 3, "bar", 3);
+    store_key("foobar", 6, "foobarfoobar", 12);
 
-    val = get_val("foo", 3);
+    val = malloc(4);
+    ck_assert_msg(get_val("foo", 3, val, 3, 0), "get_val failed for key foo!");
+    val[3] = '\0';
     ck_assert_msg(strcmp(val, "bar") == 0, "Wrong value for key foo! Expected bar, got %s", val);
     free(val);
 
+    vector = malloc(sizeof(struct iovec));
+    ck_assert_msg(get_val_ref("foobar", 6, vector), "get_val_ref failed for key foobar!");
+    bytes = writev(STDOUT_FILENO, vector[0].iov_base, 12);
+    ck_assert_msg(bytes == 12, "Wrote incorrect number of bytes! nbytes: %d errno: %d", bytes, errno);
+    free(vector);
+
+/*
     val = get_val("foobar", 6);
     ck_assert_msg(strcmp(val, "foobarfoobar") == 0, "Wrong value for key foobar! Expected foobarfoobar, got %s", val);
     free(val);
+*/
 }
 END_TEST
 
@@ -69,11 +81,10 @@ START_TEST(check_mem_replace)
 
     init_settings();
     time_init();
-    item_init();
 
-    return_status = hash_table_init();
+    return_status = item_init(0);
     if(return_status != CC_OK) {
-	ck_abort_msg("Assoc init failed! Error code %d", return_status);
+	ck_abort_msg("Item init failed! Error code %d", return_status);
     }
 
     return_status = slab_init();
@@ -81,20 +92,20 @@ START_TEST(check_mem_replace)
 	ck_abort_msg("Slab init failed! Error code %d", return_status);
     }
 
-    store_key_val("foo", 3, "bar", 3);
-    store_key_val("foobar", 6, "foobarfoobar", 12);
+    store_key("foo", 3, "bar", 3);
+    store_key("foobar", 6, "foobarfoobar", 12);
 
-    val = get_val("foo", 3);
+    val = malloc(4);
+    ck_assert_msg(get_val("foo", 3, val, 3, 0), "get_val failed for key foo!");
+    val[3] = '\0';
     ck_assert_msg(strcmp(val, "bar") == 0, "Wrong value for key foo! Expected bar, got %s", val);
     free(val);
 
-    val = get_val("foobar", 6);
-    ck_assert_msg(strcmp(val, "foobarfoobar") == 0, "Wrong value for key foobar! Expected foobarfoobar, got %s", val);
-    free(val);
-
-    replace_key_val("foobar", 6, "baz", 3);
-    val = get_val("foobar", 6);
-    ck_assert_msg(strcmp(val, "baz") == 0, "Replace unsuccessful! Expected baz, got %s", val);
+    val = malloc(7);
+    replace_key("foo", 3, "foobar", 6);
+    ck_assert_msg(get_val("foo", 3, val, 6, 0), "get_val failed for key foo!");
+    val[6] = '\0';
+    ck_assert_msg(strcmp(val, "foobar") == 0, "Replace unsuccessful! Expected foobar, got %s", val);
     free(val);
 }
 END_TEST
