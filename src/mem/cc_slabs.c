@@ -37,10 +37,12 @@ struct slab_heapinfo {
     struct slab_tqh slab_lruq;   /* lru slab q */
 };
 
-struct slabclass slabclass[SLABCLASS_MAX_IDS];  /* collection of slabs bucketed by slabclass */
-uint8_t slabclass_max_id;                       /* maximum slabclass id */
-static struct slab_heapinfo heapinfo;           /* info of all allocated slabs */
-/*pthread_mutex_t slab_lock;*/                      /* lock protecting slabclass and heapinfo */
+/* collection of slabs bucketed by slabclass */
+struct slabclass slabclass[SLABCLASS_MAX_IDS];
+
+uint8_t slabclass_max_id;                 /* maximum slabclass id */
+static struct slab_heapinfo heapinfo;     /* info of all allocated slabs */
+/*pthread_mutex_t slab_lock;*/            /* lock protecting slabclass and heapinfo */
 
 #define SLAB_RAND_MAX_TRIES         50
 #define SLAB_LRU_MAX_TRIES          50

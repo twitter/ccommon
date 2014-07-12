@@ -31,7 +31,8 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	mem/cc_items.c							\
 	mem/cc_settings.c						\
 	mem/cc_slabs.c							\
-	mem/cc_time.c
+	mem/cc_time.c                                                   \
+	mem/cc_zipmap.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =		\
@@ -53,4 +54,5 @@ ccommon_include_HEADERS =		\
 	mem/cc_queue.h							\
 	mem/cc_settings.h						\
 	mem/cc_slabs.h							\
-	mem/cc_time.h
+	mem/cc_time.h                                                   \
+	mem/cc_zipmap.h

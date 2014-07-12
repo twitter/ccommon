@@ -173,7 +173,8 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     }
 
     /* Get to the correct node for offset */
-    for(iter = it; iter != NULL && offset > iter->nbyte; iter = iter->next_node, offset -= iter->nbyte);
+    for(iter = it; iter != NULL && offset > iter->nbyte;
+	iter = iter->next_node, offset -= iter->nbyte);
 
     if(iter == NULL) {
 	log_stderr("Offset too large!\n");

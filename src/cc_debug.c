@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+#include <ctype.h>
 #include <execinfo.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <cc_log.h>
 

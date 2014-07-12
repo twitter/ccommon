@@ -27,6 +27,8 @@
  * and retrieve key/value pairs.
  */
 
+struct item;
+
 /*
  * Store the key value pair in the cache. Overwrites if the key already exists.
  */
@@ -48,7 +50,6 @@ void replace_key(void *key, uint8_t nkey, void *val, uint32_t nval);
  * Appends val to the end of the item with the corresponding key
  */
 void append_val(void *key, uint8_t nkey, void *val, uint32_t nval);
-
 
 /*
  * Prepends val to the end of the item with the corresponding key

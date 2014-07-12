@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*pthread_mutex_t cache_lock;*/                     /* lock protecting lru q and hash */
+/*pthread_mutex_t cache_lock;*/                 /* lock protecting lru q and hash */
 static struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
 
@@ -868,7 +868,8 @@ _item_append(struct item *it)
 	 * the existing data. Otherwise, allocate a new item and store the
 	 * payload left-aligned.
 	 */
-	cc_memcpy(item_data(oit_tail) + oit->nbyte, item_data(it), it->nbyte);
+	log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
+	cc_memcpy(item_data(oit_tail) + oit_tail->nbyte, item_data(it), it->nbyte);
 
 	/* Set the new data size and cas */
 	oit->nbyte = total_nbyte;
@@ -893,6 +894,7 @@ _item_append(struct item *it)
 	if(!item_is_chained(nit)) {
 	    /* Only one additional node was allocated, so the entirety of
 	       it should be able to fit in the remainder of nit */
+	    log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
 	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   it->nbyte);
 	} else {
@@ -904,15 +906,19 @@ _item_append(struct item *it)
 	    uint32_t nit_amount_copied = slab_item_size(nit->id)
 		- ITEM_HDR_SIZE - oit_tail->nbyte - oit_tail->nkey - 1;
 
+	    log_stderr("copying to address %p", item_data(nit) + oit_tail->nbyte);
 	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
 		   nit_amount_copied);
 
 	    /* Copy the remaining data into the second node */
+	    log_stderr("copying to address %p", item_data(nit->next_node));
 	    cc_memcpy(item_data(nit->next_node), item_data(it) + nit_amount_copied,
 		   it->nbyte - nit_amount_copied);
 	}
 
 	if(!item_is_chained(oit)) {
+	    loga_hexdump(oit, 200, "relinking oit:");
+	    loga_hexdump(nit, 200, "with nit:");
 	    _item_relink(oit, nit);
 	    /* Both oit and nit should have refcount decremented */
 	    _item_remove(nit);

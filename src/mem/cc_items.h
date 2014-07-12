@@ -281,7 +281,8 @@ void item_hdr_init(struct item *it, uint32_t offset, uint8_t id);
 uint8_t item_slabid(uint8_t nkey, uint32_t nbyte);
 
 /* Allocate an item with the given parameters */
-struct item *item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t exptime, uint32_t nbyte);
+struct item *item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
+			rel_time_t exptime, uint32_t nbyte);
 
 /* Make an item with zero refcount available for reuse. Frees all nodes in
    different slabs, and opens up nodes in provided node's slabs for reuse. */

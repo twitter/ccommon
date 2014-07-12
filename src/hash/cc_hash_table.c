@@ -36,7 +36,8 @@
 #define HASH_DEFAULT_POWER      16
 
 static struct item_slh *hash_table_create(uint32_t table_size);
-static struct item_slh *hash_table_get_bucket(const char *key, size_t nkey, struct hash_table *table);
+static struct item_slh *hash_table_get_bucket(const char *key, size_t nkey,
+					      struct hash_table *table);
 
 rstatus_t
 hash_table_init(uint32_t hash_power, struct hash_table *table)
