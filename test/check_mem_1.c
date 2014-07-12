@@ -139,7 +139,7 @@ START_TEST(check_zipmap_basic)
 
     /* Get first val */
     printf("getting key foo...\n");
-    val = cc_alloc(3);
+    val = cc_alloc(12);
     ck_assert(val != NULL);
     ret = zmap_get("map", 3, "foo", 3, &val, &nval);
     ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! %d", ret);
@@ -183,8 +183,68 @@ START_TEST(check_zipmap_basic)
     printf("getting numeric val...\n");
     ret = zmap_get("map", 3, "n1", 2, &val, &nval);
     ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! %d", ret);
-    num = *((uint64_t *)val);
+    num = *((int64_t *)val);
     ck_assert_msg(num == 0xFFFFFFF, "got incorrect value %lx", num);
+
+    /* Replace existing val with val of the same size */
+    printf("replacing key foo...\n");
+    ret = zmap_replace("map", 3, "foo", 3, "foo", 3);
+    ck_assert_msg(ret == ZMAP_REPLACE_OK, "replace not successful! %d", ret);
+    ck_assert_msg(zmap_len("map", 3) == 3, "zipmap has incorrect len (should be 3)!");
+
+    /* Get new val */
+    printf("getting key foo...\n");
+    ret = zmap_get("map", 3, "foo", 3, &val, &nval);
+    ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! %d", ret);
+    ck_assert_msg(cc_memcmp(val, "foo", 3) == 0, "got wrong value!");
+
+    /* Replace existing val with val of different size */
+    printf("replacing key foo...\n");
+    ret = zmap_replace("map", 3, "foo", 3, "foobarfoobar", 12);
+    ck_assert_msg(ret == ZMAP_REPLACE_OK, "replace not successful! %d", ret);
+    ck_assert_msg(zmap_len("map", 3) == 3, "zipmap has incorrect len (should be 3)!");
+    /* Get new val */
+    printf("getting key foo...\n");
+    ret = zmap_get("map", 3, "foo", 3, &val, &nval);
+    ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! %d", ret);
+    ck_assert_msg(cc_memcmp(val, "foobarfoobar", 12) == 0, "got wrong value! (got %s)", val);
+
+    /* Replace non existent value (should not go through) */
+    printf("replacing key asdf...\n");
+    ret = zmap_replace("map", 3, "asdf", 4, "asdfasdf", 8);
+    ck_assert_msg(ret == ZMAP_REPLACE_ENTRY_NOT_FOUND, "replace returned incorrect status %d!", ret);
+    ck_assert_msg(zmap_len("map", 3) == 3, "zipmap has incorrect len (should be 3)!");
+
+    /* Add new val */
+    printf("adding val...");
+    ret = zmap_add("map", 3, "foobar", 6, "foobarbazqux", 12);
+    ck_assert_msg(ret == ZMAP_ADD_OK, "add not successful! %d", ret);
+    ck_assert_msg(zmap_len("map", 3) == 4, "zipmap has incorrect len (should be 4)!");
+
+    /* Get new val */
+    printf("getting key foobar...\n");
+    ret = zmap_get("map", 3, "foobar", 6, &val, &nval);
+    ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! %d", ret);
+    ck_assert_msg(cc_memcmp(val, "foobarbazqux", 12) == 0, "got wrong value! (got %s)", val);
+
+    /* Add existing val (should not go through) */
+    printf("adding key foo...\n");
+    ret = zmap_add("map", 3, "foo", 3, "bar", 3);
+    ck_assert_msg(ret == ZMAP_ADD_EXISTS, "add returned incorrect status %d!", ret);
+    ck_assert_msg(zmap_len("map", 3) == 4, "zipmap has incorrect len (should be 4)!");
+
+    /* Replace key foo with numeric value */
+    printf("replacing key foo...\n");
+    ret = zmap_replace_numeric("map", 3, "foo", 3, 0xDEADBEEF);
+    ck_assert_msg(ret == ZMAP_REPLACE_OK, "replace returned incorrect status %d!", ret);
+    ck_assert_msg(zmap_len("map", 3) == 4, "zipmap has incorrect len (should be 4)!");
+
+    /* Get new val */
+    printf("getting numeric val...\n");
+    ret = zmap_get("map", 3, "foo", 3, &val, &nval);
+    ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! &d", ret);
+    num = *((int64_t *)val);
+    ck_assert_msg(num == 0xDEADBEEF, "got incorrect value %lx", num);
 }
 END_TEST
 
