@@ -183,14 +183,19 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 
     /* Copy over data from first node */
     amt_to_copy = (iter->nbyte - offset < buf_size) ? iter->nbyte - offset : buf_size;
-    cc_memcpy(buf, item_data(iter) + offset, iter->nbyte - offset);
-    amt_copied = iter->nbyte - offset;
+    cc_memcpy(buf, item_data(iter) + offset, amt_to_copy);
+    log_stderr("@@@ item_data: %p", item_data(iter) + offset);
+    log_stderr("@@@ buf: %s", buf);
+    amt_copied = amt_to_copy;
 
     /* Copy over the rest of the data */
-    for(; iter != NULL && amt_copied < buf_size; iter = iter->next_node) {
+    for(iter = iter->next_node; iter != NULL && amt_copied < buf_size;
+	iter = iter->next_node) {
 	amt_to_copy = (buf_size - amt_copied < iter->nbyte) ?
 	    buf_size - amt_copied : iter->nbyte;
 	cc_memcpy(buf + amt_copied, item_data(iter), amt_to_copy);
+	log_stderr("@@@ item_data: %p", item_data(iter));
+	log_stderr("@@@ buf: %s", buf);
 	amt_copied += amt_to_copy;
     }
 

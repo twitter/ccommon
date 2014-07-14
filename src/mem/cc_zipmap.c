@@ -603,7 +603,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 
     append_val(item_key(it), it->nkey, new_item_buffer, entry_size);
 
-    /* After append, it and zmap are invalidated */
+    /* After append, it and zmap pointers are invalidated */
     it = item_get(it_key, it_nkey);
     zmap = item_to_zmap(it);
 

@@ -40,6 +40,7 @@ START_TEST(check_mem_basic)
     char *val;
     struct iovec *vector;
     ssize_t bytes;
+    struct item *it;
 
     init_settings();
     time_init();
@@ -54,20 +55,46 @@ START_TEST(check_mem_basic)
 	ck_abort_msg("Slab init failed! Error code %d", return_status);
     }
 
+    /* Store keys foo and foobar */
     store_key("foo", 3, "bar", 3);
     store_key("foobar", 6, "foobarfoobar", 12);
 
-    val = malloc(4);
-    ck_assert_msg(get_val("foo", 3, val, 3, 0), "get_val failed for key foo!");
-    val[3] = '\0';
+    /* Get key foo with larger than necessary buffer */
+    val = malloc(25);
+    memset(val, '\0', 25);
+    ck_assert_msg(get_val("foo", 3, val, 24, 0), "get_val failed for key foo!");
     ck_assert_msg(strcmp(val, "bar") == 0, "Wrong value for key foo! Expected bar, got %s", val);
     free(val);
 
+    /* Get key foobar */
     vector = malloc(sizeof(struct iovec));
     ck_assert_msg(get_val_ref("foobar", 6, vector), "get_val_ref failed for key foobar!");
     bytes = writev(STDOUT_FILENO, vector, 1);
     ck_assert_msg(bytes == 12, "Wrote incorrect number of bytes! nbytes: %d errno: %d", bytes, errno);
     free(vector);
+
+    /* Set numeric value */
+    store_key("num", 3, "100", 3);
+
+    /* increment num */
+    increment_val("num", 3, 50);
+
+    /* get num */
+    val = malloc(4);
+    ck_assert_msg(get_val("num", 3, val, 3, 0), "get_val failed for key num!");
+    val[3] = '\0';
+    ck_assert_msg(strcmp(val, "150") == 0, "Wrong value for key num! Expected 150, got %s", val);
+    free(val);
+
+    /* Append to key foobar */
+    append_val("foobar", 6, "foobarfoobar", 12);
+
+    /* get key foobar */
+    val = malloc(25);
+    memset(val, '\0', 25);
+    ck_assert_msg(get_val("foobar", 6, val, 24, 0), "get_val failed for key foo!");
+    ck_assert_msg(strcmp(val, "foobarfoobarfoobarfoobar") == 0, "Wrong value for key foobar! Expected foobarx4, got %s", val);
+    free(val);
 }
 END_TEST
 

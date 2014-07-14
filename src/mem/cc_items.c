@@ -90,6 +90,7 @@ item_data(struct item *it)
         if (item_has_cas(it)) {
             data += sizeof(uint64_t);
         }
+	log_stderr("@@@ it->end: %p it->nkey + 1: %hhu item_has_cas: %hhu", it->end, it->nkey + 1, item_has_cas(it));
     }
 
     return data;
