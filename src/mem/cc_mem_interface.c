@@ -113,6 +113,7 @@ get_val_size(void *key, uint8_t nkey)
     return ret;
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 size_t
 get_num_nodes(void *key, uint8_t nkey)
 {
@@ -128,12 +129,16 @@ get_num_nodes(void *key, uint8_t nkey)
     item_remove(it);
     return ret;
 }
+#endif
 
 bool
 get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
 {
-    uint32_t i;
-    struct item *it, *iter;
+    uint32_t i = 0;
+    struct item *it;
+#if defined CC_CHAINED && CC_CHAINED == 1
+    struct item *iter;
+#endif
 
     ASSERT(vector != NULL);
 
@@ -144,12 +149,17 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
 	return false;
     }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     /* Store the item payload location and number of bytes for each node into
        vector */
-    for(i = 0, iter = it; iter != NULL; iter = iter->next_node, ++i) {
+    for(iter = it; iter != NULL; iter = iter->next_node, ++i) {
 	vector[i].iov_base = item_data(iter);
 	vector[i].iov_len = iter->nbyte;
     }
+#else
+    vector[i].iov_base = item_data(it);
+    vector[i].iov_len = it->nbyte;
+#endif
 
     item_remove(it);
 
@@ -159,33 +169,35 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
 bool
 get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 {
-    struct item *it, *iter;
+    struct item *it;
+#if defined CC_CHAINED && CC_CHAINED == 1
     uint64_t amt_copied;
     size_t amt_to_copy;
+    struct item *iter;
+#endif
 
     ASSERT(buf != NULL);
 
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!\n", key);
+	log_stderr("No item with key %s!", key);
 	return false;
     }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     /* Get to the correct node for offset */
     for(iter = it; iter != NULL && offset > iter->nbyte;
 	iter = iter->next_node, offset -= iter->nbyte);
 
     if(iter == NULL) {
-	log_stderr("Offset too large!\n");
+	log_stderr("Offset too large!");
 	return false;
     }
 
     /* Copy over data from first node */
     amt_to_copy = (iter->nbyte - offset < buf_size) ? iter->nbyte - offset : buf_size;
     cc_memcpy(buf, item_data(iter) + offset, amt_to_copy);
-    log_stderr("@@@ item_data: %p", item_data(iter) + offset);
-    log_stderr("@@@ buf: %s", buf);
     amt_copied = amt_to_copy;
 
     /* Copy over the rest of the data */
@@ -194,10 +206,17 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 	amt_to_copy = (buf_size - amt_copied < iter->nbyte) ?
 	    buf_size - amt_copied : iter->nbyte;
 	cc_memcpy(buf + amt_copied, item_data(iter), amt_to_copy);
-	log_stderr("@@@ item_data: %p", item_data(iter));
-	log_stderr("@@@ buf: %s", buf);
 	amt_copied += amt_to_copy;
     }
+#else
+if(offset >= it->nbyte) {
+	log_stderr("Offset too large!");
+	return false;
+    }
+
+    cc_memcpy(buf, item_data(it) + offset,
+	      (it->nbyte - offset < buf_size) ? it->nbyte - offset : buf_size);
+#endif
 
     item_remove(it);
 
@@ -220,8 +239,17 @@ remove_key(void *key, uint8_t nkey)
 static struct item *
 create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 {
-    struct item *ret, *iter;
+    struct item *ret;
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+    struct item *iter;
     uint32_t amt_copied = 0;
+#else
+    if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
+	log_stderr("No slabclass can contain item of that size! (try turning chaining on)");
+	return NULL;
+    }
+#endif
 
     /* Currently exptime is arbitrarily set; not sure what to do about this
        yet. */
@@ -231,13 +259,17 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 	return NULL;
     }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     /* Copy over data in val */
     for(iter = ret; iter != NULL; iter = iter->next_node) {
-	cc_memcpy(item_data(iter), (char*)val + amt_copied, iter->nbyte);
+	cc_memcpy(item_data(iter), (char *)val + amt_copied, iter->nbyte);
 	amt_copied += iter->nbyte;
     }
-
     ASSERT(amt_copied == nval);
+#else
+    cc_memcpy(item_data(ret), (char *)val, nval);
+#endif
+
     return ret;
 }
 
@@ -247,13 +279,18 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 static void
 check_annex_status(item_annex_result_t ret)
 {
-    if(ret == ANNEX_OVERSIZED) {
-	log_stderr("Annex operation too large; data to be annexed must be able "
-		   "to fit in one unchained item.\n");
-    } else if(ret == ANNEX_NOT_FOUND) {
-	log_stderr("Cannot annex: no item with that key found.\n");
-    } else if(ret == ANNEX_EOM) {
-	log_stderr("Cannot annex: not enough memory.\n");
+    switch(ret) {
+    case ANNEX_OVERSIZED:
+	log_stderr("Cannot annex: annex operation too large");
+	break;
+    case ANNEX_NOT_FOUND:
+	log_stderr("Cannot annex: no item with that key found");
+	break;
+    case ANNEX_EOM:
+	log_stderr("Cannot annex: not enough memory");
+	break;
+    default:
+	break;
     }
 }
 
@@ -263,11 +300,20 @@ check_annex_status(item_annex_result_t ret)
 static void
 check_delta_status(item_delta_result_t ret)
 {
-    if(ret == DELTA_NOT_FOUND) {
-	log_stderr("Cannot perform delta operation: no item with that key found.\n");
-    } else if(ret == DELTA_NON_NUMERIC) {
-	log_stderr("Cannot perform delta operation: value is not numeric.\n");
-    } else if(ret == DELTA_EOM) {
-	log_stderr("Cannot perform delta operation: not enough memory.\n");
+    switch(ret) {
+    case DELTA_NOT_FOUND:
+	log_stderr("Cannot perform delta operation: no item with that key found.");
+	break;
+    case DELTA_NON_NUMERIC:
+	log_stderr("Cannot perform delta operation: value is not numeric.");
+	break;
+    case DELTA_EOM:
+	log_stderr("Cannot perform delta operation: not enough memory.");
+	break;
+    case DELTA_CHAINED:
+	log_stderr("Cannot perform delta operation: target is chained.");
+	break;
+    default:
+	break;
     }
 }

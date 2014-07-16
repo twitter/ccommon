@@ -34,6 +34,8 @@ init_settings(void) {
     settings.oldest_live = 6000;
 }
 
+/* TODO: test eviction */
+
 START_TEST(check_mem_basic)
 {
     rstatus_t return_status;
@@ -87,14 +89,23 @@ START_TEST(check_mem_basic)
     free(val);
 
     /* Append to key foobar */
-    append_val("foobar", 6, "foobarfoobar", 12);
+    append_val("foobar", 6, "bazquxbazqux", 12);
 
     /* get key foobar */
     val = malloc(25);
     memset(val, '\0', 25);
     ck_assert_msg(get_val("foobar", 6, val, 24, 0), "get_val failed for key foo!");
-    ck_assert_msg(strcmp(val, "foobarfoobarfoobarfoobar") == 0, "Wrong value for key foobar! Expected foobarx4, got %s", val);
+    ck_assert_msg(strcmp(val, "foobarfoobarbazquxbazqux") == 0, "Wrong value for key foobar! got %s", val);
     free(val);
+
+    /* Prepend to key foobar */
+    prepend_val("foobar", 6, "bazquxbazqux", 12);
+
+    /* get key foobar */
+    val = malloc(37);
+    memset(val, '\0', 37);
+    ck_assert_msg(get_val("foobar", 6, val, 36, 0), "get_val failed for key foo!");
+    ck_assert_msg(strcmp(val, "bazquxbazquxfoobarfoobarbazquxbazqux") == 0, "Wrong value for key foobar! got %s", val);
 }
 END_TEST
 
@@ -214,7 +225,7 @@ START_TEST(check_zipmap_basic)
     ck_assert_msg(num == 0xFFFFFFF, "got incorrect value %lx", num);
 
     /* Replace existing val with val of the same size */
-    printf("replacing key foo...\n");
+    printf("replacing key foo... (same size)\n");
     ret = zmap_replace("map", 3, "foo", 3, "foo", 3);
     ck_assert_msg(ret == ZMAP_REPLACE_OK, "replace not successful! %d", ret);
     ck_assert_msg(zmap_len("map", 3) == 3, "zipmap has incorrect len (should be 3)!");
@@ -226,7 +237,7 @@ START_TEST(check_zipmap_basic)
     ck_assert_msg(cc_memcmp(val, "foo", 3) == 0, "got wrong value!");
 
     /* Replace existing val with val of different size */
-    printf("replacing key foo...\n");
+    printf("replacing key foo... (different size)\n");
     ret = zmap_replace("map", 3, "foo", 3, "foobarfoobar", 12);
     ck_assert_msg(ret == ZMAP_REPLACE_OK, "replace not successful! %d", ret);
     ck_assert_msg(zmap_len("map", 3) == 3, "zipmap has incorrect len (should be 3)!");

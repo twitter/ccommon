@@ -581,7 +581,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
     it_nkey = it->nkey;
     cc_memcpy(it_key, item_key(it), it_nkey);
 
-    loga_hexdump(zmap, 100, "add_raw - before:");
+    loga_hexdump(zmap, 100, "add_raw - before");
 
     /* TODO: switch over from cc_alloc to using a preallocated memory pool */
     new_item_buffer = cc_alloc(entry_size);
@@ -601,7 +601,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
     cc_memcpy(new_item_buffer + ZMAP_ENTRY_HDR_SIZE, skey, nskey);
     cc_memcpy(new_item_buffer + ZMAP_ENTRY_HDR_SIZE + nskey, val, nval);
 
-    append_val(item_key(it), it->nkey, new_item_buffer, entry_size);
+    append_val(it_key, it_nkey, new_item_buffer, entry_size);
 
     /* After append, it and zmap pointers are invalidated */
     it = item_get(it_key, it_nkey);
@@ -609,8 +609,11 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 
     /* TODO: extend functionality to chaining */
     ASSERT(!item_is_chained(it));
+    item_remove(it);
 
     ++(zmap->len);
+
+    loga_hexdump(zmap, 100, "add_raw - after");
 }
 
 /* Delete the given entry from the zipmap */
@@ -624,6 +627,8 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *zmap_entr
     ASSERT(zmap != NULL);
     ASSERT(zmap_entry != NULL);
     ASSERT(zmap->len > 0);
+
+    loga_hexdump(zmap, 100, "delete_raw - before");
 
     /* Shift everything down */
 
@@ -645,6 +650,8 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *zmap_entr
 
     /* Adjust len */
     --(zmap->len);
+
+    loga_hexdump(zmap, 100, "delete_raw - after");
 }
 
 static size_t
@@ -679,6 +686,8 @@ zmap_set_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 static void
 zmap_replace_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry, void *val, uint32_t nval, uint8_t flags)
 {
+    ASSERT(it != NULL);
+    log_stderr("@@@ zmap_replace_raw called");
     if(entry_size(entry) >= entry_ntotal(entry->nkey, nval, 0)
        && entry_size(entry) <= entry_ntotal(entry->nkey, nval, ZMAP_PADDING_MAX)) {
 	/* existing entry is a suitable size to contain the new entry */
@@ -693,7 +702,13 @@ zmap_replace_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry, v
     } else {
 	/* existing entry is not large enough to contain new entry, need to
 	   delete and replace */
-	zmap_add_raw(it, zmap, entry_key(entry), entry->nkey, val, nval, flags);
+	char entry_key_cpy[UCHAR_MAX];
+	uint8_t entry_nkey;
+
+	entry_nkey = entry->nkey;
+	cc_memcpy(entry_key_cpy, entry_key(entry), entry_nkey);
+
 	zmap_delete_raw(it, zmap, entry);
+	zmap_add_raw(it, zmap, entry_key_cpy, entry_nkey, val, nval, flags);
     }
 }

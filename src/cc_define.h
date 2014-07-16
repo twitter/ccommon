@@ -46,6 +46,8 @@
 # define CC_HAVE_BACKTRACE 1
 #endif
 
+#define CC_CHAINED 1
+
 
 #define CC_OK        0
 #define CC_ERROR    -1

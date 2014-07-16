@@ -32,7 +32,9 @@ typedef enum item_flags {
     ITEM_CAS     = 2,  /* item has cas */
     ITEM_SLABBED = 4,  /* item in free q */
     ITEM_RALIGN  = 8,  /* item data (payload) is right-aligned */
+#if defined CC_CHAINED && CC_CHAINED == 1
     ITEM_CHAINED = 16, /* item is chained */
+#endif
 } item_flags_t;
 
 /*
@@ -74,7 +76,8 @@ typedef enum item_delta_result {
     DELTA_OK,
     DELTA_NOT_FOUND,
     DELTA_NON_NUMERIC,
-    DELTA_EOM
+    DELTA_EOM,
+    DELTA_CHAINED,
 } item_delta_result_t;
 
 /*
@@ -112,7 +115,9 @@ typedef enum item_delta_result {
  * - data with no terminating '\0'
  */
 struct item {
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
     uint32_t          magic;      /* item magic (const) */
+#endif
     TAILQ_ENTRY(item) i_tqe;      /* link in the free q */
     SLIST_ENTRY(item) h_sle;      /* link in hash */
     rel_time_t        atime;      /* last access time in secs */
@@ -124,8 +129,10 @@ struct item {
     uint8_t           flags;      /* item flags */
     uint8_t           id;         /* slab class id */
     uint8_t           nkey;       /* key length */
+#if defined CC_CHAINED && CC_CHAINED == 1
     struct item       *next_node; /* next node, if item is chained */
     struct item       *head;      /* head node */
+#endif
     char              end[1];     /* item data */
 };
 
@@ -185,10 +192,12 @@ item_is_raligned(struct item *it) {
     return (it->flags & ITEM_RALIGN);
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 static inline bool
 item_is_chained(struct item *it) {
     return (it->flags & ITEM_CHAINED);
 }
+#endif
 
 /*
  * Item CAS operations
@@ -325,7 +334,9 @@ item_delete_result_t item_delete(char *key, size_t nkey);
 /* Get total data size of item (sum of nbyte for all nodes) */
 uint64_t item_total_nbyte(struct item *it);
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 /* Get the number of nodes in the item */
 uint32_t item_num_nodes(struct item *it);
+#endif
 
 #endif

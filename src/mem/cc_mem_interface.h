@@ -18,6 +18,8 @@
 #ifndef _CC_MEM_INTERFACE_H_
 #define _CC_MEM_INTERFACE_H_
 
+#include <cc_define.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/uio.h>
@@ -71,10 +73,12 @@ void decrement_val(void *key, uint8_t nkey, uint64_t delta);
  */
 uint64_t get_val_size(void *key, uint8_t nkey);
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 /*
  * Get the number of nodes for the item with the given key
  */
 size_t get_num_nodes(void *key, uint8_t nkey);
+#endif
 
 /*
  * Grants access to the value associated to the given key by making it accessible

@@ -342,7 +342,9 @@ slab_hdr_init(struct slab *slab, uint8_t id)
 {
     ASSERT(id >= SLABCLASS_MIN_ID && id <= slabclass_max_id);
 
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
     slab->magic = SLAB_MAGIC;
+#endif
     slab->id = id;
     slab->unused = 0;
     slab->refcount = 0;
@@ -487,7 +489,11 @@ slab_evict_one(struct slab *slab)
         ASSERT(it->offset != 0);
 
 	/* If it is in hash, reuse it. Otherwise, take it off the free queue */
-        if (item_is_linked(it->head)) {
+#if defined CC_CHAINED && CC_CHAINED == 1
+        if(item_is_linked(it->head)) {
+#else
+        if(item_is_linked(it)) {
+#endif
             item_reuse(it);
         } else if (item_is_slabbed(it)) {
             ASSERT(slab == item_2_slab(it));
@@ -700,7 +706,9 @@ _slab_get_item(uint8_t id)
         p->free_item = NULL;
     }
 
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
     it->magic = ITEM_MAGIC;
+#endif
 
     log_stderr("get new item at offset %u with id %hhu\n", it->offset,
 	    it->id);
@@ -721,8 +729,10 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(item_2_slab(it)->id == id);
     ASSERT(!item_is_linked(it));
     ASSERT(!item_is_slabbed(it));
+#if defined CC_CHAINED && CC_CHAINED == 1
     ASSERT(!item_is_chained(it));
     ASSERT(it->next_node == NULL);
+#endif
     ASSERT(it->refcount == 0);
     ASSERT(it->offset != 0);
 

@@ -37,7 +37,9 @@ static bool item_expired(struct item *it);
 static void item_acquire_refcount(struct item *it);
 static void item_release_refcount(struct item *it);
 static void item_free(struct item *it);
+#if defined CC_CHAINED && CC_CHAINED == 1
 static struct item *item_tail(struct item *it);
+#endif
 static void skip_space(const char **str, size_t *len);
 static bool strtoull_len(const char *str, uint64_t *out, size_t len);
 
@@ -90,7 +92,6 @@ item_data(struct item *it)
         if (item_has_cas(it)) {
             data += sizeof(uint64_t);
         }
-	log_stderr("@@@ it->end: %p it->nkey + 1: %hhu item_has_cas: %hhu", it->end, it->nkey + 1, item_has_cas(it));
     }
 
     return data;
@@ -117,13 +118,17 @@ item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
 {
     ASSERT(offset >= SLAB_HDR_SIZE && offset < settings.slab_size);
 
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
     it->magic = ITEM_MAGIC;
+#endif
     it->offset = offset;
     it->id = id;
     it->refcount = 0;
     it->flags = 0;
+#if defined CC_CHAINED && CC_CHAINED == 1
     it->next_node = NULL;
     it->head = NULL;
+#endif
 }
 
 /*
@@ -134,8 +139,10 @@ item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
 void
 item_reuse(struct item *it)
 {
+#if defined CC_CHAINED && CC_CHAINED == 1
     struct item *prev;
     struct slab *evicted = item_2_slab(it);
+#endif
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
@@ -143,6 +150,7 @@ item_reuse(struct item *it)
     ASSERT(item_is_linked(it->head));
     ASSERT(it->head->refcount == 0);
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     /* Unlink head of item */
     it->head->flags &= ~ITEM_LINKED;
     hash_table_remove(item_key(it->head), it->head->nkey, &mem_hash_table);
@@ -161,6 +169,9 @@ item_reuse(struct item *it)
 	    item_free(prev);
 	}
     }
+#else
+    hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
+#endif
 
     log_stderr("reuse %s item %s at offset %d with id %hhu",
 	    item_expired(it) ? "expired" : "evicted", item_key(it),
@@ -310,18 +321,23 @@ item_delete(char *key, size_t nkey)
 uint64_t
 item_total_nbyte(struct item *it)
 {
+    ASSERT(it != NULL);
+
+#if defined CC_CHAINED && CC_CHAINED == 1
     uint64_t nbyte = 0;
 
-    ASSERT(it != NULL);
     ASSERT(it->head == it);
-
     for(; it != NULL; it = it->next_node) {
 	nbyte += it->nbyte;
     }
 
     return nbyte;
+#else
+    return it->nbyte;
+#endif
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 uint32_t
 item_num_nodes(struct item *it)
 {
@@ -332,6 +348,7 @@ item_num_nodes(struct item *it)
     for(; it != NULL; it = it->next_node, ++num_nodes);
     return num_nodes;
 }
+#endif
 
 /*
  * Returns the next cas id for a new item. Minimum cas value
@@ -375,9 +392,13 @@ item_acquire_refcount(struct item *it)
 
     it->refcount++;
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     for(; it != NULL; it = it->next_node) {
 	slab_acquire_refcount(item_2_slab(it));
     }
+#else
+    slab_acquire_refcount(item_2_slab(it));
+#endif
 }
 
 /*
@@ -392,9 +413,13 @@ item_release_refcount(struct item *it)
 
     it->refcount--;
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     for(; it != NULL; it = it->next_node) {
 	slab_release_refcount(item_2_slab(it));
     }
+#else
+    slab_release_refcount(item_2_slab(it));
+#endif
 }
 
 /*
@@ -408,6 +433,7 @@ item_free(struct item *it)
 
     log_stderr("Freeing item %s...\n", item_key(it));
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     /* Keep two pointers to the chain of items, one to do the freeing (prev) and
        the other to keep a handle on the rest of the chain (it) */
     struct item *prev = it;
@@ -428,8 +454,12 @@ item_free(struct item *it)
 	prev->head = NULL;
 	slab_put_item(prev);
     }
+#else
+    slab_put_item(it);
+#endif
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 /* Get the last node in an item chain. */
 static struct item *
 item_tail(struct item *it)
@@ -438,6 +468,7 @@ item_tail(struct item *it)
     for(; it->next_node != NULL; it = it->next_node);
     return it;
 }
+#endif
 
 /* Skip spaces in str */
 static void
@@ -483,6 +514,7 @@ strtoull_len(const char *str, uint64_t *out, size_t len)
  * Allocate an item. We allocate an item by consuming the next free item from
  * the item's slab class.
  */
+#if defined CC_CHAINED && CC_CHAINED == 1
 static struct item *
 _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    exptime, uint32_t nbyte)
@@ -507,7 +539,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 
 	if(current_node == NULL) {
 	    /* Could not successfully allocate item(s) */
-	    log_stderr("server error on allocating item in slab %hhu\n",
+	    log_stderr("server error on allocating item in slab %hhu",
 		    id);
 	    return NULL;
 	}
@@ -549,7 +581,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1;
 
 	nbyte -= current_node->nbyte;
-	log_stderr("bytes allocated for this node: %u\n", current_node->nbyte);
+	log_stderr("bytes allocated for this node: %u", current_node->nbyte);
 
 	if(prev_node != NULL) {
 	    prev_node->next_node = current_node;
@@ -580,11 +612,59 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     item_set_cas(it, 0);
 
     log_stderr("alloc item %s at offset %u with id %hhu expiry %u "
-	    " refcount %hu\n", item_key(it), it->offset, it->id, it->exptime,
+	    " refcount %hu", item_key(it), it->offset, it->id, it->exptime,
 	    it->refcount);
 
     return it;
 }
+#else
+static struct item *
+_item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
+	    exptime, uint32_t nbyte)
+{
+    struct item *it;
+    uint8_t id;
+
+    id = slab_id(item_ntotal(nkey, nbyte, settings.use_cas));
+
+    if(id == SLABCLASS_CHAIN_ID) {
+	log_stderr("No id large enough to contain that item!");
+	return NULL;
+    }
+
+    ASSERT(id >= SLABCLASS_MIN_ID && id <= SLABCLASS_MAX_ID);
+
+    it = slab_get_item(id);
+
+    if(it == NULL) {
+	/* Could not successfully allocate item */
+	log_stderr("server error on allocating item in slab %hhu", id);
+	return NULL;
+    }
+
+    ASSERT(it->id == id);
+    ASSERT(!item_is_linked(it));
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(it->offset != 0);
+    ASSERT(it->refcount == 0);
+
+    item_acquire_refcount(it);
+
+    it->flags = settings.use_cas ? ITEM_CAS : 0;
+    it->dataflags = dataflags;
+    it->nbyte = nbyte;
+    it->exptime = exptime;
+    it->nkey = nkey;
+    memcpy(item_key(it), key, nkey);
+    item_set_cas(it, 0);
+
+    log_stderr("alloc item %s at offset %u with id %hhu expiry %u "
+	    " refcount %hu", item_key(it), it->offset, it->id, it->exptime,
+	    it->refcount);
+
+    return it;
+}
+#endif
 
 /*
  * Link an item into the hash table. In the case of a chained item, only the
@@ -597,7 +677,6 @@ _item_link(struct item *it)
     ASSERT(!item_is_linked(it));
     ASSERT(!item_is_slabbed(it));
     ASSERT(it->nkey != 0);
-    ASSERT(it->head == it);
 
     log_stderr("link item %s at offset %u with flags %hhu id %hhu\n",
 	    item_key(it), it->offset, it->flags, it->id);
@@ -641,7 +720,6 @@ _item_remove(struct item *it)
 {
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
-    ASSERT(it->head == it);
 
     log_stderr("remove item %s at offset %u with flags %hhu id %hhu "
 	    "refcount %hu\n", item_key(it), it->offset, it->flags, it->id,
@@ -664,11 +742,9 @@ _item_relink(struct item *it, struct item *nit)
 {
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
-    ASSERT(it->head == it);
 
     ASSERT(nit->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(nit));
-    ASSERT(nit->head == nit);
 
     log_stderr("relink item %s at offset %u id %hhu with one at offset "
 	    "%u id %hhu\n", item_key(it), it->offset, it->id, nit->offset,
@@ -695,8 +771,6 @@ _item_get(const char *key, size_t nkey)
 	log_stderr("get item %s not found\n", key);
         return NULL;
     }
-
-    ASSERT(it->head == it);
 
     if (it->exptime != 0 && it->exptime <= time_now()) {
         _item_unlink(it);
@@ -844,10 +918,12 @@ _item_append(struct item *it)
     uint8_t nid;
     uint32_t total_nbyte;
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
     ASSERT(it->next_node == NULL);
+#endif
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -857,7 +933,11 @@ _item_append(struct item *it)
 
     ASSERT(!item_is_slabbed(oit));
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     oit_tail = item_tail(oit);
+#else
+    oit_tail = oit;
+#endif
 
     /* Find out the new size of the tail */
     total_nbyte = oit_tail->nbyte + it->nbyte;
@@ -873,12 +953,19 @@ _item_append(struct item *it)
 	cc_memcpy(item_data(oit_tail) + oit_tail->nbyte, item_data(it), it->nbyte);
 
 	/* Set the new data size and cas */
-	oit->nbyte = total_nbyte;
+	oit_tail->nbyte = total_nbyte;
 	item_set_cas(oit, item_next_cas());
 
 	/* oit refcount must be decremented */
     } else {
 	/* Append command where a new item needs to be allocated */
+
+#if !(defined CC_CHAINED && CC_CHAINED == 1)
+	if(nid == SLABCLASS_CHAIN_ID) {
+	    return ANNEX_OVERSIZED;
+	}
+#endif
+
 	nit = _item_alloc(item_key(oit_tail), oit_tail->nkey,
 			  oit->dataflags, oit->exptime, total_nbyte);
 
@@ -892,6 +979,7 @@ _item_append(struct item *it)
 	   node */
 	cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 	if(!item_is_chained(nit)) {
 	    /* Only one additional node was allocated, so the entirety of
 	       it should be able to fit in the remainder of nit */
@@ -951,6 +1039,12 @@ _item_append(struct item *it)
 	    slab_release_refcount(item_2_slab(oit_tail));
 	    item_free(oit_tail);
 	}
+#else
+	log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
+	cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it), it->nbyte);
+	_item_relink(oit, nit);
+	_item_remove(nit);
+#endif
     }
 
     log_stderr("annex successfully to item %s, new id %hhu\n",
@@ -972,10 +1066,12 @@ _item_prepend(struct item *it)
     uint8_t nid;
     uint32_t total_nbyte;
 
+#if defined CC_CHAINED && CC_CHAINED == 1
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
     ASSERT(it->next_node == NULL);
+#endif
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -997,7 +1093,9 @@ _item_prepend(struct item *it)
 	item_set_cas(oit, item_next_cas());
     } else if(nid != SLABCLASS_CHAIN_ID) {
 	/* only one larger node is needed to contain the data */
+#if defined CC_CHAINED && CC_CHAINED == 1
 	struct item *iter;
+#endif
 
 	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
 			  oit->exptime, total_nbyte);
@@ -1007,20 +1105,23 @@ _item_prepend(struct item *it)
 	    return ANNEX_EOM;
 	}
 
-	ASSERT(nit->next_node == NULL);
-
 	/* Right align nit, copy over data */
 	nit->flags |= ITEM_RALIGN;
 	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
 	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 	/* Replace oit with nit */
+	ASSERT(nit->next_node == NULL);
+
 	nit->next_node = oit->next_node;
 	for(iter = nit; iter != NULL; iter = iter->next_node) {
 	    iter->head = nit;
 	}
+#endif
 	_item_relink(oit, nit);
     } else {
+#if defined CC_CHAINED && CC_CHAINED == 1
 	/* One node is not enough to contain original data + new data. First
 	   allocate a node with id slabclass_max_id then another smaller
 	   node to contain the head */
@@ -1062,6 +1163,10 @@ _item_prepend(struct item *it)
 	    iter->head = nit;
 	}
 	_item_relink(oit, nit);
+#else
+	_item_remove(oit);
+	return ANNEX_OVERSIZED;
+#endif
     }
 
     log_stderr("annex successfully to item %s\n", item_key(oit));
@@ -1095,9 +1200,14 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
         return DELTA_NOT_FOUND;
     }
 
-    ASSERT(it->head == it);
-
     /* it is not NULL, needs to have reference count decremented */
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+    if(item_is_chained(it)) {
+	_item_remove(it);
+	return DELTA_CHAINED;
+    }
+#endif
 
     ptr = item_data(it);
 

@@ -49,7 +49,9 @@
  *       8-byte aligned boundary.
  */
 struct slab {
+#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
     uint32_t          magic;    /* slab magic (const) */
+#endif
     uint8_t           id;       /* slabclass id */
     uint8_t           unused;   /* unused */
     uint16_t          refcount; /* # concurrent users */
