@@ -337,6 +337,12 @@ uint64_t item_total_nbyte(struct item *it);
 #if defined CC_CHAINED && CC_CHAINED == 1
 /* Get the number of nodes in the item */
 uint32_t item_num_nodes(struct item *it);
+
+/* Append given item's data onto end of linked item's data. If a new node needs
+   to be allocated for the annex, the entirety of the addition is added to the
+   new node so that the addition is stored contiguously. Useful for structures
+   like zipmap, where either all or none of an entry must be in one given node */
+item_annex_result_t item_append_contig(struct item *it);
 #endif
 
 #endif

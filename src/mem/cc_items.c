@@ -37,9 +37,6 @@ static bool item_expired(struct item *it);
 static void item_acquire_refcount(struct item *it);
 static void item_release_refcount(struct item *it);
 static void item_free(struct item *it);
-#if defined CC_CHAINED && CC_CHAINED == 1
-static struct item *item_tail(struct item *it);
-#endif
 static void skip_space(const char **str, size_t *len);
 static bool strtoull_len(const char *str, uint64_t *out, size_t len);
 
@@ -54,10 +51,17 @@ static void _item_set(struct item *it);
 static item_cas_result_t _item_cas(struct item *it);
 static item_add_result_t _item_add(struct item *it);
 static item_replace_result_t _item_replace(struct item *it);
-static item_annex_result_t _item_append(struct item *it);
+static item_annex_result_t _item_append(struct item *it, bool contig);
 static item_annex_result_t _item_prepend(struct item *it);
 static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
 				       uint64_t delta);
+static void item_append_same_id(struct item *oit, struct item *it, uint64_t total_nbyte);
+
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+static struct item *item_tail(struct item *it);
+static void item_prepare_tail(struct item *nit);
+#endif
 
 #define INCR_MAX_STORAGE_LEN 24
 
@@ -266,7 +270,7 @@ item_append(struct item *it)
 {
     item_annex_result_t ret;
     /*pthread_mutex_lock(&cache_lock);*/
-    ret = _item_append(it);
+    ret = _item_append(it, false);
     /*pthread_mutex_unlock(&cache_lock);*/
 
     return ret;
@@ -347,6 +351,17 @@ item_num_nodes(struct item *it)
 
     for(; it != NULL; it = it->next_node, ++num_nodes);
     return num_nodes;
+}
+
+item_annex_result_t
+item_append_contig(struct item *it)
+{
+    item_annex_result_t ret;
+    /*pthread_mutex_lock(&cache_lock);*/
+    ret = _item_append(it, true);
+    /*pthread_mutex_unlock(&cache_lock);*/
+
+    return ret;
 }
 #endif
 
@@ -458,17 +473,6 @@ item_free(struct item *it)
     slab_put_item(it);
 #endif
 }
-
-#if defined CC_CHAINED && CC_CHAINED == 1
-/* Get the last node in an item chain. */
-static struct item *
-item_tail(struct item *it)
-{
-    ASSERT(it != NULL);
-    for(; it->next_node != NULL; it = it->next_node);
-    return it;
-}
-#endif
 
 /* Skip spaces in str */
 static void
@@ -910,20 +914,21 @@ _item_replace(struct item *it)
     return ret;
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
+/* Append for chaining enabled */
 static item_annex_result_t
-_item_append(struct item *it)
+_item_append(struct item *it, bool contig)
 {
     char *key;
-    struct item *oit, *oit_tail, *nit = NULL;
+    struct item *oit, *oit_tail;
     uint8_t nid;
-    uint32_t total_nbyte;
+    uint64_t total_nbyte;
 
-#if defined CC_CHAINED && CC_CHAINED == 1
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
+
     ASSERT(it->next_node == NULL);
-#endif
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -933,14 +938,9 @@ _item_append(struct item *it)
 
     ASSERT(!item_is_slabbed(oit));
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+    /* get tail of the item */
     oit_tail = item_tail(oit);
-#else
-    oit_tail = oit;
-#endif
-
-    /* Find out the new size of the tail */
-    total_nbyte = oit_tail->nbyte + it->nbyte;
+    total_nbyte = oit_tail->nbyte + it->nbyte; /* get size of new tail */
     nid = item_slabid(oit_tail->nkey, total_nbyte);
 
     if(nid == oit_tail->id && !item_is_raligned(oit_tail)) {
@@ -949,114 +949,166 @@ _item_append(struct item *it)
 	 * the existing data. Otherwise, allocate a new item and store the
 	 * payload left-aligned.
 	 */
-	log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
-	cc_memcpy(item_data(oit_tail) + oit_tail->nbyte, item_data(it), it->nbyte);
-
-	/* Set the new data size and cas */
-	oit_tail->nbyte = total_nbyte;
+	item_append_same_id(oit_tail, it, total_nbyte);
 	item_set_cas(oit, item_next_cas());
-
-	/* oit refcount must be decremented */
     } else {
-	/* Append command where a new item needs to be allocated */
+	struct item *nit;
+	if(contig && nid == SLABCLASS_CHAIN_ID) {
+	    /* Need to allocate new node to contiguously store new data */
+	    nit = _item_alloc("", 0, oit->dataflags, oit->exptime, it->nbyte);
 
-#if !(defined CC_CHAINED && CC_CHAINED == 1)
-	if(nid == SLABCLASS_CHAIN_ID) {
-	    return ANNEX_OVERSIZED;
+	    /* Could not allocate new tail */
+	    if(nit == NULL) {
+		_item_remove(oit);
+		return ANNEX_EOM;
+	    }
+
+	    ASSERT(nit->next_node == NULL);
+
+	    /* Copy over new data */
+	    cc_memcpy(item_data(nit), item_data(it), it->nbyte);
+
+	    item_prepare_tail(nit);
+
+	    /* Make nit the new tail of oit */
+	    oit_tail->next_node = nit;
+	    nit->head = oit;
+	} else {
+	    if(nid == SLABCLASS_CHAIN_ID) {
+		/* Need to allocate new node but does not need to be stored in
+		   contiguous memory */
+		uint32_t nit_amt_copied;
+
+		nit = _item_alloc(item_key(oit_tail), oit_tail->nkey, oit->dataflags,
+				  oit->exptime, total_nbyte);
+
+		/* Could not allocate new tail */
+		if(nit == NULL) {
+		    _item_remove(oit);
+		    return ANNEX_EOM;
+		}
+
+		ASSERT(item_is_chained(nit));
+		ASSERT(nit->next_node != NULL);
+
+		/* Copy over current tail */
+		cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
+
+		nit_amt_copied = slab_item_size(nit->id) - ITEM_HDR_SIZE - oit_tail->nbyte
+		    - oit_tail->nkey - 1;
+
+		/* Copy over as much of the new data as possible to the first node */
+		cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
+			  nit_amt_copied);
+
+		/* Copy the remaining data into the second node */
+		cc_memcpy(item_data(nit->next_node), item_data(it) + nit_amt_copied,
+			  it->nbyte - nit_amt_copied);
+	    } else {
+		/* Simply need to allocate item in larger slabclass */
+		nit = _item_alloc(item_key(oit_tail), oit_tail->nkey, oit->dataflags,
+				  oit->exptime, total_nbyte);
+
+		/* Could not allocate larger item */
+		if(nit == NULL) {
+		    _item_remove(oit);
+		    return ANNEX_EOM;
+		}
+
+		ASSERT(nit->next == NULL);
+
+		/* Copy over current tail */
+		cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
+
+		/* Copy over new data */
+		cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it), it->nbyte);
+	    }
+
+	    if(!item_is_chained(oit)) {
+		/* oit is not chained, so relink oit with nit */
+		_item_relink(oit, nit);
+
+		_item_remove(nit);
+	    } else {
+		/* oit is chained, set nit as the new tail */
+		struct item *nit_prev, *iter;
+
+		ASSERT(oit->next_node != NULL);
+
+		item_prepare_tail(nit);
+
+		/* set nit_prev to be the second to last node of the oit chain */
+		for(nit_prev = oit; nit_prev->next_node->next_node != NULL;
+		    nit_prev = nit_prev->next_node);
+
+		/* make nit the new tail of oit */
+		nit_prev->next_node = nit;
+
+		/* set head in all new nodes */
+		for(iter = nit; iter != NULL; iter = iter->next_node) {
+		    iter->head = oit;
+		}
+
+		/* free oit_tail, since it is no longer used by anybody */
+		slab_release_refcount(item_2_slab(oit_tail));
+		item_free(oit_tail);
+	    }
 	}
-#endif
+    }
 
-	nit = _item_alloc(item_key(oit_tail), oit_tail->nkey,
-			  oit->dataflags, oit->exptime, total_nbyte);
+    log_stderr("annex successfully to item %s, new id %hhu\n", item_key(oit), nid);
+
+    _item_remove(oit);
+
+    return ANNEX_OK;
+}
+#else
+/* Append for chaining disabled */
+static item_annex_result_t
+_item_append(struct item *it, bool contig)
+{
+    char *key;
+    struct item *oit, *nit;
+    uint8_t nid;
+    uint32_t total_nbyte;
+
+    key = item_key(it);
+    oit = _item_get(key, it->nkey);
+    nit = NULL;
+
+    if(oit == NULL) {
+	return ANNEX_NOT_FOUND;
+    }
+
+    total_nbyte = oit->nbyte + it->nbyte;
+    nid = item_slabid(oit->nkey, total_nbyte);
+
+    if(nid == SLABCLASS_CHAIN_ID) {
+	return ANNEX_OVERSIZED;
+    }
+
+    if(nid == oit->id && !item_is_raligned(oit)) {
+	item_append_same_id(oit, it, total_nbyte);
+
+	item_set_cas(oit, item_next_cas());
+    } else {
+	nit = _item_alloc(key, oit->nkey, oit->dataflags, oit->exptime, total_nbyte);
 
 	if(nit == NULL) {
 	    _item_remove(oit);
 	    return ANNEX_EOM;
 	}
 
-	/* Regardless of whether nid == SLABCLASS_CHAIN_ID or not, nit's
-	   first node should be able to contain at least all of oit's tail
-	   node */
-	cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
-
-#if defined CC_CHAINED && CC_CHAINED == 1
-	if(!item_is_chained(nit)) {
-	    /* Only one additional node was allocated, so the entirety of
-	       it should be able to fit in the remainder of nit */
-	    log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
-	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
-		   it->nbyte);
-	} else {
-	    /* One node was not enough, so nit contains 2 nodes. */
-	    ASSERT(nit->next_node != NULL);
-
-	    /* Two additional nodes were allocated, so fill the first one
-	       then the second */
-	    uint32_t nit_amount_copied = slab_item_size(nit->id)
-		- ITEM_HDR_SIZE - oit_tail->nbyte - oit_tail->nkey - 1;
-
-	    log_stderr("copying to address %p", item_data(nit) + oit_tail->nbyte);
-	    cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
-		   nit_amount_copied);
-
-	    /* Copy the remaining data into the second node */
-	    log_stderr("copying to address %p", item_data(nit->next_node));
-	    cc_memcpy(item_data(nit->next_node), item_data(it) + nit_amount_copied,
-		   it->nbyte - nit_amount_copied);
-	}
-
-	if(!item_is_chained(oit)) {
-	    loga_hexdump(oit, 200, "relinking oit:");
-	    loga_hexdump(nit, 200, "with nit:");
-	    _item_relink(oit, nit);
-	    /* Both oit and nit should have refcount decremented */
-	    _item_remove(nit);
-	} else {
-	    struct item *nit_prev, *iter;
-
-	    ASSERT(oit->next_node != NULL);
-
-	    /* nit will be the new tail of oit, so set the chained flag */
-	    nit->flags |= ITEM_CHAINED;
-	    nit->flags &= ~ITEM_RALIGN;
-
-	    /* set nit_prev to the second to last node of the oit chain */
-	    for(nit_prev = oit; nit_prev->next_node->next_node != NULL;
-		nit_prev = nit_prev->next_node);
-
-	    /* make nit the new tail of oit */
-	    nit_prev->next_node = nit;
-
-	    /* decrement nit refcount, since we used item_alloc */
-	    nit->refcount--;
-
-	    /* set head in all new nodes */
-	    for(iter = nit; iter != NULL; iter = iter->next_node) {
-		iter->head = oit;
-	    }
-
-	    /* free oit_tail, since it is no longer used by anybody */
-	    slab_release_refcount(item_2_slab(oit_tail));
-	    item_free(oit_tail);
-	}
-#else
-	log_stderr("copying to address %p", item_data(oit_tail) + oit_tail->nbyte);
-	cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it), it->nbyte);
+	cc_memcpy(item_data(nit), item_data(oit), oit->nbyte);
+	cc_memcpy(item_data(nit) + oit->nbyte, item_data(it), it->nbyte);
 	_item_relink(oit, nit);
 	_item_remove(nit);
-#endif
     }
 
-    log_stderr("annex successfully to item %s, new id %hhu\n",
-	    item_key(oit), nid);
-
-    if(oit != NULL) {
-	log_stderr("removing oit\n");
-	_item_remove(oit);
-    }
-
+    _item_remove(oit);
     return ANNEX_OK;
 }
+#endif
 
 static item_annex_result_t
 _item_prepend(struct item *it)
@@ -1254,3 +1306,40 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
 
     return ret;
 }
+
+/*
+ * Append nit data to oit, assuming it will already fit in oit and assuming oit
+ * is left aligned.
+ */
+static void
+item_append_same_id(struct item *oit, struct item *it, uint64_t total_nbyte)
+{
+    log_stderr("copying to address %p", item_data(oit) + oit->nbyte);
+    cc_memcpy(item_data(oit) + oit->nbyte, item_data(it), it->nbyte);
+
+    /* Set the new data size */
+    oit->nbyte = total_nbyte;
+}
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+/* Get the last node in an item chain. */
+static struct item *
+item_tail(struct item *it)
+{
+    ASSERT(it != NULL);
+    for(; it->next_node != NULL; it = it->next_node);
+    return it;
+}
+
+/* Prepare nit to be the tail of a chained object */
+static void
+item_prepare_tail(struct item *nit)
+{
+    /* set nit flags */
+    nit->flags |= ITEM_CHAINED;
+    nit->flags &= ~ITEM_CHAINED;
+
+    /* decrement nit refcount, since it was obtained via item_alloc */
+    --(nit->refcount);
+}
+#endif
