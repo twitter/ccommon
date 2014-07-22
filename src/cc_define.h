@@ -20,6 +20,10 @@
 
 #include <config.h>
 
+#ifdef HAVE_LITTLE_ENDIAN
+# define CC_LITTLE_ENDIAN 1
+#endif
+
 #ifdef HAVE_DEBUG_LOG
 # define CC_DEBUG_LOG 1
 #endif
@@ -38,10 +42,6 @@
 # define CC_HAVE_KQUEUE 1
 #endif
 
-#ifdef HAVE_LITTLE_ENDIAN
-# define CC_LITTLE_ENDIAN 1
-#endif
-
 #ifdef HAVE_BACKTRACE
 # define CC_HAVE_BACKTRACE 1
 #endif
@@ -51,7 +51,12 @@
 #define CC_ERROR    -1
 
 #define CC_EAGAIN   -2
-#define CC_ENOMEM   -3
+#define CC_ERETRY   -3
+
+#define CC_ENOMEM   -4
+#define CC_EEMPTY   -5 /* no data */
+
+#define CC_UNFIN    1  /* unfinished, more data expected */
 
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */

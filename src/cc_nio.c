@@ -70,7 +70,7 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
         if (n == 0) {
             conn->recv_ready = 0;
             conn->state = CONN_EOF;
-            log_debug(LOG_INFO, "recv on sd %d eof rb %zu sb %zu", conn->sd,
+            log_debug(LOG_INFO, "recv on sd %d eof rb  %zu sb %zu", conn->sd,
                       conn->recv_bytes, conn->send_bytes);
             return n;
         }
@@ -97,7 +97,7 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
 }
 
 /*
- * vector version of conn_recv, using readv to read into an array of bufs
+ * vector version of conn_recv, using readv to read into a mbuf array
  */
 ssize_t
 conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
