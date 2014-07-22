@@ -718,7 +718,17 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 	    iter->flags &= ~ENTRY_LAST_IN_NODE;
 	}
 #endif
-	loga_hexdump(zmap, 100, "add_raw - after");
+	log_stderr("@@@ added key %s", skey);
+	loga_hexdump(it, 400, "add_raw - after: node 1");
+	loga_hexdump(((char *)it) + 400, 400, "add_raw - after: node 1");
+	loga_hexdump(((char *)it) + 800, 400, "add_raw - after: node 1");
+
+	if(it->next_node != NULL) {
+	    loga_hexdump(it->next_node, 400, "add_raw - after: node 2");
+	    loga_hexdump(((char *)it->next_node) + 400, 400, "add_raw - after: node 2");
+	    loga_hexdump(((char *)it->next_node) + 800, 400, "add_raw - after: node 2");
+	}
+
 	item_remove(it);
 	log_stderr("@@@ removed item");
     }

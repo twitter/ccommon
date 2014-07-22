@@ -810,6 +810,9 @@ _item_relink(struct item *it, struct item *nit)
 	    "%u id %hhu\n", item_key(it), it->offset, it->id, nit->offset,
 	    nit->id);
 
+    loga_hexdump(it, 400, "oit");
+    loga_hexdump(nit, 400, "nit");
+
     _item_unlink(it);
     _item_link(nit);
 }
@@ -1028,6 +1031,9 @@ _item_append(struct item *it, bool contig)
 	    /* Make nit the new tail of oit */
 	    oit_tail->next_node = nit;
 	    nit->head = oit;
+
+	    /* Set oit flag */
+	    oit->flags |= ITEM_CHAINED;
 	} else {
 	    if(nid == SLABCLASS_CHAIN_ID) {
 		/* Need to allocate new node but does not need to be stored in
@@ -1448,7 +1454,6 @@ item_prepare_tail(struct item *nit)
 {
     /* set nit flags */
     nit->flags |= ITEM_CHAINED;
-    nit->flags &= ~ITEM_CHAINED;
 
     /* decrement nit refcount, since it was obtained via item_alloc */
     --(nit->refcount);

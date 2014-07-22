@@ -172,9 +172,10 @@ START_TEST(check_zipmap_basic)
 {
     rstatus_t return_status;
     void *val;
-    uint32_t nval, len;
+    uint32_t nval, len, i;
     int ret;
     int64_t num;
+    zmap_key_numeric_vector_t numeric_pairs;
 
     init_settings();
     time_init();
@@ -307,6 +308,21 @@ START_TEST(check_zipmap_basic)
     ck_assert_msg(ret == ZMAP_GET_OK, "get not successful! &d", ret);
     num = *((int64_t *)val);
     ck_assert_msg(num == 0xDEADBEEF, "got incorrect value %lx", num);
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+    /* Add many new values, so that chaining will be required to hold them all */
+    printf("setting 200 numeric vals...\n");
+    numeric_pairs.key_numeric_pairs = malloc(200 * sizeof(struct key_numeric_pair));
+    ck_assert(numeric_pairs.key_numeric_pairs != NULL);
+    numeric_pairs.len = 200;
+    for(i = 0; i < 200; ++i) {
+	numeric_pairs.key_numeric_pairs[i].key = malloc(7);
+	numeric_pairs.key_numeric_pairs[i].nkey = sprintf(numeric_pairs.key_numeric_pairs[i].key, "num%u", i);
+	numeric_pairs.key_numeric_pairs[i].val = i;
+    }
+    ret = zmap_set_multiple_numeric("map", 3, &numeric_pairs);
+    ck_assert_msg(ret == ZMAP_SET_OK, "set not successful! %d", ret);
+#endif
 }
 END_TEST
 
