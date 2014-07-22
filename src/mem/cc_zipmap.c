@@ -85,6 +85,8 @@ zmap_set(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, void *val, uint32
     struct item *it = item_get(pkey, npkey);
     struct zmap *zmap = item_to_zmap(it);
 
+    log_stderr("@@@ zmap_set called");
+
     if(zmap == NULL) {
 	/* zmap not in cache */
 	return ZMAP_SET_NOT_FOUND;
@@ -658,6 +660,8 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
     uint32_t num_nodes_before;
 #endif
 
+    log_stderr("@@@ zmap_add_raw called");
+
     ASSERT(it != NULL);
     it_nkey = it->nkey;
     cc_memcpy(it_key, item_key(it), it_nkey);
@@ -689,30 +693,34 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
     cc_memcpy(new_item_buffer + ZMAP_ENTRY_HDR_SIZE, skey, nskey);
     cc_memcpy(new_item_buffer + ZMAP_ENTRY_HDR_SIZE + nskey, val, nval);
 
+    log_stderr("@@@ Calling zmap_item_append");
     if(zmap_item_append(it, new_item_buffer, entry_size)) {
 	/* entry successfully added */
+	log_stderr("@@@ entry successfully appended");
 
 	/* After append, it and zmap pointers are invalidated since append may cause
 	   item and zmap to be reallocated */
 	it = item_get(it_key, it_nkey);
+	log_stderr("@@@ got item");
 	zmap = item_to_zmap(it);
 
-	item_remove(it);
 	++(zmap->len);
 
 #if defined CC_CHAINED && CC_CHAINED == 1
-	if(item_num_nodes(it) == num_nodes_before) {
+	if(item_num_nodes(it) == num_nodes_before && zmap->len != 1) {
 	    /* Need to unflag second to last entry */
 	    struct item *tail = item_tail(it);
-	    struct zmap_entry *iter = (struct zmap_entry *)item_data(tail);
+	    struct zmap_entry *iter = (num_nodes_before == 1) ?
+		zmap_get_entry_ptr(zmap) : (struct zmap_entry *)item_data(tail);
 
 	    for(; !entry_last_in_node(iter); iter = zmap_entry_next(iter));
 
 	    iter->flags &= ~ENTRY_LAST_IN_NODE;
 	}
 #endif
-
 	loga_hexdump(zmap, 100, "add_raw - after");
+	item_remove(it);
+	log_stderr("@@@ removed item");
     }
 }
 
@@ -828,6 +836,8 @@ zmap_set_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 {
     struct zmap_entry *entry;
     struct item *node;
+
+    log_stderr("@@@ zmap_set_raw called");
 
     ASSERT(zmap != NULL);
 

@@ -196,6 +196,7 @@ START_TEST(check_zipmap_basic)
     /* Set first val */
     printf("setting first val...\n");
     ck_assert_msg(zmap_set("map", 3, "foo", 3, "bar", 3) == ZMAP_SET_OK, "zipmap set not successful!");
+    printf("@@@ set successful!\n");
     ck_assert_msg(zmap_len("map", 3) == 1, "zipmap has incorrect len (should be 1)!");
 
     /* Get first val */
@@ -316,8 +317,8 @@ mem_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_add_test(tc_core, check_mem_basic);
-    //tcase_add_test(tc_core, check_mem_replace);
-    //tcase_add_test(tc_core, check_zipmap_basic);
+    tcase_add_test(tc_core, check_mem_replace);
+    tcase_add_test(tc_core, check_zipmap_basic);
     suite_add_tcase(s, tc_core);
 
     return s;
