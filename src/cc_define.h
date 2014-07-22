@@ -53,7 +53,9 @@
 #define CC_ERETRY   -3
 
 #define CC_ENOMEM   -4
-#define CC_EEMPTY   -5
+#define CC_EEMPTY   -5 /* no data */
+
+#define CC_UNFIN    1  /* unfinished, more data expected */
 
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */

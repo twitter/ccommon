@@ -52,6 +52,9 @@ rstatus_t string_copy(struct string *dst, const uint8_t *src, uint32_t srclen);
 int string_compare(const struct string *s1, const struct string *s2);
 
 /* efficient implementation of string comparion of short strings */
+#define str3cmp(m, c0, c1, c2)                                                              \
+    (m[0] == c0 && m[1] == c1 && m[2] == c2)
+
 #ifdef CC_LITTLE_ENDIAN
 
 #define str4cmp(m, c0, c1, c2, c3)                                                          \
@@ -88,7 +91,7 @@ int string_compare(const struct string *s1, const struct string *s2);
 #else // BIG ENDIAN
 
 #define str4cmp(m, c0, c1, c2, c3)                                                          \
-    (m[0] == c0 && m[1] == c1 && m[2] == c2 && m[3] == c3)
+    (str3cmp(m, c0, c1, c2) && (m3 == c3))
 
 #define str5cmp(m, c0, c1, c2, c3, c4)                                                      \
     (str4cmp(m, c0, c1, c2, c3) && (m[4] == c4))

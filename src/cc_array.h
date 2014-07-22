@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef _NC_ARRAY_H_
-#define _NC_ARRAY_H_
+#ifndef _CC_ARRAY_H_
+#define _CC_ARRAY_H_
 
 #include <stdint.h>
 #include <stddef.h>

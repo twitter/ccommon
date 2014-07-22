@@ -139,7 +139,7 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     struct conn *c = NULL;
     rstatus_t status;
     size_t content;
-    ssize_t n = 0; /* bytes actually received */
+    ssize_t n = 0; /* bytes actually sent */
 
     ASSERT(stream != NULL);
     ASSERT(stream->type != CHANNEL_UNKNOWN);
