@@ -28,7 +28,6 @@
 
 #include <limits.h>
 
-static struct item *create_item(void *key, uint8_t nkey, void *val, uint32_t nval);
 static void check_annex_status(item_annex_result_t ret);
 static void check_delta_status(item_delta_result_t ret);
 
@@ -233,45 +232,51 @@ remove_key(void *key, uint8_t nkey)
     }
 }
 
-/*
- * Creates an item and initializes its data with val.
- */
-static struct item *
+#if defined CC_CHAINED && CC_CHAINED == 1
+struct item *
 create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 {
-    struct item *ret;
-
-#if defined CC_CHAINED && CC_CHAINED == 1
-    struct item *iter;
+    struct item *ret, *iter;
     uint32_t amt_copied = 0;
-#else
-    if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
-	log_stderr("No slabclass can contain item of that size! (try turning chaining on)");
-	return NULL;
-    }
-#endif
 
-    /* Currently exptime is arbitrarily set; not sure what to do about this
-       yet. */
+    /* Currently exptime is arbitrarily set; not sure what to do about this yet */
     ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
     if(ret == NULL) {
-	log_stderr("Not enough memory to allocate item\n");
+	log_stderr("Not enough memory to allocate item");
 	return NULL;
     }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
     /* Copy over data in val */
     for(iter = ret; iter != NULL; iter = iter->next_node) {
 	cc_memcpy(item_data(iter), (char *)val + amt_copied, iter->nbyte);
 	amt_copied += iter->nbyte;
     }
-    ASSERT(amt_copied == nval);
-#else
-    cc_memcpy(item_data(ret), (char *)val, nval);
-#endif
 
+    ASSERT(amt_copied == nval);
     return ret;
 }
+#else
+struct item *
+create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
+{
+    struct item *ret;
+
+    if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
+	log_stderr("No slabclass large enough to contain item of that size! (tru turning chaining on)");
+	return NULL;
+    }
+
+    /* Currently exptime is arbitrarily set; not sure what to do about this yet */
+    ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
+    if(ret == NULL) {
+	log_stderr("Not enough memory to allocate item");
+	return NULL;
+    }
+
+    cc_memcpy(item_data(ret), val, nval);
+    return ret;
+}
+#endif
 
 /*
  * Handle append/prepend return value

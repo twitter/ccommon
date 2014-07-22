@@ -102,4 +102,9 @@ bool get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t off
  */
 void remove_key(void *key, uint8_t nkey);
 
+/*
+ * Create an item with the given key and value. Does not link item.
+ */
+struct item *create_item(void *key, uint8_t nkey, void *val, uint32_t nval);
+
 #endif /* _CC_MEM_INTERFACE_ */

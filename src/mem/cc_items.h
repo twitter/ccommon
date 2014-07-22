@@ -334,6 +334,9 @@ item_delete_result_t item_delete(char *key, size_t nkey);
 /* Get total data size of item (sum of nbyte for all nodes) */
 uint64_t item_total_nbyte(struct item *it);
 
+/* Get the maximum amount of data the given item can contain */
+uint32_t item_max_nbyte(uint8_t id, uint8_t nkey);
+
 #if defined CC_CHAINED && CC_CHAINED == 1
 /* Get the number of nodes in the item */
 uint32_t item_num_nodes(struct item *it);
@@ -343,6 +346,13 @@ uint32_t item_num_nodes(struct item *it);
    new node so that the addition is stored contiguously. Useful for structures
    like zipmap, where either all or none of an entry must be in one given node */
 item_annex_result_t item_append_contig(struct item *it);
+
+/* Get the last node in an item chain. */
+struct item *item_tail(struct item *it);
+
+/* Remove the given node from the item (allows freed node to be reused).
+   Does nothing if node is not in the chain belonging to it. */
+void item_remove_node(struct item *it, struct item *node);
 #endif
 
 #endif

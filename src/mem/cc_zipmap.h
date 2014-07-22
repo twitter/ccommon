@@ -24,29 +24,36 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <cc_define.h>
 #include <cc_log.h>
 
 struct item;
 
 typedef enum entry_flags {
-    ENTRY_IS_NUMERIC = 1
+    ENTRY_IS_NUMERIC = 1,
+#if defined CC_CHAINED && CC_CHAINED == 1
+    ENTRY_LAST_IN_NODE = 2,
+#endif
 } entry_flags_t;
 
 typedef enum zmap_set_result {
     ZMAP_SET_OK,
-    ZMAP_SET_NOT_FOUND
+    ZMAP_SET_NOT_FOUND,
+    ZMAP_SET_OVERSIZED
 } zmap_set_result_t;
 
 typedef enum zmap_add_result {
     ZMAP_ADD_OK,
     ZMAP_ADD_NOT_FOUND,
-    ZMAP_ADD_EXISTS
+    ZMAP_ADD_EXISTS,
+    ZMAP_ADD_OVERSIZED
 } zmap_add_result_t;
 
 typedef enum zmap_replace_result {
     ZMAP_REPLACE_OK,
     ZMAP_REPLACE_NOT_FOUND,
-    ZMAP_REPLACE_ENTRY_NOT_FOUND
+    ZMAP_REPLACE_ENTRY_NOT_FOUND,
+    ZMAP_REPLACE_OVERSIZED
 } zmap_replace_result_t;
 
 typedef enum zmap_delete_result {
@@ -128,6 +135,14 @@ entry_is_numeric(struct zmap_entry *entry)
     return (entry->flags & ENTRY_IS_NUMERIC);
 }
 
+#if defined CC_CHAINED && CC_CHAINED == 1
+static inline bool
+entry_last_in_node(struct zmap_entry *entry)
+{
+    return (entry->flags & ENTRY_LAST_IN_NODE);
+}
+#endif
+
 /* Get the location of the entry's key */
 static inline char *
 entry_key(struct zmap_entry *entry)
@@ -166,7 +181,8 @@ void zmap_init(void *primary_key, uint8_t nkey);
 /* Set key to value, creating key if it does not already exist. */
 zmap_set_result_t zmap_set(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, void *val, uint32_t nval);
 
-/* Set multiple key-val pairs. Creates keys if they do not already exist. */
+/* Set multiple key-val pairs. Creates keys if they do not already exist.
+   Oversized or otherwise invalid requests are ignored. */
 zmap_set_result_t zmap_set_multiple(void *pkey, uint8_t npkey, zmap_key_val_vector_t *pairs);
 
 /* Set key to value, where value is an integer */

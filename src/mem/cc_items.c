@@ -55,11 +55,10 @@ static item_annex_result_t _item_append(struct item *it, bool contig);
 static item_annex_result_t _item_prepend(struct item *it);
 static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
 				       uint64_t delta);
-static void item_append_same_id(struct item *oit, struct item *it, uint64_t total_nbyte);
-
+static void item_append_same_id(struct item *oit, struct item *it, uint32_t total_nbyte);
+static void item_prepend_same_id(struct item *oit, struct item *it, uint32_t total_nbyte);
 
 #if defined CC_CHAINED && CC_CHAINED == 1
-static struct item *item_tail(struct item *it);
 static void item_prepare_tail(struct item *nit);
 #endif
 
@@ -140,13 +139,12 @@ item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
  * evicting a slab does not necessarily evict all items with nodes in that
  * slab; this is a possibility worth considering later
  */
+#if defined CC_CHAINED && CC_CHAINED == 1
 void
 item_reuse(struct item *it)
 {
-#if defined CC_CHAINED && CC_CHAINED == 1
     struct item *prev;
     struct slab *evicted = item_2_slab(it);
-#endif
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
@@ -154,7 +152,6 @@ item_reuse(struct item *it)
     ASSERT(item_is_linked(it->head));
     ASSERT(it->head->refcount == 0);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
     /* Unlink head of item */
     it->head->flags &= ~ITEM_LINKED;
     hash_table_remove(item_key(it->head), it->head->nkey, &mem_hash_table);
@@ -173,14 +170,28 @@ item_reuse(struct item *it)
 	    item_free(prev);
 	}
     }
-#else
-    hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
-#endif
 
     log_stderr("reuse %s item %s at offset %d with id %hhu",
 	    item_expired(it) ? "expired" : "evicted", item_key(it),
 	    it->offset, it->id);
 }
+#else
+void
+item_reuse(struct item *it)
+{
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(!item_is_slabbed(it));
+    ASSERT(item_is_linked(it->head));
+    ASSERT(it->head->refcount == 0);
+
+    hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
+
+    log_stderr("reuse %s item %s at offset %d with id %hhu",
+	    item_expired(it) ? "expired" : "evicted", item_key(it),
+	    it->offset, it->id);
+}
+#endif
 
 uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
 {
@@ -341,6 +352,12 @@ item_total_nbyte(struct item *it)
 #endif
 }
 
+uint32_t item_max_nbyte(uint8_t id, uint8_t nkey)
+{
+    return slab_item_size(id) - ITEM_HDR_SIZE - nkey - 1;
+}
+
+/* Chaining specific functions */
 #if defined CC_CHAINED && CC_CHAINED == 1
 uint32_t
 item_num_nodes(struct item *it)
@@ -362,6 +379,45 @@ item_append_contig(struct item *it)
     /*pthread_mutex_unlock(&cache_lock);*/
 
     return ret;
+}
+
+struct item *
+item_tail(struct item *it)
+{
+    ASSERT(it != NULL);
+    for(; it->next_node != NULL; it = it->next_node);
+    return it;
+}
+
+void
+item_remove_node(struct item *it, struct item *node) {
+    struct item *iter, *prev = NULL;
+
+    for(iter = it; iter != NULL; iter = iter->next_node) {
+	if(iter == node) {
+	    /* found node to be removed */
+	    if(iter == it) {
+		/* Node is the first node in the item */
+
+		if(node->next_node == NULL) {
+		    /* node is the only node in the item */
+		    _item_unlink(node);
+		    item_free(node);
+		    return;
+		}
+
+		/* removing head, need to copy head over to second node */
+		cc_memcpy(it->next_node, it, ITEM_HDR_SIZE);
+		_item_relink(it, it->next_node);
+	    } else {
+		ASSERT(prev != NULL);
+		prev->next_node = node->next_node;
+		item_free(node);
+	    }
+	}
+
+	prev = iter;
+    }
 }
 #endif
 
@@ -922,7 +978,7 @@ _item_append(struct item *it, bool contig)
     char *key;
     struct item *oit, *oit_tail;
     uint8_t nid;
-    uint64_t total_nbyte;
+    uint32_t total_nbyte;
 
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
@@ -950,7 +1006,6 @@ _item_append(struct item *it, bool contig)
 	 * payload left-aligned.
 	 */
 	item_append_same_id(oit_tail, it, total_nbyte);
-	item_set_cas(oit, item_next_cas());
     } else {
 	struct item *nit;
 	if(contig && nid == SLABCLASS_CHAIN_ID) {
@@ -1089,8 +1144,6 @@ _item_append(struct item *it, bool contig)
 
     if(nid == oit->id && !item_is_raligned(oit)) {
 	item_append_same_id(oit, it, total_nbyte);
-
-	item_set_cas(oit, item_next_cas());
     } else {
 	nit = _item_alloc(key, oit->nkey, oit->dataflags, oit->exptime, total_nbyte);
 
@@ -1110,6 +1163,7 @@ _item_append(struct item *it, bool contig)
 }
 #endif
 
+#if defined CC_CHAINED && CC_CHAINED == 1
 static item_annex_result_t
 _item_prepend(struct item *it)
 {
@@ -1118,12 +1172,123 @@ _item_prepend(struct item *it)
     uint8_t nid;
     uint32_t total_nbyte;
 
-#if defined CC_CHAINED && CC_CHAINED == 1
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
     ASSERT(it->next_node == NULL);
-#endif
+
+    /* Get item to be prepended to */
+    key = item_key(it);
+    oit = _item_get(key, it->nkey);
+    if(oit == NULL) {
+	return ANNEX_NOT_FOUND;
+    }
+
+    ASSERT(!item_is_slabbed(oit));
+
+    /* Get new number of bytes and id */
+    total_nbyte = oit->nbyte + it->nbyte;
+    nid = item_slabid(oit->nkey, total_nbyte);
+
+    if(nid == oit->id && item_is_raligned(oit)) {
+	/* oit head is raligned, and can contain the new data. Simply
+	   prepend the data at the beginning of oit, not needing to
+	   allocate more space. */
+	item_prepend_same_id(oit, it, total_nbyte);
+    } else if(nid != SLABCLASS_CHAIN_ID) {
+	/* Additional data can fit in a single larger head node */
+	struct item *iter;
+
+	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
+			  oit->exptime, total_nbyte);
+
+	if(nit == NULL) {
+	    /* Could not allocate larger node */
+	    _item_remove(oit);
+	    return ANNEX_EOM;
+	}
+
+	/* Right align nit, copy over data */
+	nit->flags |= ITEM_RALIGN;
+	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
+	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
+
+	/* Replace oit with nit in all nodes */
+	ASSERT(nit->next_node == NULL);
+
+	nit->next_node = oit->next_node;
+	for(iter = nit; iter != NULL; iter = iter->next_node) {
+	    iter->head = nit;
+	}
+
+	_item_relink(oit, nit);
+    } else {
+	struct item *iter, *nit_second;
+	uint32_t nit_second_nbyte = slab_item_size(slabclass_max_id) - ITEM_HDR_SIZE - 1;
+
+	nit_second = _item_alloc("", 0, oit->dataflags, oit->exptime,
+				 nit_second_nbyte);
+
+	if(nit_second == NULL) {
+	    _item_remove(oit);
+	    return ANNEX_EOM;
+	}
+
+	ASSERT(!item_is_chained(nit_second));
+	ASSERT(nit_second->next_node == NULL);
+
+	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags, oit->exptime,
+			  total_nbyte - nit_second_nbyte);
+
+	if(nit == NULL) {
+	    _item_remove(oit);
+	    _item_remove(nit_second);
+	    return ANNEX_EOM;
+	}
+
+	ASSERT(!item_is_chained(nit));
+	ASSERT(nit->next_node == NULL);
+
+	ASSERT(nit->nbyte <= it->nbyte);
+
+	/* copy the first nit->nbyte bytes of it to nit */
+	cc_memcpy(item_data(nit), item_data(it), nit->nbyte);
+
+	/* Copy the rest to nit_second */
+	cc_memcpy(item_data(nit_second), item_data(it) + nit->nbyte,
+		  it->nbyte - nit->nbyte);
+	cc_memcpy(item_data(nit_second) + it->nbyte - nit->nbyte,
+		  item_data(oit), oit->nbyte);
+
+	/* Reassemble item */
+	nit->next_node = nit_second;
+	nit_second->next_node = oit->next_node;
+	for(iter = nit; iter != NULL; iter = iter->next_node) {
+	    iter->head = nit;
+	}
+	_item_relink(oit, nit);
+    }
+
+    log_stderr("annex successfully to item %s\n", item_key(oit));
+
+    if(oit != NULL) {
+	_item_remove(oit);
+    }
+
+    if(nit != NULL) {
+	_item_remove(nit);
+    }
+
+    return ANNEX_OK;
+}
+#else
+static item_annex_result_t
+_item_prepend(struct item *it)
+{
+    char *key;
+    struct item *oit, *nit = NULL;
+    uint8_t nid;
+    uint32_t total_nbyte;
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -1139,16 +1304,9 @@ _item_prepend(struct item *it)
     if(nid == oit->id && item_is_raligned(oit)) {
 	/* oit head is raligned, and can contain the new data. Simply
 	   prepend the data at the beginning of oit, not needing to
-	   allocate more space. */
-	cc_memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
-	oit->nbyte = total_nbyte;
-	item_set_cas(oit, item_next_cas());
+	   allocate more space */
+	item_prepend_same_id(oit, it, total_nbyte);
     } else if(nid != SLABCLASS_CHAIN_ID) {
-	/* only one larger node is needed to contain the data */
-#if defined CC_CHAINED && CC_CHAINED == 1
-	struct item *iter;
-#endif
-
 	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
 			  oit->exptime, total_nbyte);
 
@@ -1162,63 +1320,10 @@ _item_prepend(struct item *it)
 	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
 	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
-	/* Replace oit with nit */
-	ASSERT(nit->next_node == NULL);
-
-	nit->next_node = oit->next_node;
-	for(iter = nit; iter != NULL; iter = iter->next_node) {
-	    iter->head = nit;
-	}
-#endif
 	_item_relink(oit, nit);
     } else {
-#if defined CC_CHAINED && CC_CHAINED == 1
-	/* One node is not enough to contain original data + new data. First
-	   allocate a node with id slabclass_max_id then another smaller
-	   node to contain the head */
-	struct item *iter;
-
-	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
-			  oit->exptime, total_nbyte);
-
-	if(nit == NULL) {
-	    _item_remove(oit);
-	    return ANNEX_EOM;
-	}
-
-	ASSERT(nit->next_node->next_node == NULL);
-
-	if(nit->next_node->nbyte < oit->nbyte) {
-	    /* nit->next cannot contain all of oit; copy the last
-	       nit->next->nbyte bytes of oit to nit->next */
-	    cc_memcpy(item_data(nit->next_node), item_data(oit) + oit->nbyte -
-		   nit->next_node->nbyte, nit->next_node->nbyte);
-
-	    /* copy the rest to nit */
-	    cc_memcpy(item_data(nit), item_data(it), it->nbyte);
-	    cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte -
-		   nit->next_node->nbyte);
-	} else {
-	    /* nit->next can contain all of oit; copy all of oit into
-	       nit->next, along with as much of it as will fit */
-	    cc_memcpy(item_data(nit->next_node), item_data(it) + nit->nbyte,
-		   it->nbyte - nit->nbyte);
-	    cc_memcpy(item_data(nit->next_node) + it->nbyte - nit->nbyte,
-		   item_data(oit), oit->nbyte);
-
-	    cc_memcpy(item_data(nit), item_data(it), nit->nbyte);
-	}
-
-	nit->next_node->next_node = oit->next_node;
-	for(iter = nit; iter != NULL; iter = iter->next_node) {
-	    iter->head = nit;
-	}
-	_item_relink(oit, nit);
-#else
 	_item_remove(oit);
 	return ANNEX_OVERSIZED;
-#endif
     }
 
     log_stderr("annex successfully to item %s\n", item_key(oit));
@@ -1233,6 +1338,7 @@ _item_prepend(struct item *it)
 
     return ANNEX_OK;
 }
+#endif
 
 /*
  * Apply a delta value (positive or negative) to an item. (increment/decrement)
@@ -1312,25 +1418,30 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
  * is left aligned.
  */
 static void
-item_append_same_id(struct item *oit, struct item *it, uint64_t total_nbyte)
+item_append_same_id(struct item *oit, struct item *it, uint32_t total_nbyte)
 {
-    log_stderr("copying to address %p", item_data(oit) + oit->nbyte);
-    cc_memcpy(item_data(oit) + oit->nbyte, item_data(it), it->nbyte);
+    ASSERT(!item_is_raligned(oit));
 
-    /* Set the new data size */
+    cc_memcpy(item_data(oit) + oit->nbyte, item_data(it), it->nbyte);
     oit->nbyte = total_nbyte;
+    item_set_cas(oit, item_next_cas());
+}
+
+/*
+ * Prepend nit data to oit, assuming it will already fit in oit and assuming oit
+ * is right aligned
+ */
+static void
+item_prepend_same_id(struct item *oit, struct item *it, uint32_t total_nbyte)
+{
+    ASSERT(item_is_raligned(oit));
+
+    cc_memcpy(item_data(oit) - it->nbyte, item_data(it), it->nbyte);
+    oit->nbyte = total_nbyte;
+    item_set_cas(oit, item_next_cas());
 }
 
 #if defined CC_CHAINED && CC_CHAINED == 1
-/* Get the last node in an item chain. */
-static struct item *
-item_tail(struct item *it)
-{
-    ASSERT(it != NULL);
-    for(; it->next_node != NULL; it = it->next_node);
-    return it;
-}
-
 /* Prepare nit to be the tail of a chained object */
 static void
 item_prepare_tail(struct item *nit)
