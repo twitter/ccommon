@@ -19,6 +19,7 @@
 
 #ifdef CC_HAVE_KQUEUE
 
+#include <inttypes.h>
 #include <string.h>
 #include <sys/event.h>
 #include <sys/errno.h>
