@@ -19,6 +19,7 @@
 
 #ifdef CC_HAVE_EPOLL
 
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/epoll.h>
