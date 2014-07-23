@@ -1022,6 +1022,13 @@ _item_append(struct item *it, bool contig)
 	    }
 
 	    ASSERT(nit->next_node == NULL);
+	    ASSERT(nit->refcount <= oit->refcount);
+
+	    /* Make nit's slab's refcount match that of oit, so that when oit
+	       is released nit's slab has the correct refcount */
+	    while(nit->refcount < oit->refcount) {
+		item_acquire_refcount(nit);
+	    }
 
 	    /* Copy over new data */
 	    cc_memcpy(item_data(nit), item_data(it), it->nbyte);
@@ -1095,6 +1102,12 @@ _item_append(struct item *it, bool contig)
 		struct item *nit_prev, *iter;
 
 		ASSERT(oit->next_node != NULL);
+
+		/* Make nit's slab's refcount match that of oit, so that when oit
+		   is released nit's slab has the correct refcount */
+		while(nit->refcount < oit->refcount) {
+		    item_acquire_refcount(nit);
+		}
 
 		item_prepare_tail(nit);
 

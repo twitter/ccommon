@@ -316,12 +316,28 @@ START_TEST(check_zipmap_basic)
     ck_assert(numeric_pairs.key_numeric_pairs != NULL);
     numeric_pairs.len = 200;
     for(i = 0; i < 200; ++i) {
-	numeric_pairs.key_numeric_pairs[i].key = malloc(7);
-	numeric_pairs.key_numeric_pairs[i].nkey = sprintf(numeric_pairs.key_numeric_pairs[i].key, "num%u", i);
-	numeric_pairs.key_numeric_pairs[i].val = i;
+    	numeric_pairs.key_numeric_pairs[i].key = malloc(7);
+    	numeric_pairs.key_numeric_pairs[i].nkey = sprintf(numeric_pairs.key_numeric_pairs[i].key, "num%u", i);
+    	numeric_pairs.key_numeric_pairs[i].val = i;
     }
     ret = zmap_set_multiple_numeric("map", 3, &numeric_pairs);
     ck_assert_msg(ret == ZMAP_SET_OK, "set not successful! %d", ret);
+    ck_assert_msg(zmap_len("map", 3) == 204, "zipmap has incorrect len (should be 204)!");
+    for(i = 0; i < 200; ++i) {
+    	free(numeric_pairs.key_numeric_pairs[i].key);
+    }
+    free(numeric_pairs.key_numeric_pairs);
+
+    /* replace node in beginning with larger one */
+    printf("setting key baz...\n");
+    ck_assert_msg(zmap_set("map", 3, "baz", 3, "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf", 3) == ZMAP_SET_OK, "zipmap set not successful!");
+    ck_assert_msg(zmap_len("map", 3) == 204, "zipmap has incorrect len (should be 204)!");
+
+    /* delete node */
+    printf("deleting key num100\n");
+    ret = zmap_delete("map", 3, "num100", 6);
+    ck_assert_msg(ret == ZMAP_DELETE_OK, "zipmap delete not successful! %d", ret);
+    ck_assert_msg(zmap_len("map", 3) == 203, "zipmap has incorrect len (should be 203)!");
 #endif
 }
 END_TEST

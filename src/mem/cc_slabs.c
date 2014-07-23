@@ -104,7 +104,7 @@ slab_print(void)
 void
 slab_acquire_refcount(struct slab *slab)
 {
-    log_stderr("acquiring refcount on slab with id %hhu\n", slab->id);
+    log_stderr("acquiring refcount on slab with id %hhu refcount %hu\n", slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
@@ -114,7 +114,7 @@ slab_acquire_refcount(struct slab *slab)
 void
 slab_release_refcount(struct slab *slab)
 {
-    log_stderr("releasing refcount on slab with id %hhu\n", slab->id);
+    log_stderr("releasing refcount on slab with id %hhu refcount %hu\n", slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     ASSERT(slab->refcount > 0);

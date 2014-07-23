@@ -107,24 +107,27 @@ zmap_set_result_t
 zmap_set_multiple(void *pkey, uint8_t npkey, zmap_key_val_vector_t *pairs)
 {
     uint32_t i;
-    struct item *it = item_get(pkey, npkey);
-    struct zmap *zmap = item_to_zmap(it);
-
-    if(zmap == NULL) {
-	/* zmap not in cache */
-	return ZMAP_SET_NOT_FOUND;
-    }
+    struct item *it;
+    struct zmap *zmap;
 
     for(i = 0; i < pairs->len; ++i) {
 	if(zmap_check_size(npkey, pairs->key_val_pairs[i].nkey,
 			   pairs->key_val_pairs[i].nval)) {
+	    it = item_get(pkey, npkey);
+	    zmap = item_to_zmap(it);
+
+	    if(zmap == NULL) {
+		/* zmap not in cache */
+		return ZMAP_SET_NOT_FOUND;
+	    }
+
 	    zmap_set_raw(it, zmap, pairs->key_val_pairs[i].key,
 			 pairs->key_val_pairs[i].nkey, pairs->key_val_pairs[i].val,
 			 pairs->key_val_pairs[i].nval, 0);
+
+	    item_remove(it);
 	}
     }
-
-    item_remove(it);
     return ZMAP_SET_OK;
 }
 
@@ -152,26 +155,30 @@ zmap_set_result_t
 zmap_set_multiple_numeric(void *pkey, uint8_t npkey, zmap_key_numeric_vector_t *pairs)
 {
     uint32_t i;
-    struct item *it = item_get(pkey, npkey);
-    struct zmap *zmap = item_to_zmap(it);
-
-    if(zmap == NULL) {
-	/* zmap not in cache */
-	return ZMAP_SET_NOT_FOUND;
-    }
+    struct item *it;
+    struct zmap *zmap;
 
     /* If even a 64 bit integer is too large to store, the cache is almost
        certainly incorrectly configured */
     ASSERT(zmap_check_size(npkey, nskey, sizeof(int64_t)));
 
     for(i = 0; i < pairs->len; ++i) {
+	it = item_get(pkey, npkey);
+	zmap = item_to_zmap(it);
+
+	if(zmap == NULL) {
+	    /* zmap not in cache */
+	    return ZMAP_SET_NOT_FOUND;
+	}
+
 	zmap_set_raw(it, zmap, pairs->key_numeric_pairs[i].key,
 		     pairs->key_numeric_pairs[i].nkey,
 		     &(pairs->key_numeric_pairs[i].val),
 		     sizeof(int64_t), ENTRY_IS_NUMERIC);
+
+	item_remove(it);
     }
 
-    item_remove(it);
     return ZMAP_SET_OK;
 }
 
@@ -612,10 +619,6 @@ zmap_lookup_raw(struct item *it, struct zmap *zmap, void *key, uint8_t nkey)
     ASSERT(zmap != NULL);
 
     ZMAP_FOREACH(zmap, iter, i, it) {
-	log_stderr("checking entry %u", i);
-	log_stderr("iter->nkey: %hhu nkey: %hhu key: %s iter key: %s", iter->nkey, nkey, key, entry_key(iter));
-	log_stderr("zmap addr: %p iter addr: %p", zmap, iter);
-	loga_hexdump(iter, 40, "iter hexdump");
 	if(nkey == iter->nkey && cc_memcmp(key, entry_key(iter), nkey) == 0) {
 	    /* Match found */
 	    log_stderr("match found!");
@@ -637,7 +640,9 @@ zmap_lookup_with_node(struct item *it, struct zmap *zmap, void *key, uint8_t nke
 
     *node = it;
 
+    log_stderr("it ptr: %p", it);
     ZMAP_FOREACH(zmap, iter, i, *node) {
+	log_stderr("lookup: %s", entry_key(iter));
 	if(nkey == iter->nkey && cc_memcmp(key, entry_key(iter), nkey) == 0) {
 	    /* Match found */
 	    return iter;
@@ -719,6 +724,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 	}
 #endif
 	log_stderr("@@@ added key %s", skey);
+	log_stderr("add_raw - after: node 1 %p", it);
 	loga_hexdump(it, 400, "add_raw - after: node 1");
 	loga_hexdump(((char *)it) + 400, 400, "add_raw - after: node 1");
 	loga_hexdump(((char *)it) + 800, 400, "add_raw - after: node 1");
@@ -727,6 +733,11 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 	    loga_hexdump(it->next_node, 400, "add_raw - after: node 2");
 	    loga_hexdump(((char *)it->next_node) + 400, 400, "add_raw - after: node 2");
 	    loga_hexdump(((char *)it->next_node) + 800, 400, "add_raw - after: node 2");
+	    if(it->next_node->next_node != NULL) {
+		loga_hexdump(it->next_node->next_node, 400, "add_raw - after: node 2");
+		loga_hexdump(((char *)it->next_node->next_node) + 400, 400, "add_raw - after: node 2");
+		loga_hexdump(((char *)it->next_node->next_node) + 800, 400, "add_raw - after: node 2");
+	    }
 	}
 
 	item_remove(it);
@@ -836,7 +847,9 @@ zmap_new_entry_size(uint8_t nskey, uint32_t nval)
     size_t ret = ZMAP_ENTRY_HDR_SIZE + nskey + nval;
 
     /* round ret up to the next highest word */
-    ret += (sizeof(uint32_t) - (ret % sizeof(uint32_t)));
+    if(ret % sizeof(uint32_t) != 0) {
+	ret += (sizeof(uint32_t) - (ret % sizeof(uint32_t)));
+    }
 
     return ret;
 }
@@ -917,14 +930,18 @@ zmap_advance_entry(struct zmap_entry **entry, struct item **it)
     if(!entry_last_in_node(*entry)) {
 	/* Entry is not last in node, advance it normally */
 	*entry = zmap_entry_next(*entry);
+	log_stderr("not last in node");
     } else {
 	/* Entry is last in node, advance to next node */
 	if((*it)->next_node != NULL) {
 	    *it = (*it)->next_node;
 	    *entry = (struct zmap_entry *)item_data(*it);
 	} else {
+	    log_stderr("ptr: %p", *entry);
 	    entry = NULL;
+	    log_stderr("last in map");
 	}
+	log_stderr("last in node");
     }
 #else
     *entry = zmap_entry_next(*entry);
