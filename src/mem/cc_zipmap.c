@@ -41,6 +41,7 @@ static struct zmap_entry *zmap_entry_next(struct zmap_entry *entry);
 static struct zmap_entry *zmap_lookup_raw(struct item *it, struct zmap *zmap, void *key, uint8_t nkey);
 static struct zmap_entry *zmap_lookup_with_node(struct item *it, struct zmap *zmap, void *key, uint8_t nkey, struct item **node);
 static void zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void *val, uint32_t nval, uint8_t flags);
+static void zmap_item_hexdump(struct item *it);
 static void zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *zmap_entry, struct item *node);
 static size_t zmap_new_entry_size(uint8_t nskey, uint32_t nval);
 static void zmap_set_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void *val, uint32_t nval, uint8_t flags);
@@ -51,7 +52,7 @@ static bool zmap_check_size(uint8_t npkey, uint8_t nskey, uint32_t nval);
 
 #if defined CC_CHAINED && CC_CHAINED == 1
 static void zmap_realloc_from_tail(struct item *it, struct item *node);
-static struct zmap_entry *zmap_get_prev_entry(struct item *node, struct zmap_entry *entry);
+static struct zmap_entry *zmap_get_prev_entry(struct item *node, struct zmap_entry *entry, bool head);
 #endif
 
 struct zmap *
@@ -723,26 +724,31 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey, void
 	    iter->flags &= ~ENTRY_LAST_IN_NODE;
 	}
 #endif
-	log_stderr("@@@ added key %s", skey);
-	log_stderr("add_raw - after: node 1 %p", it);
-	loga_hexdump(it, 400, "add_raw - after: node 1");
-	loga_hexdump(((char *)it) + 400, 400, "add_raw - after: node 1");
-	loga_hexdump(((char *)it) + 800, 400, "add_raw - after: node 1");
-
-	if(it->next_node != NULL) {
-	    loga_hexdump(it->next_node, 400, "add_raw - after: node 2");
-	    loga_hexdump(((char *)it->next_node) + 400, 400, "add_raw - after: node 2");
-	    loga_hexdump(((char *)it->next_node) + 800, 400, "add_raw - after: node 2");
-	    if(it->next_node->next_node != NULL) {
-		loga_hexdump(it->next_node->next_node, 400, "add_raw - after: node 2");
-		loga_hexdump(((char *)it->next_node->next_node) + 400, 400, "add_raw - after: node 2");
-		loga_hexdump(((char *)it->next_node->next_node) + 800, 400, "add_raw - after: node 2");
-	    }
-	}
+	zmap_item_hexdump(it);
 
 	item_remove(it);
 	log_stderr("@@@ removed item");
     }
+}
+
+static void
+zmap_item_hexdump(struct item *it)
+{
+#if defined CC_CHAINED && CC_CHAINED == 1
+    uint32_t i;
+
+    for(i = 1; it != NULL; ++i, it = it->next_node) {
+	log_stderr("node %u addr %p", i, it);
+	loga_hexdump(it, 400, "");
+	loga_hexdump((char *)it + 400, 400, "");
+	loga_hexdump((char *)it + 800, 400, "");
+    }
+#else
+    log_stderr("addr %p", it);
+    loga_hexdump(it, 400, "");
+    loga_hexdump((char *)it + 400, 400, "");
+    loga_hexdump((char *)it + 800, 400, "");
+#endif
 }
 
 static void
@@ -757,9 +763,13 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry, st
 #if defined CC_CHAINED && CC_CHAINED == 1
     uint32_t deleted_size = entry_size(entry);
 
+    log_stderr("delete_raw - before");
+    zmap_item_hexdump(it);
+
     if(entry_last_in_node(entry)) {
 	/* Entry is last in its node */
-	struct zmap_entry *new_last = zmap_get_prev_entry(node, entry);
+	struct zmap_entry *new_last;
+	new_last = zmap_get_prev_entry(node, entry, node == it);
 
 	if(new_last == NULL) {
 	    /* entry to be deleted is the only one in its node */
@@ -786,6 +796,7 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry, st
 	} else {
 	    /* Entry is not the only one in its node; simply set the second to
 	       last entry as the last */
+
 	    new_last->flags |= ENTRY_LAST_IN_NODE;
 
 	    node->nbyte -= deleted_size;
@@ -805,15 +816,26 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry, st
 	    amt_to_move += entry_size(iter);
 	}
 
+        log_stderr("moving entries down from %p to %p by %u", zmap_entry_next(entry), entry, amt_to_move);
+
 	/* Move entries down */
 	cc_memmove(entry, zmap_entry_next(entry), amt_to_move);
 
 	/* adjust nbyte */
 	node->nbyte -= deleted_size;
 
+        log_stderr("realloc_from_tail - before");
+        zmap_item_hexdump(it);
+
 	zmap_realloc_from_tail(it, node);
+
+        log_stderr("realloc_from_tail - after");
+        zmap_item_hexdump(it);
     }
     --(zmap->len);
+
+    log_stderr("delete_raw - after");
+    zmap_item_hexdump(it);
 #else
     /* Shift everything down */
     bool found_deleted = false;
@@ -963,6 +985,10 @@ static void
 zmap_realloc_from_tail(struct item *it, struct item *node)
 {
     struct item *tail;
+    struct zmap_entry *iter;
+
+    log_stderr("@@@ realloc from tail");
+    log_stderr("it addr: %p node addr: %p", it, node);
 
     while(((tail = item_tail(it))->nbyte <=
 	  (item_max_nbyte(node->id, node->nkey) - node->nbyte)) && tail != node) {
@@ -971,40 +997,71 @@ zmap_realloc_from_tail(struct item *it, struct item *node)
 
 	node->nbyte += tail->nbyte;
 	item_remove_node(it, tail);
+
+        /* unflag old last entry */
+        for(iter = (node == it) ? zmap_get_entry_ptr(item_to_zmap(it)) : (struct zmap_entry *)item_data(node);
+            !entry_last_in_node(iter); iter = zmap_entry_next(iter));
+        iter->flags &= ~ENTRY_LAST_IN_NODE;
     }
+
+    log_stderr("tail addr: %p", tail);
+    log_stderr("copying up to %u bytes", item_max_nbyte(node->id, node->nkey) - node->nbyte);
+    log_stderr("node addr: %p", node);
 
     if(tail != node) {
 	/* it is still not the last node, and cannot fit all of the last node's
 	   data; copy over as much of it as possible */
 	uint32_t index = 0;
-	struct zmap_entry *iter;
+	struct zmap_entry *new_last = NULL;
 
 	/* Find the index from where copying should start */
 	for(iter = (struct zmap_entry *)item_data(tail);
             tail->nbyte - index > (item_max_nbyte(node->id, node->nkey) - node->nbyte);
 	    iter = zmap_entry_next(iter)) {
+	    new_last = iter;
+	    loga_hexdump(iter, 50, "checking entry");
 	    index += entry_size(iter);
+	    log_stderr("index now %u", index);
 	}
+
+	new_last->flags |= ENTRY_LAST_IN_NODE;
 
 	ASSERT(tail->head != tail);
 
+	log_stderr("realloc_from_tail: copying from %p to %p %u bytes", item_data(tail) + index, item_data(node) + node->nbyte, tail->nbyte - index);
+	log_stderr("node addr: %p", node);
+	log_stderr("item_data(node): %p", item_data(node));
+	loga_hexdump(item_data(node), node->nbyte + 64, "item_data(node)");
+	log_stderr("node->nbyte: %u", node->nbyte);
+	loga_hexdump(item_data(tail) + index, 50, "source");
+	loga_hexdump(item_data(node) + node->nbyte, 50, "destination");
+
 	cc_memcpy(item_data(node) + node->nbyte, item_data(tail) + index,
 		  tail->nbyte - index);
+
+	/* unflag old last entry if anything was copied */
+	if(tail->nbyte - index != 0) {
+	    for(iter = (node == it) ? zmap_get_entry_ptr(item_to_zmap(it)) : (struct zmap_entry *)item_data(node);
+		!entry_last_in_node(iter); iter = zmap_entry_next(iter));
+	    iter->flags &= ~ENTRY_LAST_IN_NODE;
+	}
+
 	node->nbyte += tail->nbyte - index;
 	tail->nbyte -= tail->nbyte - index;
     }
 }
 
 /* Get the entry that comes before the given entry (in the same node). Returns
-   NULL if the given entry is the first in the node or not in node */
+   NULL if the given entry is the first in the node or not in node. head indicates
+   whether or not node is the head of the zmap. */
 static struct zmap_entry *
-zmap_get_prev_entry(struct item *node, struct zmap_entry *entry)
+zmap_get_prev_entry(struct item *node, struct zmap_entry *entry, bool head)
 {
     struct zmap_entry *iter;
 
     struct zmap_entry *prev = NULL;
 
-    for(iter = (struct zmap_entry *)item_data(node); iter != entry;
+    for(iter = head ? zmap_get_entry_ptr(item_to_zmap(node)) : (struct zmap_entry *)item_data(node); iter != entry;
 	iter = zmap_entry_next(iter)) {
 	prev = iter;
 

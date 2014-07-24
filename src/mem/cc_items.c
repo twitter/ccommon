@@ -17,6 +17,7 @@
 
 #include <mem/cc_items.h>
 
+#include <mem/cc_mem_globals.h>
 #include <mem/cc_settings.h>
 #include <mem/cc_slabs.h>
 #include <cc_debug.h>
@@ -28,7 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*pthread_mutex_t cache_lock;*/                 /* lock protecting lru q and hash */
 static struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
 
@@ -121,7 +121,7 @@ item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
 {
     ASSERT(offset >= SLAB_HDR_SIZE && offset < settings.slab_size);
 
-#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
+#if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     it->magic = ITEM_MAGIC;
 #endif
     it->offset = offset;
@@ -393,6 +393,7 @@ void
 item_remove_node(struct item *it, struct item *node) {
     struct item *iter, *prev = NULL;
 
+    /*pthread_mutex_lock(&cache_lock);*/
     for(iter = it; iter != NULL; iter = iter->next_node) {
 	if(iter == node) {
 	    /* found node to be removed */
@@ -418,6 +419,7 @@ item_remove_node(struct item *it, struct item *node) {
 
 	prev = iter;
     }
+    /*pthread_mutex_unlock(&cache_lock);*/
 }
 #endif
 
@@ -583,6 +585,8 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     struct item *current_node, *prev_node = NULL;
     uint8_t id;
 
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+
     do {
 	/* Get slab id based on nbyte, and nkey if first node */
 	id = slab_id(item_ntotal(
@@ -685,6 +689,8 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     struct item *it;
     uint8_t id;
 
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+
     id = slab_id(item_ntotal(nkey, nbyte, settings.use_cas));
 
     if(id == SLABCLASS_CHAIN_ID) {
@@ -733,6 +739,7 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 static void
 _item_link(struct item *it)
 {
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_linked(it));
     ASSERT(!item_is_slabbed(it));
@@ -754,6 +761,7 @@ _item_link(struct item *it)
 static void
 _item_unlink(struct item *it)
 {
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(it->head == it);
 
@@ -778,6 +786,7 @@ _item_unlink(struct item *it)
 static void
 _item_remove(struct item *it)
 {
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
 
@@ -800,6 +809,7 @@ _item_remove(struct item *it)
 static void
 _item_relink(struct item *it, struct item *nit)
 {
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
 
@@ -828,6 +838,8 @@ static struct item *
 _item_get(const char *key, size_t nkey)
 {
     struct item *it;
+
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
     it = hash_table_find(key, nkey, &mem_hash_table);
     if (it == NULL) {
@@ -867,7 +879,7 @@ _item_set(struct item *it)
     char *key;
     struct item *oit;
 
-    ASSERT(it->head == it);
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -891,6 +903,8 @@ _item_cas(struct item *it)
 {
     char *key;
     struct item *oit;
+
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -924,7 +938,7 @@ _item_add(struct item *it)
     char *key;
     struct item *oit;
 
-    ASSERT(it->head == it);
+    /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
@@ -983,6 +997,8 @@ _item_append(struct item *it, bool contig)
     uint8_t nid;
     uint32_t total_nbyte;
 
+    log_stderr("@@@ item append called");
+
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
     }
@@ -1002,7 +1018,7 @@ _item_append(struct item *it, bool contig)
     total_nbyte = oit_tail->nbyte + it->nbyte; /* get size of new tail */
     nid = item_slabid(oit_tail->nkey, total_nbyte);
 
-    if(nid == oit_tail->id && !item_is_raligned(oit_tail)) {
+    if(nid <= oit_tail->id && !item_is_raligned(oit_tail)) {
 	/* if oit is large enough to hold the extra data and left-aligned,
 	 * which is the default behavior, we copy the delta to the end of
 	 * the existing data. Otherwise, allocate a new item and store the

@@ -342,7 +342,7 @@ slab_hdr_init(struct slab *slab, uint8_t id)
 {
     ASSERT(id >= SLABCLASS_MIN_ID && id <= slabclass_max_id);
 
-#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
+#if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     slab->magic = SLAB_MAGIC;
 #endif
     slab->id = id;
@@ -706,7 +706,7 @@ _slab_get_item(uint8_t id)
         p->free_item = NULL;
     }
 
-#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
+#if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     it->magic = ITEM_MAGIC;
 #endif
 

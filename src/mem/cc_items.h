@@ -114,8 +114,10 @@ typedef enum item_delta_result {
  * - key with terminating '\0', length = item->nkey + 1
  * - data with no terminating '\0'
  */
+
+/* TODO: move next_node and head for more compact memory alignment */
 struct item {
-#if defined CC_ASSERT_PANIC && CC_ASSERT_PANIC == 1 || defined CC_ASSERT_LOG && CC_ASSERT_LOG == 1
+#if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     uint32_t          magic;      /* item magic (const) */
 #endif
     TAILQ_ENTRY(item) i_tqe;      /* link in the free q */

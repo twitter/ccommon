@@ -27,6 +27,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
 	hash/cc_hash_table.c						\
+	mem/cc_mem_globals.c						\
 	mem/cc_mem_interface.c						\
 	mem/cc_items.c							\
 	mem/cc_settings.c						\
@@ -35,7 +36,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	mem/cc_zipmap.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
-ccommon_include_HEADERS =		\
+ccommon_include_HEADERS =						\
 	cc_array.h							\
 	cc_debug.h							\
 	cc_log.h							\
@@ -49,6 +50,7 @@ ccommon_include_HEADERS =		\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
 	hash/cc_hash_table.h						\
+	mem/cc_mem_globals.h						\
 	mem/cc_mem_interface.h						\
 	mem/cc_items.h							\
 	mem/cc_queue.h							\
