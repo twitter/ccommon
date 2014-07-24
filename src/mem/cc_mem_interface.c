@@ -46,7 +46,7 @@ add_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_add(new_item) == ADD_EXISTS) {
-	log_stderr("Server already holds data for key %s, value not stored.\n", key);
+	log_stderr("Server already holds data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -58,7 +58,7 @@ replace_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_replace(new_item) == REPLACE_NOT_FOUND) {
-	log_stderr("Server does not hold data for key %s, value not stored\n", key);
+	log_stderr("Server does not hold data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -103,7 +103,7 @@ get_val_size(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!\n", key);
+	log_stderr("No item with key %s!", key);
 	return 0;
     }
 
@@ -120,7 +120,7 @@ get_num_nodes(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!\n", key);
+	log_stderr("No item with key %s!", key);
 	return 0;
     }
 
@@ -144,7 +144,7 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!\n", key);
+	log_stderr("No item with key %s!", key);
 	return false;
     }
 
@@ -195,7 +195,8 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     }
 
     /* Copy over data from first node */
-    amt_to_copy = (iter->nbyte - offset < buf_size) ? iter->nbyte - offset : buf_size;
+    amt_to_copy = (iter->nbyte - offset < buf_size) ?
+	iter->nbyte - offset : buf_size;
     cc_memcpy(buf, item_data(iter) + offset, amt_to_copy);
     amt_copied = amt_to_copy;
 
@@ -226,9 +227,9 @@ void
 remove_key(void *key, uint8_t nkey)
 {
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
-	log_stderr("key %s does not exist\n", key);
+	log_stderr("key %s does not exist", key);
     } else {
-	log_stderr("Item %s deleted\n", key);
+	log_stderr("Item %s deleted", key);
     }
 }
 
@@ -262,7 +263,8 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *ret;
 
     if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
-	log_stderr("No slabclass large enough to contain item of that size! (tru turning chaining on)");
+	log_stderr("No slabclass large enough to contain item of that size!"
+		   " (try turning chaining on)");
 	return NULL;
     }
 

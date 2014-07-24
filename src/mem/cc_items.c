@@ -55,8 +55,10 @@ static item_annex_result_t _item_append(struct item *it, bool contig);
 static item_annex_result_t _item_prepend(struct item *it);
 static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
 				       uint64_t delta);
-static void item_append_same_id(struct item *oit, struct item *it, uint32_t total_nbyte);
-static void item_prepend_same_id(struct item *oit, struct item *it, uint32_t total_nbyte);
+static void item_append_same_id(struct item *oit, struct item *it, uint32_t
+				total_nbyte);
+static void item_prepend_same_id(struct item *oit, struct item *it, uint32_t
+				 total_nbyte);
 
 #if defined CC_CHAINED && CC_CHAINED == 1
 static void item_prepare_tail(struct item *nit);
@@ -504,8 +506,6 @@ item_free(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_linked(it));
 
-    log_stderr("Freeing item %s...\n", item_key(it));
-
 #if defined CC_CHAINED && CC_CHAINED == 1
     /* Keep two pointers to the chain of items, one to do the freeing (prev) and
        the other to keep a handle on the rest of the chain (it) */
@@ -645,7 +645,6 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1;
 
 	nbyte -= current_node->nbyte;
-	log_stderr("bytes allocated for this node: %u", current_node->nbyte);
 
 	if(prev_node != NULL) {
 	    prev_node->next_node = current_node;
@@ -745,7 +744,7 @@ _item_link(struct item *it)
     ASSERT(!item_is_slabbed(it));
     ASSERT(it->nkey != 0);
 
-    log_stderr("link item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("link item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 
     it->flags |= ITEM_LINKED;
@@ -765,7 +764,7 @@ _item_unlink(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(it->head == it);
 
-    log_stderr("unlink item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("unlink item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 
     if (item_is_linked(it)) {
@@ -791,7 +790,7 @@ _item_remove(struct item *it)
     ASSERT(!item_is_slabbed(it));
 
     log_stderr("remove item %s at offset %u with flags %hhu id %hhu "
-	    "refcount %hu\n", item_key(it), it->offset, it->flags, it->id,
+	    "refcount %hu", item_key(it), it->offset, it->flags, it->id,
 	    it->refcount);
 
     if (it->refcount != 0) {
@@ -817,11 +816,8 @@ _item_relink(struct item *it, struct item *nit)
     ASSERT(!item_is_slabbed(nit));
 
     log_stderr("relink item %s at offset %u id %hhu with one at offset "
-	    "%u id %hhu\n", item_key(it), it->offset, it->id, nit->offset,
+	    "%u id %hhu", item_key(it), it->offset, it->id, nit->offset,
 	    nit->id);
-
-    loga_hexdump(it, 400, "oit");
-    loga_hexdump(nit, 400, "nit");
 
     _item_unlink(it);
     _item_link(nit);
@@ -843,26 +839,26 @@ _item_get(const char *key, size_t nkey)
 
     it = hash_table_find(key, nkey, &mem_hash_table);
     if (it == NULL) {
-	log_stderr("get item %s not found\n", key);
+	log_stderr("get item %s not found", key);
         return NULL;
     }
 
     if (it->exptime != 0 && it->exptime <= time_now()) {
         _item_unlink(it);
-	log_stderr("get item %s expired and nuked\n", key);
+	log_stderr("get item %s expired and nuked", key);
         return NULL;
     }
 
     if (settings.oldest_live != 0 && settings.oldest_live <= time_now() &&
         it->atime <= settings.oldest_live) {
         _item_unlink(it);
-	log_stderr("item %s nuked\n", key);
+	log_stderr("item %s nuked", key);
         return NULL;
     }
 
     item_acquire_refcount(it);
 
-    log_stderr("get item %s found at offset %u with flags %hhu id %hhu\n",
+    log_stderr("get item %s found at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 
     return it;
@@ -890,7 +886,7 @@ _item_set(struct item *it)
         _item_remove(oit);
     }
 
-    log_stderr("store item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("store item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 }
 
@@ -914,14 +910,14 @@ _item_cas(struct item *it)
 
     /* oit is not NULL, some item was found */
     if (item_get_cas(it) != item_get_cas(oit)) {
-	log_stderr("cas mismatch %llu != %llu on item %s\n",
+	log_stderr("cas mismatch %llu != %llu on item %s",
 		item_get_cas(oit), item_get_cas(it), item_key(it));
 	_item_remove(oit);
 	return CAS_EXISTS;
     }
 
     _item_relink(oit, it);
-    log_stderr("cas item %s at offset %u with flags %hhu id %hhu\n",
+    log_stderr("cas item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
     _item_remove(oit);
     return CAS_OK;
@@ -951,7 +947,7 @@ _item_add(struct item *it)
 
         ret = ADD_OK;
 
-	log_stderr("add item %s at offset %u with flags %hhu id %hhu\n",
+	log_stderr("add item %s at offset %u with flags %hhu id %hhu",
 		item_key(it), it->offset, it->flags, it->id);
     }
 
@@ -975,7 +971,7 @@ _item_replace(struct item *it)
     if (oit == NULL) {
         ret = REPLACE_NOT_FOUND;
     } else {
-	log_stderr("replace oit %s at offset %u with flags %hhu id %hhu\n",
+	log_stderr("replace oit %s at offset %u with flags %hhu id %hhu",
 		item_key(oit), oit->offset, oit->flags, oit->id);
 
         _item_relink(oit, it);
@@ -996,8 +992,6 @@ _item_append(struct item *it, bool contig)
     struct item *oit, *oit_tail;
     uint8_t nid;
     uint32_t total_nbyte;
-
-    log_stderr("@@@ item append called");
 
     if(item_is_chained(it)) {
 	return ANNEX_OVERSIZED;
@@ -1078,8 +1072,8 @@ _item_append(struct item *it, bool contig)
 		/* Copy over current tail */
 		cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
 
-		nit_amt_copied = slab_item_size(nit->id) - ITEM_HDR_SIZE - oit_tail->nbyte
-		    - oit_tail->nkey - 1;
+		nit_amt_copied = slab_item_size(nit->id) - ITEM_HDR_SIZE -
+		    oit_tail->nbyte - oit_tail->nkey - 1;
 
 		/* Copy over as much of the new data as possible to the first node */
 		cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
@@ -1145,8 +1139,6 @@ _item_append(struct item *it, bool contig)
 	    }
 	}
     }
-
-    log_stderr("annex successfully to item %s, new id %hhu\n", item_key(oit), nid);
 
     _item_remove(oit);
 
@@ -1259,7 +1251,8 @@ _item_prepend(struct item *it)
 	_item_relink(oit, nit);
     } else {
 	struct item *iter, *nit_second;
-	uint32_t nit_second_nbyte = slab_item_size(slabclass_max_id) - ITEM_HDR_SIZE - 1;
+	uint32_t nit_second_nbyte = slab_item_size(slabclass_max_id) -
+	    ITEM_HDR_SIZE - 1;
 
 	nit_second = _item_alloc("", 0, oit->dataflags, oit->exptime,
 				 nit_second_nbyte);
@@ -1303,8 +1296,6 @@ _item_prepend(struct item *it)
 	}
 	_item_relink(oit, nit);
     }
-
-    log_stderr("annex successfully to item %s\n", item_key(oit));
 
     if(oit != NULL) {
 	_item_remove(oit);
@@ -1360,8 +1351,6 @@ _item_prepend(struct item *it)
 	_item_remove(oit);
 	return ANNEX_OVERSIZED;
     }
-
-    log_stderr("annex successfully to item %s\n", item_key(oit));
 
     if(oit != NULL) {
 	_item_remove(oit);

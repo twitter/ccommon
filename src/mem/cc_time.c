@@ -18,6 +18,7 @@
 #include <mem/cc_time.h>
 
 #include <mem/cc_settings.h>
+#include <cc_log.h>
 
 #include <stdio.h>
 
@@ -65,11 +66,11 @@ time_update(void)
 
     status = gettimeofday(&timer, NULL);
     if (status < 0) {
-	fprintf(stderr, "gettimeofday failed!\n");
+	log_stderr("gettimeofday failed!");
     }
     now = (rel_time_t) (timer.tv_sec - process_started);
 
-    fprintf(stderr, "time updated to %u\n", now);
+    log_stderr("time updated to %u\n", now);
 }
 
 rel_time_t
@@ -127,5 +128,5 @@ time_init(void)
      */
     process_started = time(NULL) - 2;
 
-    fprintf(stderr, "process started at %llu\n", (int64_t)process_started);
+    log_stderr("process started at %llu", (int64_t)process_started);
 }

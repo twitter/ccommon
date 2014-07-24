@@ -88,14 +88,14 @@ slab_print(void)
     struct slabclass *p;
 
     log_stderr("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
-	   "total memory: %zu\n\n", settings.slab_size, SLAB_HDR_SIZE,
+	   "total memory: %zu\n", settings.slab_size, SLAB_HDR_SIZE,
 	   ITEM_HDR_SIZE, settings.maxbytes);
 
     /* Print out details for each slab class */
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
         p = &slabclass[id];
 
-	log_stderr("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n\n",
+	log_stderr("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n",
 	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE,
 	       slab_size() - p->nitem * p->size);
     }
@@ -104,22 +104,24 @@ slab_print(void)
 void
 slab_acquire_refcount(struct slab *slab)
 {
-    log_stderr("acquiring refcount on slab with id %hhu refcount %hu\n", slab->id, slab->refcount);
+    log_stderr("acquiring refcount on slab with id %hhu refcount %hu",
+	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
-    log_stderr("refcount now %hu\n", slab->refcount);
+    log_stderr("refcount now %hu", slab->refcount);
 }
 
 void
 slab_release_refcount(struct slab *slab)
 {
-    log_stderr("releasing refcount on slab with id %hhu refcount %hu\n", slab->id, slab->refcount);
+    log_stderr("releasing refcount on slab with id %hhu refcount %hu",
+	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     ASSERT(slab->refcount > 0);
     slab->refcount--;
-    log_stderr("refcount now %hu\n", slab->refcount);
+    log_stderr("refcount now %hu", slab->refcount);
 }
 
 size_t
@@ -308,25 +310,25 @@ slab_heapinfo_init(void)
     if (settings.prealloc) {
         heapinfo.base = cc_alloc(heapinfo.max_nslab * settings.slab_size);
         if (heapinfo.base == NULL) {
-	    log_stderr("pre-alloc %zu bytes for %u slabs failed\n",
+	    log_stderr("pre-alloc %zu bytes for %u slabs failed",
 		    heapinfo.max_nslab * settings.slab_size, heapinfo.max_nslab);
             return CC_ENOMEM;
         }
 
-	log_stderr("pre-allocated %zu bytes for %u slabs\n",
+	log_stderr("pre-allocated %zu bytes for %u slabs",
 		settings.maxbytes, heapinfo.max_nslab);
     }
     heapinfo.curr = heapinfo.base;
 
     heapinfo.slab_table = cc_alloc(sizeof(*heapinfo.slab_table) * heapinfo.max_nslab);
     if (heapinfo.slab_table == NULL) {
-	log_stderr("creation of slab table with %u entries failed\n",
+	log_stderr("creation of slab table with %u entries failed",
 		heapinfo.max_nslab);
         return CC_ENOMEM;
     }
     TAILQ_INIT(&heapinfo.slab_lruq);
 
-    log_stderr("created slab table with %u entries\n", heapinfo.max_nslab);
+    log_stderr("created slab table with %u entries", heapinfo.max_nslab);
 
     return CC_OK;
 }
@@ -382,7 +384,7 @@ slab_table_update(struct slab *slab)
     heapinfo.slab_table[heapinfo.nslab] = slab;
     heapinfo.nslab++;
 
-    log_stderr("new slab allocated at position %u\n", heapinfo.nslab - 1);
+    log_stderr("new slab allocated at position %u", heapinfo.nslab - 1);
 }
 
 /* Get random slab from slab table */
@@ -406,7 +408,7 @@ slab_lruq_head()
 static void
 slab_lruq_append(struct slab *slab)
 {
-    log_stderr("append slab with id %hhu to lruq\n", slab->id);
+    log_stderr("append slab with id %hhu to lruq", slab->id);
     TAILQ_INSERT_TAIL(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -536,7 +538,7 @@ slab_evict_rand(void)
         return NULL;
     }
 
-    log_stderr("random-evicting slab with id %hhu\n", slab->id);
+    log_stderr("random-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 
@@ -565,7 +567,7 @@ slab_evict_lru(int id)
         return NULL;
     }
 
-    log_stderr("lru-evicting slab with id %hhu\n", slab->id);
+    log_stderr("lru-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 
@@ -710,9 +712,6 @@ _slab_get_item(uint8_t id)
     it->magic = ITEM_MAGIC;
 #endif
 
-    log_stderr("get new item at offset %u with id %hhu\n", it->offset,
-	    it->id);
-
     return it;
 }
 
@@ -736,7 +735,7 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(it->refcount == 0);
     ASSERT(it->offset != 0);
 
-    log_stderr("put free queue item with key %s at offset %u with id %hhu\n",
+    log_stderr("put free queue item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
 
     it->flags |= ITEM_SLABBED;

@@ -337,7 +337,7 @@ START_TEST(check_zipmap_basic)
 	numeric_pairs.key_numeric_pairs[i].val = i;
     }
 
-    for(i = 0; i < 10; ++i) {
+    for(i = 0; i < 100; ++i) {
 	ret = zmap_set_multiple_numeric("map", 3, &numeric_pairs);
 	ck_assert_msg(ret == ZMAP_SET_OK, "set not successful! %d", ret);
 	ck_assert_msg(zmap_len("map", 3) == 204, "zipmap has incorrect len (should be 204)!");

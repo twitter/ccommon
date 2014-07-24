@@ -25,7 +25,6 @@
 #include <stdlib.h>
 
 #include <cc_define.h>
-#include <cc_log.h>
 
 struct item;
 
