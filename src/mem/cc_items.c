@@ -62,9 +62,11 @@ static void item_prepend_same_id(struct item *oit, struct item *it, uint32_t
 
 #if defined CC_CHAINED && CC_CHAINED == 1
 static void item_prepare_tail(struct item *nit);
+static bool item_is_contained(struct item *it, struct item *candidate);
 #endif
 
 #define INCR_MAX_STORAGE_LEN 24
+#define GET_ITEM_MAX_TRIES   50
 
 rstatus_t
 item_init(uint32_t hash_power)
@@ -147,6 +149,8 @@ item_reuse(struct item *it)
 {
     struct item *prev;
     struct slab *evicted = item_2_slab(it);
+
+    log_stderr("@@@ item_reuse called");
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(it->magic == ITEM_MAGIC);
@@ -466,6 +470,7 @@ item_acquire_refcount(struct item *it)
 
 #if defined CC_CHAINED && CC_CHAINED == 1
     for(; it != NULL; it = it->next_node) {
+	log_stderr("@@@ item_acquire_refcount: calling slab_acquire_refcount");
 	slab_acquire_refcount(item_2_slab(it));
     }
 #else
@@ -578,9 +583,11 @@ static struct item *
 _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    exptime, uint32_t nbyte)
 {
-    struct item *it = NULL;
-    struct item *current_node, *prev_node = NULL;
+    struct item *it = NULL, *current_node, *prev_node = NULL;
     uint8_t id;
+    uint32_t i;
+
+    log_stderr("@@@ item_alloc called; nbyte: %u", nbyte);
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
@@ -596,13 +603,19 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    id = slabclass_max_id;
 	}
 
-	current_node = slab_get_item(id);
+	for(i = 0; i < GET_ITEM_MAX_TRIES; ++i) {
+	    current_node = slab_get_item(id);
 
-	if(current_node == NULL) {
-	    /* Could not successfully allocate item(s) */
-	    log_stderr("server error on allocating item in slab %hhu",
-		    id);
-	    return NULL;
+	    if(current_node == NULL) {
+		/* Could not successfully allocate item(s) */
+		log_stderr("server error on allocating item in slab %hhu",
+			   id);
+		return NULL;
+	    }
+
+	    if(!item_is_contained(it, current_node)) {
+		break;
+	    }
 	}
 
 	if(it == NULL) {
@@ -674,6 +687,8 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     log_stderr("alloc item %s at offset %u with id %hhu expiry %u "
 	    " refcount %hu", item_key(it), it->offset, it->id, it->exptime,
 	    it->refcount);
+
+    log_stderr("@@@ alloc_item returning");
 
     return it;
 }
@@ -1472,5 +1487,21 @@ item_prepare_tail(struct item *nit)
 
     /* decrement nit refcount, since it was obtained via item_alloc */
     --(nit->refcount);
+}
+
+/* Returns true if candidate is a node in it, false otherwise */
+static bool
+item_is_contained(struct item *it, struct item *candidate)
+{
+    if(it == NULL) {
+	return false;
+    }
+
+    for(; it != NULL; it = it->next_node) {
+	if(candidate == it) {
+	    return true;
+	}
+    }
+    return false;
 }
 #endif

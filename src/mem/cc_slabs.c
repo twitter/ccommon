@@ -110,6 +110,9 @@ slab_acquire_refcount(struct slab *slab)
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
     log_stderr("refcount now %hu", slab->refcount);
+    if(slab->refcount > 100) {
+	exit(1);
+    }
 }
 
 void
@@ -472,6 +475,8 @@ slab_evict_one(struct slab *slab)
     struct item *it;
     uint32_t i;
 
+    log_stderr("@@@ slab_evict_one called");
+
     p = &slabclass[slab->id];
 
     ASSERT(slab->refcount == 0);
@@ -511,6 +516,8 @@ slab_evict_one(struct slab *slab)
 
     /* unlink the slab from its class */
     slab_lruq_remove(slab);
+
+    log_stderr("@@@ slab_evict_one finishing");
 }
 
 /*
