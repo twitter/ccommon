@@ -21,7 +21,7 @@ void init_settings(void);
 void
 init_settings(void) {
     settings.prealloc = true;
-    settings.evict_lru = true;
+    settings.evict_lru = false;
     settings.use_freeq = true;
     settings.use_cas = false;
     settings.maxbytes = 8448;
@@ -385,6 +385,34 @@ START_TEST(check_zipmap_basic)
 }
 END_TEST
 
+START_TEST(check_mem_evict)
+{
+    rstatus_t return_status;
+    uint32_t i, n;
+    char *val;
+
+    init_settings();
+    time_init();
+
+    return_status = item_init(0);
+    if(return_status != CC_OK) {
+	ck_abort_msg("Item init failed! Error code %d", return_status);
+    }
+
+    return_status = slab_init();
+    if(return_status != CC_OK) {
+	ck_abort_msg("Slab init failed! Error code %d", return_status);
+    }
+
+    val = malloc(7);
+    for(i = 0; i < 1000; ++i) {
+	n = sprintf(val, "val%u", i);
+	store_key(val, n, val, n);
+    }
+    free(val);
+}
+END_TEST
+
 Suite *
 mem_suite(void)
 {
@@ -392,8 +420,9 @@ mem_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_add_test(tc_core, check_mem_basic);
-    //tcase_add_test(tc_core, check_mem_replace);
+    tcase_add_test(tc_core, check_mem_replace);
     tcase_add_test(tc_core, check_zipmap_basic);
+    tcase_add_test(tc_core, check_mem_evict);
     tcase_set_timeout(tc_core, 60);
     suite_add_tcase(s, tc_core);
 

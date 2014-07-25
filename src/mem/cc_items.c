@@ -111,7 +111,7 @@ item_2_slab(struct item *it)
     ASSERT(it->offset < settings.slab_size);
 
     /* Beginning of slab is located at it->offset bytes behind it */
-    slab = (struct slab *)((uint8_t *)it - it->offset);
+    slab = (struct slab *)((char *)it - it->offset);
 
     ASSERT(slab->magic == SLAB_MAGIC);
 
@@ -158,6 +158,7 @@ item_reuse(struct item *it)
     it->head->flags &= ~ITEM_LINKED;
     hash_table_remove(item_key(it->head), it->head->nkey, &mem_hash_table);
 
+    /* Free all nodes */
     for(prev = it = it->head; prev != NULL; prev = it) {
 	if(it != NULL) {
 	    it = it->next_node;
@@ -172,10 +173,6 @@ item_reuse(struct item *it)
 	    item_free(prev);
 	}
     }
-
-    log_stderr("reuse %s item %s at offset %d with id %hhu",
-	    item_expired(it) ? "expired" : "evicted", item_key(it),
-	    it->offset, it->id);
 }
 #else
 void
