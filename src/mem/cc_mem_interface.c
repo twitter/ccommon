@@ -46,7 +46,7 @@ add_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_add(new_item) == ADD_EXISTS) {
-	log_stderr("Server already holds data for key %s, value not stored.", key);
+	log_debug(LOG_NOTICE, "Server already holds data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -58,7 +58,7 @@ replace_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_replace(new_item) == REPLACE_NOT_FOUND) {
-	log_stderr("Server does not hold data for key %s, value not stored.", key);
+	log_debug(LOG_NOTICE, "Server does not hold data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -103,7 +103,7 @@ get_val_size(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!", key);
+	log_debug(LOG_NOTICE, "No item with key %s!", key);
 	return 0;
     }
 
@@ -120,7 +120,7 @@ get_num_nodes(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!", key);
+	log_debug(LOG_NOTICE, "No item with key %s!", key);
 	return 0;
     }
 
@@ -144,7 +144,7 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!", key);
+	log_debug(LOG_NOTICE, "No item with key %s!", key);
 	return false;
     }
 
@@ -180,7 +180,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_stderr("No item with key %s!", key);
+	log_debug(LOG_NOTICE, "No item with key %s!", key);
 	return false;
     }
 
@@ -190,7 +190,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 	iter = iter->next_node, offset -= iter->nbyte);
 
     if(iter == NULL) {
-	log_stderr("Offset too large!");
+	log_debug(LOG_NOTICE, "Offset too large!");
 	return false;
     }
 
@@ -210,7 +210,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     }
 #else
 if(offset >= it->nbyte) {
-	log_stderr("Offset too large!");
+	log_debug(LOG_NOTICE, "Offset too large!");
 	return false;
     }
 
@@ -227,9 +227,9 @@ void
 remove_key(void *key, uint8_t nkey)
 {
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
-	log_stderr("key %s does not exist", key);
+	log_debug(LOG_NOTICE, "key %s does not exist", key);
     } else {
-	log_stderr("Item %s deleted", key);
+	log_debug(LOG_NOTICE, "Item %s deleted", key);
     }
 }
 
@@ -243,7 +243,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     /* Currently exptime is arbitrarily set; not sure what to do about this yet */
     ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
     if(ret == NULL) {
-	log_stderr("Not enough memory to allocate item");
+	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -263,15 +263,15 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *ret;
 
     if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
-	log_stderr("No slabclass large enough to contain item of that size!"
-		   " (try turning chaining on)");
+	log_debug(LOG_NOTICE, "No slabclass large enough to contain item of that"
+		  " size! (try turning chaining on)");
 	return NULL;
     }
 
     /* Currently exptime is arbitrarily set; not sure what to do about this yet */
     ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
     if(ret == NULL) {
-	log_stderr("Not enough memory to allocate item");
+	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -288,13 +288,13 @@ check_annex_status(item_annex_result_t ret)
 {
     switch(ret) {
     case ANNEX_OVERSIZED:
-	log_stderr("Cannot annex: annex operation too large");
+	log_debug(LOG_NOTICE, "Cannot annex: annex operation too large");
 	break;
     case ANNEX_NOT_FOUND:
-	log_stderr("Cannot annex: no item with that key found");
+	log_debug(LOG_NOTICE, "Cannot annex: no item with that key found");
 	break;
     case ANNEX_EOM:
-	log_stderr("Cannot annex: not enough memory");
+	log_debug(LOG_NOTICE, "Cannot annex: not enough memory");
 	break;
     default:
 	break;
@@ -309,16 +309,16 @@ check_delta_status(item_delta_result_t ret)
 {
     switch(ret) {
     case DELTA_NOT_FOUND:
-	log_stderr("Cannot perform delta operation: no item with that key found.");
+	log_debug(LOG_NOTICE, "Cannot perform delta operation: no item with that key found.");
 	break;
     case DELTA_NON_NUMERIC:
-	log_stderr("Cannot perform delta operation: value is not numeric.");
+	log_debug(LOG_NOTICE, "Cannot perform delta operation: value is not numeric.");
 	break;
     case DELTA_EOM:
-	log_stderr("Cannot perform delta operation: not enough memory.");
+	log_debug(LOG_NOTICE, "Cannot perform delta operation: not enough memory.");
 	break;
     case DELTA_CHAINED:
-	log_stderr("Cannot perform delta operation: target is chained.");
+	log_debug(LOG_NOTICE, "Cannot perform delta operation: target is chained.");
 	break;
     default:
 	break;

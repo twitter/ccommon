@@ -70,7 +70,7 @@ zmap_init(void *primary_key, uint8_t nkey)
     struct zmap header;
     header.len = 0;
 
-    log_stderr("zmap header size: %d zmap entry header size: %d",
+    log_debug(LOG_VERB, "zmap header size: %d zmap entry header size: %d",
 	       ZMAP_HDR_SIZE, ZMAP_ENTRY_HDR_SIZE);
 
     store_key(primary_key, nkey, &header, ZMAP_HDR_SIZE);
@@ -392,7 +392,7 @@ zmap_get_all(void *pkey, uint8_t npkey)
     ret.key_val_pairs = cc_alloc(zmap->len * sizeof(struct key_val_pair));
     if(ret.key_val_pairs == NULL) {
 	/* Could not allocate enough memory */
-	log_stderr("Could not allocate enough memory to get all pairs!");
+	log_debug(LOG_WARN, "Could not allocate enough memory to get all pairs!");
 	ret.len = -1;
 	item_remove(it);
 	return ret;
@@ -434,7 +434,7 @@ zmap_get_keys(void *pkey, uint8_t npkey)
     ret.bufs = cc_alloc(zmap->len * sizeof(struct buf));
     if(ret.bufs == NULL) {
 	/* Could not allocate enough memory */
-	log_stderr("Could not allocate enough memory to get all keys!");
+	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
 	ret.len = -1;
 	item_remove(it);
 	return ret;
@@ -474,7 +474,7 @@ zmap_get_vals(void *pkey, uint8_t npkey)
     ret.bufs = cc_alloc(zmap->len * sizeof(struct buf));
     if(ret.bufs == NULL) {
 	/* Could not allocate enough memory */
-	log_stderr("Could not allocate enough memory to get all keys!");
+	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
 	ret.len = -1;
 	item_remove(it);
 	return ret;
@@ -512,7 +512,7 @@ zmap_get_multiple(void *pkey, uint8_t npkey, zmap_buffer_vector_t *keys)
     ret.bufs = cc_alloc(keys->len *sizeof(struct buf));
     if(ret.bufs == NULL) {
 	/* Could not allocate enough memory */
-	log_stderr("Could not allocate enough memory to get all vals!");
+	log_debug(LOG_WARN, "Could not allocate enough memory to get all vals!");
 	ret.len = -1;
 	item_remove(it);
 	return ret;
@@ -672,7 +672,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
     new_item_buffer = cc_alloc(entry_size);
     if(new_item_buffer == NULL) {
 	/* Item cannot be added because not enough memory */
-	log_stderr("Cannot add item; not enough memory!");
+	log_debug(LOG_WARN, "Cannot add item; not enough memory!");
 	return;
     }
 
@@ -723,16 +723,16 @@ zmap_item_hexdump(struct item *it)
     uint32_t i;
 
     for(i = 1; it != NULL; ++i, it = it->next_node) {
-	log_stderr("node %u addr %p", i, it);
-	loga_hexdump(it, 400, "");
-	loga_hexdump((char *)it + 400, 400, "");
-	loga_hexdump((char *)it + 800, 400, "");
+	log_debug(LOG_DEBUG, "node %u addr %p", i, it);
+	log_hexdump(LOG_DEBUG, it, 400, "");
+	log_hexdump(LOG_DEBUG, (char *)it + 400, 400, "");
+	log_hexdump(LOG_DEBUG, (char *)it + 800, 400, "");
     }
 #else
-    log_stderr("addr %p", it);
-    loga_hexdump(it, 400, "");
-    loga_hexdump((char *)it + 400, 400, "");
-    loga_hexdump((char *)it + 800, 400, "");
+    log_debug(LOG_DEBUG, "addr %p", it);
+    log_hexdump(LOG_DEBUG, it, 400, "");
+    log_hexdump(LOG_DEBUG, (char *)it + 400, 400, "");
+    log_hexdump(LOG_DEBUG, (char *)it + 800, 400, "");
 #endif
 }
 

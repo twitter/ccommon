@@ -1,3 +1,24 @@
+bin_PROGRAMS = membenchmark
+
+membenchmark_SOURCES =							\
+	cc_debug.c cc_debug.h						\
+	cc_log.c cc_log.h						\
+	cc_mm.c cc_mm.h							\
+	cc_queue.h							\
+	cc_string.c cc_string.h						\
+	cc_define.h							\
+	hash/cc_hash.c hash/cc_hash.h					\
+	hash/cc_hash_table.c hash/cc_hash_table.h			\
+	mem/cc_mem_interface.c mem/cc_mem_interface.h			\
+	mem/cc_items.c mem/cc_items.h					\
+	mem/cc_settings.c mem/cc_settings.h				\
+	mem/cc_slabs.c mem/cc_slabs.h					\
+	mem/cc_time.c mem/cc_time.h					\
+	mem/cc_zipmap.c mem/cc_zipmap.h					\
+	mem/cc_membench.c
+
+membenchmark_CFLAGS = $(AM_CFLAGS)
+
 lib_LTLIBRARIES = libccommon-@CCOMMON_RELEASE_VERSION@.la
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_LDFLAGS = -version-info $(CCOMMON_SO_VERSION)
@@ -13,7 +34,6 @@ AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
 AM_CFLAGS += -fstrict-aliasing -flat_namespace
 
 AM_LDFLAGS = -rdynamic -Wl -flat_namespace
-
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_array.c							\
@@ -53,7 +73,6 @@ ccommon_include_HEADERS =						\
 	mem/cc_mem_globals.h						\
 	mem/cc_mem_interface.h						\
 	mem/cc_items.h							\
-	mem/cc_queue.h							\
 	mem/cc_settings.h						\
 	mem/cc_slabs.h							\
 	mem/cc_time.h                                                   \

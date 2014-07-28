@@ -66,11 +66,11 @@ time_update(void)
 
     status = gettimeofday(&timer, NULL);
     if (status < 0) {
-	log_stderr("gettimeofday failed!");
+	log_debug(LOG_WARN, "gettimeofday failed!");
     }
     now = (rel_time_t) (timer.tv_sec - process_started);
 
-    log_stderr("time updated to %u\n", now);
+    log_debug(LOG_VERB, "time updated to %u\n", now);
 }
 
 rel_time_t
@@ -128,5 +128,5 @@ time_init(void)
      */
     process_started = time(NULL) - 2;
 
-    log_stderr("process started at %llu", (int64_t)process_started);
+    log_debug(LOG_VERB, "process started at %llu", (int64_t)process_started);
 }

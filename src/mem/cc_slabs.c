@@ -87,7 +87,7 @@ slab_print(void)
     uint8_t id;
     struct slabclass *p;
 
-    log_stderr("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
+    loga("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
 	   "total memory: %zu\n", settings.slab_size, SLAB_HDR_SIZE,
 	   ITEM_HDR_SIZE, settings.maxbytes);
 
@@ -95,7 +95,7 @@ slab_print(void)
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
         p = &slabclass[id];
 
-	log_stderr("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n",
+	loga("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n",
 	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE,
 	       slab_size() - p->nitem * p->size);
     }
@@ -104,12 +104,12 @@ slab_print(void)
 void
 slab_acquire_refcount(struct slab *slab)
 {
-    log_stderr("acquiring refcount on slab with id %hhu refcount %hu",
+    log_debug(LOG_DEBUG, "acquiring refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
-    log_stderr("refcount now %hu", slab->refcount);
+    log_debug(LOG_DEBUG, "refcount now %hu", slab->refcount);
     if(slab->refcount > 100) {
 	exit(1);
     }
@@ -118,13 +118,13 @@ slab_acquire_refcount(struct slab *slab)
 void
 slab_release_refcount(struct slab *slab)
 {
-    log_stderr("releasing refcount on slab with id %hhu refcount %hu",
+    log_debug(LOG_DEBUG, "releasing refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     ASSERT(slab->refcount > 0);
     slab->refcount--;
-    log_stderr("refcount now %hu", slab->refcount);
+    log_debug(LOG_DEBUG, "refcount now %hu", slab->refcount);
 }
 
 size_t
@@ -227,7 +227,7 @@ slab_lruq_touch(struct slab *slab, bool allocated)
         return;
     }
 
-    log_stderr("update slab with id %hhu in the slab lruq", slab->id);
+    log_debug(LOG_VERB, "update slab with id %hhu in the slab lruq", slab->id);
 
     /*pthread_mutex_lock(&slab_lock);*/
     _slab_unlink_lruq(slab);
@@ -313,25 +313,25 @@ slab_heapinfo_init(void)
     if (settings.prealloc) {
         heapinfo.base = cc_alloc(heapinfo.max_nslab * settings.slab_size);
         if (heapinfo.base == NULL) {
-	    log_stderr("pre-alloc %zu bytes for %u slabs failed",
+	    log_debug(LOG_ERR, "pre-alloc %zu bytes for %u slabs failed",
 		    heapinfo.max_nslab * settings.slab_size, heapinfo.max_nslab);
             return CC_ENOMEM;
         }
 
-	log_stderr("pre-allocated %zu bytes for %u slabs",
+	log_debug(LOG_VERB, "pre-allocated %zu bytes for %u slabs",
 		settings.maxbytes, heapinfo.max_nslab);
     }
     heapinfo.curr = heapinfo.base;
 
     heapinfo.slab_table = cc_alloc(sizeof(*heapinfo.slab_table) * heapinfo.max_nslab);
     if (heapinfo.slab_table == NULL) {
-	log_stderr("creation of slab table with %u entries failed",
+	log_debug(LOG_ERR, "creation of slab table with %u entries failed",
 		heapinfo.max_nslab);
         return CC_ENOMEM;
     }
     TAILQ_INIT(&heapinfo.slab_lruq);
 
-    log_stderr("created slab table with %u entries", heapinfo.max_nslab);
+    log_debug(LOG_VERB, "created slab table with %u entries", heapinfo.max_nslab);
 
     return CC_OK;
 }
@@ -387,7 +387,7 @@ slab_table_update(struct slab *slab)
     heapinfo.slab_table[heapinfo.nslab] = slab;
     heapinfo.nslab++;
 
-    log_stderr("new slab allocated at position %u", heapinfo.nslab - 1);
+    log_debug(LOG_VERB, "new slab allocated at position %u", heapinfo.nslab - 1);
 }
 
 /* Get random slab from slab table */
@@ -411,7 +411,7 @@ slab_lruq_head()
 static void
 slab_lruq_append(struct slab *slab)
 {
-    log_stderr("append slab with id %hhu to lruq", slab->id);
+    log_debug(LOG_VERB, "append slab with id %hhu to lruq", slab->id);
     TAILQ_INSERT_TAIL(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -419,7 +419,7 @@ slab_lruq_append(struct slab *slab)
 static void
 slab_lruq_remove(struct slab *slab)
 {
-    log_stderr("remove slab with id %hhu from lruq", slab->id);
+    log_debug(LOG_VERB, "remove slab with id %hhu from lruq", slab->id);
     TAILQ_REMOVE(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -475,8 +475,6 @@ slab_evict_one(struct slab *slab)
     struct item *it;
     uint32_t i;
 
-    log_stderr("@@@ slab_evict_one called");
-
     p = &slabclass[slab->id];
 
     ASSERT(slab->refcount == 0);
@@ -516,8 +514,6 @@ slab_evict_one(struct slab *slab)
 
     /* unlink the slab from its class */
     slab_lruq_remove(slab);
-
-    log_stderr("@@@ slab_evict_one finishing");
 }
 
 /*
@@ -545,7 +541,7 @@ slab_evict_rand(void)
         return NULL;
     }
 
-    log_stderr("random-evicting slab with id %hhu", slab->id);
+    log_debug(LOG_VERB, "random-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 
@@ -574,7 +570,7 @@ slab_evict_lru(int id)
         return NULL;
     }
 
-    log_stderr("lru-evicting slab with id %hhu", slab->id);
+    log_debug(LOG_VERB, "lru-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 
@@ -675,7 +671,7 @@ slab_get_item_from_freeq(uint8_t id)
     p->nfree_itemq--;
     TAILQ_REMOVE(&p->free_itemq, it, i_tqe);
 
-    log_stderr("get free q item with key %s at offset %u with id %hhu",
+    log_debug(LOG_VERB, "get free q item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
 
     return it;
@@ -742,7 +738,7 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(it->refcount == 0);
     ASSERT(it->offset != 0);
 
-    log_stderr("put free queue item with key %s at offset %u with id %hhu",
+    log_debug(LOG_VERB, "put free queue item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
 
     it->flags |= ITEM_SLABBED;
