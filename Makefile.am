@@ -6,4 +6,4 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = ccommon-$(CCOMMON_RELEASE_VERSION).pc
 
-SUBDIRS = src . test
+SUBDIRS = src . benchmark . test

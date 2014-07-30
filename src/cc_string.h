@@ -58,6 +58,7 @@ int string_compare(const struct string *s1, const struct string *s2);
  * cc_memcpy
  * cc_memmove
  * cc_memchr
+ * cc_memset
  *
  * cc_strlen
  * cc_strncmp
@@ -81,6 +82,9 @@ int string_compare(const struct string *s1, const struct string *s2);
 
 #define cc_memchr(_d, _c, _n)                                   \
     memchr(_d, _c, (size_t)(_n))
+
+#define cc_memset(_p, _v, _n)                                   \
+    memset(_p, _v, (size_t)(_n))
 
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))

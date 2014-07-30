@@ -177,6 +177,7 @@ AC_C_BIGENDIAN(
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  test/Makefile
+		 benchmark/Makefile
                  ccommon-${CCOMMON_RELEASE_VERSION}.pc:ccommon.pc.in])
 
 # Generate the "configure" script

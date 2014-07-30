@@ -495,7 +495,7 @@ slab_evict_one(struct slab *slab)
 
 	/* If it is in hash, reuse it. Otherwise, take it off the free queue */
 #if defined CC_CHAINED && CC_CHAINED == 1
-        if(item_is_linked(it->head)) {
+        if(it->head != NULL && item_is_linked(it->head)) {
 #else
         if(item_is_linked(it)) {
 #endif
