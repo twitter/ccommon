@@ -18,24 +18,55 @@
 #define MB (1024 * (KB))
 #define ORWL_NANO (+1.0E-9)
 #define ORWL_GIGA UINT64_C(1000000000)
+#define FILL_DEFAULT_NVAL (1000 * (KB))
+#define FILL_DEFAULT_NUM 2048
 
+void init_benchmark(void);
 void init_settings(void);
 struct timespec orwl_gettime(void);
-void fill_cache(void);
+void fill_cache_default(void);
+void fill_cache(uint32_t nval, uint32_t num);
+void fill_cache_numeric(void);
 void empty_cache(void);
 void flush_cache(void);
 void set_benchmark(void);
-void get_set_benchmark(uint32_t nval, uint32_t sample_size, bool full_cache, bool chained);
-void get_ref_benchmark(uint32_t sample_size);
-void remove_benchmark(uint32_t sample_size);
-void add_benchmark(uint32_t sample_size);
-void replace_benchmark(uint32_t sample_size);
+void add_benchmark(void);
+void replace_benchmark(void);
+void append_benchmark(void);
+void prepend_benchmark(void);
+void delta_benchmark(void);
+void get_benchmark(void);
+void remove_benchmark(void);
+void get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval, uint32_t sample_size, bool full_cache, bool existing_key);
+void get_delta_benchmark(void (*fn)(void *, uint8_t, uint64_t), uint64_t delta, uint32_t sample_size);
+void get_getref_benchmark(uint32_t nval, uint32_t sample_size);
+void get_getval_benchmark(uint32_t nval, uint32_t sample_size);
+void get_remove_benchmark(uint32_t nval, uint32_t sample_size);
 void print_times(uint32_t *times, uint32_t ntimes);
 int compare_int(const void *a, const void *b);
 void get_time_stats(uint32_t *times, uint32_t ntimes);
 
+uint16_t nbenchmark = 0;
+
 int
 main()
+{
+    init_benchmark();
+
+    set_benchmark();
+    add_benchmark();
+    replace_benchmark();
+    append_benchmark();
+    prepend_benchmark();
+    delta_benchmark();
+    get_benchmark();
+    remove_benchmark();
+
+    return 0;
+}
+
+void
+init_benchmark(void)
 {
     rstatus_t return_status;
 
@@ -44,27 +75,27 @@ main()
 
     if(log_init(LOG_WARN, "out.txt") == -1) {
 	log_stderr("fatal: log_init failed!");
-	return 1;
+	exit(1);
     }
 
     return_status = item_init(20);
     if(return_status != CC_OK) {
 	log_stderr("fatal: item_init failed!");
-	return 1;
+	exit(1);
     }
 
     return_status = slab_init();
     if(return_status != CC_OK) {
 	log_stderr("fatal: slab_init failed!");
-	return 1;
+	exit(1);
     }
 
-    set_benchmark();
-
-    return 0;
+    flush_cache();
 }
 
-void init_settings(void) {
+void
+init_settings(void)
+{
     settings.prealloc = true;
     settings.evict_lru = true;
     settings.use_freeq = true;
@@ -112,28 +143,49 @@ orwl_gettime(void)
 
 /* Fills the cache with items */
 void
-fill_cache(void)
+fill_cache_default(void)
+{
+    fill_cache(FILL_DEFAULT_NVAL, FILL_DEFAULT_NUM);
+}
+
+/* Fills cache with items with specified parameters */
+void
+fill_cache(uint32_t nval, uint32_t num)
 {
     uint32_t i;
     uint8_t nkey;
     char key[20];
     char *val;
 
-    val = cc_alloc(KB * 1000);
+    val = cc_alloc(nval);
 
     if(val == NULL) {
 	log_stderr("fatal: not enough memory to perform benchmark");
 	exit(1);
     }
 
-    cc_memset(val, 0xff, KB * 1000);
+    cc_memset(val, 0xff, nval);
 
-    for(i = 0; i < 2048; ++i) {
-	nkey = sprintf(key, "fill%u", i);
-	store_key(key, nkey, val, KB * 1000);
+    for(i = 0; i < num; ++i) {
+	nkey = sprintf(key, "%u", i);
+	store_key(key, nkey, val, nval);
     }
 
-    free(val);
+    cc_free(val);
+}
+
+/* Fills cache (not completely full) with numeric items */
+void
+fill_cache_numeric(void)
+{
+    uint32_t i;
+    uint8_t nkey;
+    char key[20];
+
+    for(i = 0; i < 1000000; ++i) {
+	nkey = sprintf(key, "%u", i);
+	store_key(key, nkey, key, nkey);
+    }
 }
 
 /* Empties cache filled via fill_cache */
@@ -152,7 +204,7 @@ empty_cache(void)
 
 void flush_cache(void)
 {
-    fill_cache();
+    fill_cache_default();
     empty_cache();
 }
 
@@ -160,22 +212,141 @@ void
 set_benchmark(void)
 {
     printf("-------------------- Set Benchmarks --------------------\n");
-    printf("Benchmark 1: Setting 4 byte values in empty cache\n");
-    get_set_benchmark(4, 10000, false, false);
-    printf("Benchmark 2: Setting 1 KB values in empty cache\n");
-    get_set_benchmark(KB, 5000, false, false);
-    printf("Benchmark 3: Setting 1 MB values in empty cache\n");
-    get_set_benchmark(MB, 2000, false, false);
+    printf("Benchmark %hu: Setting 4 byte values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, 4, 10000, false, false);
+    printf("Benchmark %hu: Setting 1 KB values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, KB, 5000, false, false);
+    printf("Benchmark %hu: Setting 1000 KB values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, 1000 * KB, 2000, false, false);
+    printf("Benchmark %hu: Setting 2 MB values (chained) in empty cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&store_key, 2 * MB, 1000, false, false);
+    printf("Benchmark %hu: Setting 4 byte values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, 4, 10000, true, false);
+    printf("Benchmark %hu: Setting 1 KB values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, KB, 5000, true, false);
+    printf("Benchmark %hu: Setting 1000 KB values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&store_key, 1000 * KB, 2000, true, false);
+    printf("Benchmark %hu: Setting 2 MB values (chained) in empty cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&store_key, 2 * MB, 1000, true, false);
 }
 
 void
-get_set_benchmark(uint32_t nval, uint32_t sample_size, bool full_cache, bool chained)
+add_benchmark(void)
+{
+    printf("-------------------- Add Benchmarks --------------------\n");
+    printf("Benchmark %hu: Setting 4 byte values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, 4, 10000, false, false);
+    printf("Benchmark %hu: Setting 1 KB values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, KB, 5000, false, false);
+    printf("Benchmark %hu: Setting 1000 KB values in empty cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, 1000 * KB, 2000, false, false);
+    printf("Benchmark %hu: Setting 2 MB values (chained) in empty cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&add_key, 2 * MB, 1000, false, false);
+    printf("Benchmark %hu: Setting 4 byte values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, 4, 10000, true, false);
+    printf("Benchmark %hu: Setting 1 KB values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, 1000 * KB, 5000, true, false);
+    printf("Benchmark %hu: Setting 1000 KB values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&add_key, MB, 2000, true, false);
+    printf("Benchmark %hu: Setting 2 MB values (chained) in full cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&add_key, 2 * MB, 1000, true, false);
+}
+
+void
+replace_benchmark(void)
+{
+    printf("-------------------- Replace Benchmarks --------------------\n");
+    printf("Benchmark %hu: Replacing to 4 byte values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&replace_key, 4, 10000, true, true);
+    printf("Benchmark %hu: Replacing to 1 KB values in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&replace_key, KB, 5000, true, true);
+    printf("Benchmark %hu: Replacing to 1000 KB values in full cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&replace_key, 1000 * KB, 2000, true, true);
+    printf("Benchmark %hu: Replacing to 2 MB values (chained) in full cache\n",
+	   ++nbenchmark);
+    get_type1_benchmark(&replace_key, 2 * MB, 1000, true, true);
+}
+
+void
+append_benchmark(void)
+{
+    printf("-------------------- Append Benchmarks --------------------\n");
+    printf("Benchmark %hu: Appending 4 bytes in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&append_val, 4, 10000, true, true);
+    printf("Benchmark %hu: Appending 1 KB in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&append_val, KB, 5000, true, true);
+    printf("Benchmark %hu: Appending 1000 KB in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&append_val, 1000 * KB, 2000, true, true);
+}
+
+void
+prepend_benchmark(void)
+{
+    printf("-------------------- Prepend Benchmarks --------------------\n");
+    printf("Benchmark %hu: Prepending 4 bytes in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&prepend_val, 4, 10000, true, true);
+    printf("Benchmark %hu: Prepending 1 KB in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&prepend_val, KB, 5000, true, true);
+    printf("Benchmark %hu: Prepending 1000 KB in full cache\n", ++nbenchmark);
+    get_type1_benchmark(&prepend_val, 1000 * KB, 2000, true, true);
+}
+
+void
+delta_benchmark(void)
+{
+    printf("-------------------- Delta Benchmarks --------------------\n");
+    printf("Benchmark %hu: Incrementing\n", ++nbenchmark);
+    get_delta_benchmark(&increment_val, 1, 10000);
+    printf("Benchmark %hu: Decrementing\n", ++nbenchmark);
+    get_delta_benchmark(&decrement_val, 1, 10000);
+}
+
+void
+get_benchmark(void)
+{
+    printf("-------------------- Get Benchmarks --------------------\n");
+    printf("Benchmark %hu: Get by reference - 4 byte values\n", ++nbenchmark);
+    get_getref_benchmark(4, 10000);
+    printf("Benchmark %hu: Get by reference - 1 KB values\n", ++nbenchmark);
+    get_getref_benchmark(KB, 5000);
+    printf("Benchmark %hu: Get by reference - 1000 KB values\n", ++nbenchmark);
+    get_getref_benchmark(1000 * KB, 2000);
+    printf("Benchmark %hu: Get by reference - 2 MB values (chained)\n", ++nbenchmark);
+    get_getref_benchmark(2 * MB, 1000);
+    printf("Benchmark %hu: Get by value - 4 byte values\n", ++nbenchmark);
+    get_getval_benchmark(4, 10000);
+    printf("Benchmark %hu: Get by value - 1 KB values\n", ++nbenchmark);
+    get_getval_benchmark(KB, 5000);
+    printf("Benchmark %hu: Get by value - 1000 KB values\n", ++nbenchmark);
+    get_getval_benchmark(1000 * KB, 2000);
+    printf("Benchmark %hu: get by value - 2 MB values (chained)\n", ++nbenchmark);
+    get_getval_benchmark(2 * MB, 1000);
+}
+
+void
+remove_benchmark(void)
+{
+    printf("-------------------- Remove Benchmarks --------------------\n");
+    printf("Benchmark %hu: Removing 4 byte values\n", ++nbenchmark);
+    get_remove_benchmark(4, 10000);
+    printf("Benchmark %hu: Removing 1 KB values\n", ++nbenchmark);
+    get_remove_benchmark(KB, 5000);
+    printf("Benchmark %hu: Removing 1000 KB values\n", ++nbenchmark);
+    get_remove_benchmark(1000 * KB, 2000);
+    printf("Benchmark %hu: Removing 2 MB values\n", ++nbenchmark);
+    get_remove_benchmark(2 * MB, 1000);
+}
+
+void
+get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval, uint32_t sample_size, bool full_cache, bool existing_key)
 {
     uint32_t i;
     uint32_t *times;
-    struct timespec before, after;
-    uint8_t nkey;
-    char key[20];
     char *val;
 
     times = cc_alloc(sample_size * sizeof(uint32_t));
@@ -189,18 +360,22 @@ get_set_benchmark(uint32_t nval, uint32_t sample_size, bool full_cache, bool cha
     cc_memset(val, 0xff, nval);
 
     if(full_cache) {
-	if(chained) {
-	    /* fill cache with chained items */
-	} else {
-	    fill_cache();
-	}
+	fill_cache_default();
     }
 
     for(i = 0; i < sample_size; ++i) {
-	nkey = sprintf(key, "%d", i);
+	struct timespec before, after;
+	char key[20];
+	uint8_t nkey;
+
+	if(existing_key) {
+	    nkey = sprintf(key, "%d", i);
+	} else {
+	    nkey = sprintf(key, "k%d", i);
+	}
 
 	before = orwl_gettime();
-	store_key(key, nkey, val, nval);
+	fn(key, nkey, val, nval);
 	after = orwl_gettime();
 
 	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
@@ -215,142 +390,148 @@ get_set_benchmark(uint32_t nval, uint32_t sample_size, bool full_cache, bool cha
 }
 
 void
-get_ref_benchmark(uint32_t sample_size)
+get_delta_benchmark(void (*fn)(void *, uint8_t, uint64_t), uint64_t delta, uint32_t sample_size)
 {
     uint32_t i;
     uint32_t *times;
-    struct timespec before, after;
-    uint8_t nkey;
-    char key[20];
-
-    printf("getting get_ref benchmarks\n");
 
     times = cc_alloc(sample_size * sizeof(uint32_t));
 
     if(times == NULL) {
-	log_stderr("cannot benchmark; not enough memory");
+	log_stderr("fatal: not enough memory to perform benchmark");
 	exit(1);
     }
 
-    for(i = 0; i < sample_size + 1000; ++i) {
-	struct iovec vector;
-	nkey = sprintf(key, "key%d", i);
+    fill_cache_numeric();
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char key[20];
+	uint8_t nkey;
+	nkey = sprintf(key, "%d", i);
 
 	before = orwl_gettime();
-	get_val_ref(key, nkey, &vector);
+	fn(key, nkey, delta);
 	after = orwl_gettime();
 
-	if(i >= 1000) {
-	    times[i - 1000] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
-	}
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
     }
 
     get_time_stats(times, sample_size);
+
+    flush_cache();
 
     cc_free(times);
 }
 
 void
-remove_benchmark(uint32_t sample_size)
+get_getref_benchmark(uint32_t nval, uint32_t sample_size)
 {
     uint32_t i;
     uint32_t *times;
-    struct timespec before, after;
-    uint8_t nkey;
-    char key[20];
-
-    printf("getting remove benchmarks\n");
 
     times = cc_alloc(sample_size * sizeof(uint32_t));
 
     if(times == NULL) {
-	log_stderr("cannot benchmark; not enough memory");
+	log_stderr("fatal: not enough memory to perform benchmark");
 	exit(1);
     }
 
-    for(i = 0; i < sample_size + 1000; ++i) {
-	nkey = sprintf(key, "key%d", i);
+    fill_cache(nval, sample_size);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	struct iovec vector[20];
+	char key[20];
+	uint8_t nkey;
+
+	nkey = sprintf(key, "%d", i);
+
+	before = orwl_gettime();
+	get_val_ref(key, nkey, vector);
+	after = orwl_gettime();
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
+
+    flush_cache();
+
+    cc_free(times);
+}
+
+void
+get_getval_benchmark(uint32_t nval, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+    void *buf;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+    buf = cc_alloc(nval);
+
+    if(times == NULL || buf == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    fill_cache(nval, sample_size);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char key[20];
+	uint8_t nkey;
+
+	nkey = sprintf(key, "%d", i);
+
+	before = orwl_gettime();
+	get_val(key, nkey, buf, nval, 0);
+	after = orwl_gettime();
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
+
+    flush_cache();
+
+    cc_free(buf);
+    cc_free(times);
+}
+
+void
+get_remove_benchmark(uint32_t nval, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+
+    if(times == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    fill_cache(nval, sample_size);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char key[20];
+	uint8_t nkey;
+
+	nkey = sprintf(key, "%d", i);
 
 	before = orwl_gettime();
 	remove_key(key, nkey);
 	after = orwl_gettime();
 
-	if(i >= 1000) {
-	    times[i - 1000] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
-	}
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
     }
 
     get_time_stats(times, sample_size);
 
-    cc_free(times);
-}
-
-void
-add_benchmark(uint32_t sample_size)
-{
-    uint32_t i;
-    uint32_t *times;
-    struct timespec before, after;
-    uint8_t nkey;
-    char key[20];
-
-    printf("getting add benchmarks\n");
-
-    times = cc_alloc(sample_size * sizeof(uint32_t));
-
-    if(times == NULL) {
-	log_stderr("cannot benchmark; not enough memory");
-	exit(1);
-    }
-
-    for(i = 0; i < sample_size + 1000; ++i) {
-	nkey = sprintf(key, "key%d", i);
-
-	before = orwl_gettime();
-	add_key(key, nkey, "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", 100);
-	after = orwl_gettime();
-
-	if(i >= 1000) {
-	    times[i - 1000] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
-	}
-    }
-
-    get_time_stats(times, sample_size);
-
-    cc_free(times);
-}
-
-void
-replace_benchmark(uint32_t sample_size)
-{
-    uint32_t i;
-    uint32_t *times;
-    struct timespec before, after;
-    uint8_t nkey;
-    char key[20];
-
-    printf("getting replace benchmarks\n");
-
-    times = cc_alloc(sample_size * sizeof(uint32_t));
-
-    if(times == NULL) {
-	log_stderr("cannot benchmark; not enough memory");
-	exit(1);
-    }
-
-    for(i = 0; i < sample_size + 1000; ++i) {
-	nkey = sprintf(key, "key%d", i);
-
-	before = orwl_gettime();
-	replace_key(key, nkey, "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", 100);
-	after = orwl_gettime();
-
-	if(i >= 1000) {
-	    times[i - 1000] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
-	}
-    }
-
-    get_time_stats(times, sample_size);
+    flush_cache();
 
     cc_free(times);
 }
