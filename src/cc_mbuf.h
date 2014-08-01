@@ -38,6 +38,7 @@
 #include <stddef.h>
 
 #include <cc_queue.h>
+#include <cc_string.h>
 
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */
@@ -70,17 +71,18 @@ mbuf_full(struct mbuf *mbuf)
     return mbuf->wpos == mbuf->end ? true : false;
 }
 
-void mbuf_init(size_t chunk_size);
+void mbuf_init(uint32_t chunk_size);
 void mbuf_deinit(void);
 struct mbuf *mbuf_get(void);
 void mbuf_put(struct mbuf *mbuf);
 void mbuf_reset(struct mbuf *mbuf);
 uint32_t mbuf_rsize(struct mbuf *mbuf);
 uint32_t mbuf_wsize(struct mbuf *mbuf);
-size_t mbuf_capacity(void);
+uint32_t mbuf_capacity(void);
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
-void mbuf_copy(struct mbuf *mbuf, uint8_t *rpos, size_t n);
+void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
+void mbuf_copy_string(struct mbuf *mbuf, const struct string str);
 struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
 #endif

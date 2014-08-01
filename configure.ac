@@ -36,6 +36,7 @@ AC_LANG([C])
 # Checks for programs
 AC_PROG_CC
 AC_PROG_MAKE_SET
+AM_PROG_CC_C_O
 AM_PROG_AR
 
 # Initialize libtool
