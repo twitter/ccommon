@@ -21,11 +21,14 @@
 
 #include <cc_debug.h>
 #include <cc_define.h>
+#include <cc_log.h>
 #include <cc_mm.h>
 
 #include <cc_array.h>
 
 #define MAX_NELEM_DELTA 16
+
+#define ARRAY_MODULE_NAME "ccommon::array"
 
 static uint32_t max_nelem_delta = MAX_NELEM_DELTA;
 
@@ -34,7 +37,7 @@ static uint32_t max_nelem_delta = MAX_NELEM_DELTA;
  * returns status of execution, error if out of memory
  */
 rstatus_t
-array_data_alloc(struct array *arr, uint32_t nalloc, size_t size)
+array_data_create(struct array *arr, uint32_t nalloc, size_t size)
 {
     ASSERT(nalloc != 0 && size != 0);
 
@@ -52,10 +55,8 @@ array_data_alloc(struct array *arr, uint32_t nalloc, size_t size)
 
 /* free data buffer in array */
 void
-array_data_dealloc(struct array *arr)
+array_data_destroy(struct array *arr)
 {
-    ASSERT(arr->nelem == 0);
-
     if (arr->data != NULL) {
         cc_free(arr->data);
     }
@@ -66,7 +67,7 @@ array_data_dealloc(struct array *arr)
  * returns status of execution, error if out of memory
  */
 rstatus_t
-array_alloc(struct array **arr, uint32_t nalloc, size_t size)
+array_create(struct array **arr, uint32_t nalloc, size_t size)
 {
     rstatus_t ret;
 
@@ -77,7 +78,7 @@ array_alloc(struct array **arr, uint32_t nalloc, size_t size)
         return CC_ENOMEM;
     }
 
-    ret = array_data_alloc(*arr, nalloc, size);
+    ret = array_data_create(*arr, nalloc, size);
     if (ret != CC_OK) {
         cc_free(*arr);
         return ret;
@@ -91,9 +92,9 @@ array_alloc(struct array **arr, uint32_t nalloc, size_t size)
  * require the address of array as argument to avoid dangling pointer
  */
 void
-array_dealloc(struct array **arr)
+array_destroy(struct array **arr)
 {
-    array_data_dealloc(*arr);
+    array_data_destroy(*arr);
     cc_free(*arr);
 }
 
@@ -118,7 +119,7 @@ array_idx(struct array *arr, void *elem)
 
 /* return the idx-th element by address */
 void *
-array_get(struct array *arr, uint32_t idx)
+array_get_idx(struct array *arr, uint32_t idx)
 {
     void *elem;
 
@@ -134,7 +135,7 @@ array_get(struct array *arr, uint32_t idx)
 void *
 array_last(struct array *arr)
 {
-    return array_get(arr, arr->nelem - 1);
+    return array_get_idx(arr, arr->nelem - 1);
 }
 
 /* pop the last element */
@@ -143,7 +144,7 @@ array_pop(struct array *arr)
 {
     void *elem;
 
-    elem = array_get(arr, arr->nelem - 1);
+    elem = array_get_idx(arr, arr->nelem - 1);
     arr->nelem--;
 
     return elem;
@@ -224,7 +225,7 @@ array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
     ASSERT(func != NULL);
 
     for (i = 0, nelem = arr->nelem; i < nelem; i++) {
-        void *elem = array_get(arr, i);
+        void *elem = array_get_idx(arr, i);
         rstatus_t status;
 
         status = func(elem, arg);
@@ -238,11 +239,14 @@ array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
 }
 
 /* set the maximum number of elements allocated every time array expands */
-void array_init(uint32_t nelem)
+void array_setup(uint32_t nelem)
 {
+    log_debug(LOG_INFO, "set up the %s module", ARRAY_MODULE_NAME);
+
     max_nelem_delta = nelem;
 }
 
-void array_deinit(void)
+void array_teardown(void)
 {
+    log_debug(LOG_INFO, "tear down the %s module", ARRAY_MODULE_NAME);
 }

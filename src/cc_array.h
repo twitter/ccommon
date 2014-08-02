@@ -72,20 +72,20 @@ array_data_assign(struct array *arr, uint32_t nalloc, size_t size, void *data)
     arr->data = data;
 }
 
-rstatus_t array_data_alloc(struct array *arr, uint32_t nalloc, size_t size);
-void array_data_dealloc(struct array *arr);
+rstatus_t array_data_create(struct array *arr, uint32_t nalloc, size_t size);
+void array_data_destroy(struct array *arr);
 
-rstatus_t array_alloc(struct array **arr, uint32_t nalloc, size_t size);
-void array_dealloc(struct array **arr);
+rstatus_t array_create(struct array **arr, uint32_t nalloc, size_t size);
+void array_destroy(struct array **arr);
 
 uint32_t array_idx(struct array *arr, void *elem);
 void *array_push(struct array *arr);
-void *array_get(struct array *arr, uint32_t idx);
+void *array_get_idx(struct array *arr, uint32_t idx);
 void *array_last(struct array *arr);
 void *array_pop(struct array *arr);
 void array_sort(struct array *arr, array_compare_t compare);
 uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err);
 
-void array_init(uint32_t nelem);
-void array_deinit(void);
+void array_setup(uint32_t nelem);
+void array_teardown(void);
 #endif

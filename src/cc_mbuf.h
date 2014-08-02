@@ -40,6 +40,7 @@
 #include <cc_queue.h>
 #include <cc_string.h>
 
+/* TODO(yao): create a non-pooled/chained version of mbuf */
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */
     STAILQ_ENTRY(mbuf) next;    /* next mbuf */
@@ -71,18 +72,19 @@ mbuf_full(struct mbuf *mbuf)
     return mbuf->wpos == mbuf->end ? true : false;
 }
 
-void mbuf_init(uint32_t chunk_size);
-void mbuf_deinit(void);
+void mbuf_setup(uint32_t chunk_size);
+void mbuf_teardown(void);
 struct mbuf *mbuf_get(void);
 void mbuf_put(struct mbuf *mbuf);
 void mbuf_reset(struct mbuf *mbuf);
+void mbuf_destroy(struct mbuf *mbuf);
 uint32_t mbuf_rsize(struct mbuf *mbuf);
 uint32_t mbuf_wsize(struct mbuf *mbuf);
 uint32_t mbuf_capacity(void);
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
-void mbuf_copy_string(struct mbuf *mbuf, const struct string str);
+void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
 struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
 #endif

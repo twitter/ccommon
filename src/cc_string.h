@@ -26,30 +26,30 @@
 
 #include <cc_define.h>
 
-struct string {
+struct bstring {
     uint32_t len;   /* string length */
     uint8_t  *data; /* string data */
 };
 
-#define string(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
+#define bstring(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
 #define null_string    { 0, NULL }
 
-#define string_set_text(_str, _text) do {       \
+#define bstring_set_text(_str, _text) do {       \
     (_str)->len = (uint32_t)(sizeof(_text) - 1);\
     (_str)->data = (uint8_t *)(_text);          \
 } while (0);
 
-#define string_set_raw(_str, _raw) do {         \
+#define bstring_set_raw(_str, _raw) do {         \
     (_str)->len = (uint32_t)(cc_strlen(_raw));  \
     (_str)->data = (uint8_t *)(_raw);           \
 } while (0);
 
-void string_init(struct string *str);
-void string_deinit(struct string *str);
-bool string_empty(const struct string *str);
-rstatus_t string_duplicate(struct string *dst, const struct string *src);
-rstatus_t string_copy(struct string *dst, const uint8_t *src, uint32_t srclen);
-int string_compare(const struct string *s1, const struct string *s2);
+void bstring_init(struct bstring *str);
+void bstring_deinit(struct bstring *str);
+bool bstring_empty(const struct bstring *str);
+rstatus_t bstring_duplicate(struct bstring *dst, const struct bstring *src);
+rstatus_t bstring_copy(struct bstring *dst, const uint8_t *src, uint32_t srclen);
+int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 
 /* efficient implementation of string comparion of short strings */
 #define str3cmp(m, c0, c1, c2)                                                              \
@@ -150,6 +150,9 @@ int string_compare(const struct string *s1, const struct string *s2);
 
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))
+
+#define cc_bcmp(_s1, _s2, _n)                                   \
+    bcmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
 
 #define cc_strncmp(_s1, _s2, _n)                                \
     strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))

@@ -30,12 +30,16 @@
 
 #include <cc_log.h>
 
+#define LOG_MODULE_NAME "ccommon::log"
+
 static struct logger logger;
 
 int
-log_init(int level, char *name)
+log_setup(int level, char *name)
 {
     struct logger *l = &logger;
+
+    log_debug(LOG_INFO, "set up the %s module", LOG_MODULE_NAME);
 
     l->level = MAX(LOG_EMERG, MIN(level, LOG_PVERB));
     l->name = name;
@@ -46,6 +50,7 @@ log_init(int level, char *name)
         if (l->fd < 0) {
             log_stderr("opening log file '%s' failed: %s", name,
                        strerror(errno));
+
             return -1;
         }
     }
@@ -54,9 +59,11 @@ log_init(int level, char *name)
 }
 
 void
-log_deinit(void)
+log_teardown(void)
 {
     struct logger *l = &logger;
+
+    log_debug(LOG_INFO, "tear down the %s module", LOG_MODULE_NAME);
 
     if (l->fd != STDERR_FILENO) {
         close(l->fd);
