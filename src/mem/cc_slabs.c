@@ -24,6 +24,7 @@
 #include <cc_mm.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
  * Struct containing information regarding the slab structure on the heap
@@ -88,14 +89,14 @@ slab_print(void)
     struct slabclass *p;
 
     loga("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
-	   "total memory: %zu\n", settings.slab_size, SLAB_HDR_SIZE,
+	   "total memory: %zu\n\n", settings.slab_size, SLAB_HDR_SIZE,
 	   ITEM_HDR_SIZE, settings.maxbytes);
 
     /* Print out details for each slab class */
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
         p = &slabclass[id];
 
-	loga("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n",
+	loga("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n\n",
 	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE,
 	       slab_size() - p->nitem * p->size);
     }
@@ -110,9 +111,6 @@ slab_acquire_refcount(struct slab *slab)
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
     log_debug(LOG_DEBUG, "refcount now %hu", slab->refcount);
-    if(slab->refcount > 100) {
-	exit(1);
-    }
 }
 
 void

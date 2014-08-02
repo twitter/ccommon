@@ -29,6 +29,9 @@ void fill_cache(uint32_t nval, uint32_t num);
 void fill_cache_numeric(void);
 void empty_cache(void);
 void flush_cache(void);
+void fill_zipmap(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num);
+void empty_zipmap(void *pkey, uint8_t npkey);
+
 void set_benchmark(void);
 void add_benchmark(void);
 void replace_benchmark(void);
@@ -37,11 +40,24 @@ void prepend_benchmark(void);
 void delta_benchmark(void);
 void get_benchmark(void);
 void remove_benchmark(void);
+void zmap_get_benchmark(void);
+
+void zmap_benchmark(void);
+void zmap_set_benchmark(void);
+void zmap_add_benchmark(void);
+void zmap_replace_benchmark(void);
+void zmap_delete_benchmark(void);
+
 void get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval, uint32_t sample_size, bool full_cache, bool existing_key);
+void get_type2_benchmark(int (*fn)(void *, uint8_t, void *, uint8_t, void*, uint32_t), void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size, bool existing_key);
 void get_delta_benchmark(void (*fn)(void *, uint8_t, uint64_t), uint64_t delta, uint32_t sample_size);
 void get_getref_benchmark(uint32_t nval, uint32_t sample_size);
 void get_getval_benchmark(uint32_t nval, uint32_t sample_size);
 void get_remove_benchmark(uint32_t nval, uint32_t sample_size);
+void get_zipmap_replace_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t new_nval, uint32_t sample_size);
+void get_zipmap_delete_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size);
+void get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size);
+
 void print_times(uint32_t *times, uint32_t ntimes);
 int compare_int(const void *a, const void *b);
 void get_time_stats(uint32_t *times, uint32_t ntimes);
@@ -61,6 +77,7 @@ main()
     delta_benchmark();
     get_benchmark();
     remove_benchmark();
+    zmap_benchmark();
 
     return 0;
 }
@@ -197,7 +214,7 @@ empty_cache(void)
     char key[20];
 
     for(i = 0; i < 2048; ++i) {
-	nkey = sprintf(key, "fill%u", i);
+	nkey = sprintf(key, "%u", i);
 	remove_key(key, nkey);
     }
 }
@@ -206,6 +223,53 @@ void flush_cache(void)
 {
     fill_cache_default();
     empty_cache();
+}
+
+/* Fills zipmap with num entries with nval entry value size */
+void
+fill_zipmap(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num)
+{
+    uint32_t i;
+    uint8_t nskey;
+    char skey[20];
+    char *val;
+
+    val = cc_alloc(nval);
+
+    if(val == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark!");
+	exit(1);
+    }
+
+    cc_memset(val, 0xff, nval);
+
+    for(i = 0; i < num; ++i) {
+	nskey = sprintf(skey, "%u", i);
+	zmap_set(pkey, npkey, skey, nskey, val, nval);
+    }
+
+    cc_free(val);
+}
+
+/* empties the zipmap with the given key. */
+void
+empty_zipmap(void *pkey, uint8_t npkey)
+{
+    void *pkey_cpy;
+
+    pkey_cpy = cc_alloc(npkey);
+
+    if(pkey_cpy == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark!");
+	exit(1);
+    }
+
+    cc_memcpy(pkey_cpy, pkey, npkey);
+
+    remove_key(pkey, npkey);
+    zmap_init(pkey_cpy, npkey);
+
+    cc_free(pkey_cpy);
 }
 
 void
@@ -316,7 +380,8 @@ get_benchmark(void)
     get_getref_benchmark(KB, 5000);
     printf("Benchmark %hu: Get by reference - 1000 KB values\n", ++nbenchmark);
     get_getref_benchmark(1000 * KB, 2000);
-    printf("Benchmark %hu: Get by reference - 2 MB values (chained)\n", ++nbenchmark);
+    printf("Benchmark %hu: Get by reference - 2 MB values (chained)\n",
+	   ++nbenchmark);
     get_getref_benchmark(2 * MB, 1000);
     printf("Benchmark %hu: Get by value - 4 byte values\n", ++nbenchmark);
     get_getval_benchmark(4, 10000);
@@ -340,6 +405,155 @@ remove_benchmark(void)
     get_remove_benchmark(1000 * KB, 2000);
     printf("Benchmark %hu: Removing 2 MB values\n", ++nbenchmark);
     get_remove_benchmark(2 * MB, 1000);
+}
+
+void
+zmap_benchmark(void)
+{
+    zmap_init("zmap", 4);
+    zmap_set_benchmark();
+    zmap_add_benchmark();
+    zmap_replace_benchmark();
+    zmap_delete_benchmark();
+    zmap_get_benchmark();
+}
+
+void
+zmap_set_benchmark(void)
+{
+    printf("-------------------- Zimap Set Benchmarks --------------------\n");
+    printf("Benchmark %hu: Setting 4 byte value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 4, 0, 10000, false);
+    printf("Benchmark %hu: Setting 1 KB value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, KB, 0, 5000, false);
+    printf("Benchmark %hu: Setting 100 KB value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 100 * KB, 0, 3000, false);
+    printf("Benchmark %hu: Setting 4 byte value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 4, 100, 5000, false);
+    printf("Benchmark %hu: Setting 1 KB value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, KB, 100, 2500, false);
+    printf("Benchmark %hu: Setting 100 KB value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 100 * KB, 100, 1000, false);
+    printf("Benchmark %hu: Setting 4 byte value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 4, 1000, 5000, false);
+    printf("Benchmark %hu: Setting 1 KB value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, KB, 1000, 2500, false);
+    printf("Benchmark %hu: Setting 100 KB value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_set, "zmap", 4, 100 * KB, 1000, 1000, false);
+}
+
+void
+zmap_add_benchmark(void)
+{
+    printf("-------------------- Zimap Add Benchmarks --------------------\n");
+    printf("Benchmark %hu: Adding 4 byte value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 4, 0, 10000, false);
+    printf("Benchmark %hu: Adding 1 KB value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, KB, 0, 5000, false);
+    printf("Benchmark %hu: Adding 100 KB value to empty zipmap\n", ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 100 * KB, 0, 3000, false);
+    printf("Benchmark %hu: Adding 4 byte value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 4, 100, 5000, false);
+    printf("Benchmark %hu: Adding 1 KB value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, KB, 100, 2500, false);
+    printf("Benchmark %hu: Adding 100 KB value to zipmap with 100 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 100 * KB, 100, 1000, false);
+    printf("Benchmark %hu: Adding 4 byte value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 4, 1000, 5000, false);
+    printf("Benchmark %hu: Adding 1 KB value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, KB, 1000, 2500, false);
+    printf("Benchmark %hu: Adding 100 KB value to zipmap with 1000 items\n",
+    	   ++nbenchmark);
+    get_type2_benchmark(&zmap_add, "zmap", 4, 100 * KB, 1000, 1000, false);
+}
+
+void
+zmap_replace_benchmark(void)
+{
+    printf("-------------------- Zimap Replace Benchmarks --------------------\n");
+    printf("Benchmark %hu: Replacing 4 byte value with equal size to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 4, 100, 4, 10000);
+    printf("Benchmark %hu: Replacing 1 KB value with equal size to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, KB, 100, KB, 5000);
+    printf("Benchmark %hu: Replacing 100 KB value with equal size to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 100 * KB, 100, 100 * KB, 3000);
+    printf("Benchmark %hu: Replacing 4 byte value with equal size to zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 4, 1000, 4, 5000);
+    printf("Benchmark %hu: Replacing 1 KB value with equal size to zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, KB, 1000, KB, 2500);
+    printf("Benchmark %hu: Replacing 100 KB value with equal size to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 100 * KB, 1000, 100 * KB, 1000);
+    printf("Benchmark %hu: Replacing 4 byte value with 8 byte value to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 4, 100, 8, 5000);
+    printf("Benchmark %hu: Replacing 1 KB value with 2 KB value to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, KB, 100, 2 * KB, 2500);
+    printf("Benchmark %hu: Replacing 100 KB value with 200 KB value to zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 100 * KB, 100, 200 * KB, 1000);
+    printf("Benchmark %hu: Replacing 4 byte value with 8 byte value to zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 4, 1000, 8, 5000);
+    printf("Benchmark %hu: Replacing 1 KB value with 2 KB value to zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, KB, 1000, 2 * KB, 2500);
+    printf("Benchmark %hu: Replacing 100 KB value with 200 KB value to zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_replace_benchmark("zmap", 4, 100 * KB, 1000, 200 * KB, 1000);
+}
+
+void
+zmap_delete_benchmark(void)
+{
+    printf("-------------------- Zipmap Delete Benchmarks --------------------\n");
+    printf("Benchmark %hu: Deleting 4 byte value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, 4, 100, 10000);
+    printf("Benchmark %hu: Deleting 1 KB value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, KB, 100, 5000);
+    printf("Benchmark %hu: Deleting 100 KB value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, 100 * KB, 100, 3000);
+    printf("Benchmark %hu: Deleting 4 byte value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, 4, 1000, 5000);
+    printf("Benchmark %hu: Deleting 1 KB value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, KB, 1000, 2500);
+    printf("Benchmark %hu: Deleting 100 KB value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_delete_benchmark("zmap", 4, 100 * KB, 1000, 1000);
+}
+
+void
+zmap_get_benchmark(void)
+{
+    printf("-------------------- Zipmap Get Benchmarks --------------------\n");
+    printf("Benchmark %hu: Getting 4 byte value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 100, 10000);
+    printf("Benchmark %hu: Getting 1 KB value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 100, 5000);
+    printf("Benchmark %hu: Getting 100 KB value from zipmap with 100 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 100, 3000);
+    printf("Benchmark %hu: Getting 4 byte value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 1000, 5000);
+    printf("Benchmark %hu: Getting 1 KB value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 1000, 2500);
+    printf("Benchmark %hu: Getting 100 KB value from zipmap with 1000 items\n",
+	   ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000);
 }
 
 void
@@ -369,9 +583,9 @@ get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval
 	uint8_t nkey;
 
 	if(existing_key) {
-	    nkey = sprintf(key, "%d", i);
+	    nkey = sprintf(key, "%u", i);
 	} else {
-	    nkey = sprintf(key, "k%d", i);
+	    nkey = sprintf(key, "k%u", i);
 	}
 
 	before = orwl_gettime();
@@ -384,6 +598,55 @@ get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval
     get_time_stats(times, sample_size);
 
     flush_cache();
+
+    cc_free(val);
+    cc_free(times);
+}
+
+/* Calls fn sample_size times and retrieves runtime statistics. Calls fn for the
+   zipmap with the given pkey with num items of value size nval initially
+   in the zmap. Calls fn with values of size nval. Uses keys already existing in
+   the zipmap if existing_key is true, and does not otherwise. */
+void
+get_type2_benchmark(int (*fn)(void *, uint8_t, void *, uint8_t, void*, uint32_t), void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size, bool existing_key)
+{
+    uint32_t i;
+    uint32_t *times;
+    char *val;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+    val = cc_alloc(nval);
+
+    if(times == NULL || val == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    cc_memset(val, 0xff, nval);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char skey[20];
+	uint8_t nskey;
+
+	if(existing_key) {
+	    nskey = sprintf(skey, "%u", i);
+	} else {
+	    nskey = sprintf(skey, "k%u", i);
+	}
+
+	fill_zipmap(pkey, npkey, nval, num);
+
+	before = orwl_gettime();
+	fn(pkey, npkey, skey, nskey, val, nval);
+	after = orwl_gettime();
+
+	empty_zipmap(pkey, npkey);
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
 
     cc_free(val);
     cc_free(times);
@@ -532,6 +795,121 @@ get_remove_benchmark(uint32_t nval, uint32_t sample_size)
     get_time_stats(times, sample_size);
 
     flush_cache();
+
+    cc_free(times);
+}
+
+void
+get_zipmap_replace_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t new_nval, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+    char *val;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+    val = cc_alloc(new_nval);
+
+    if(times == NULL || val == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    cc_memset(val, 0xff, new_nval);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char skey[20];
+	uint8_t nskey;
+
+	nskey = sprintf(skey, "%u", i % num);
+
+	fill_zipmap(pkey, npkey, nval, num);
+
+	before = orwl_gettime();
+	zmap_replace(pkey, npkey, skey, nskey, val, new_nval);
+	after = orwl_gettime();
+
+	empty_zipmap(pkey, npkey);
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
+
+    cc_free(val);
+    cc_free(times);
+}
+
+void
+get_zipmap_delete_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+
+    if(times == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char skey[20];
+	uint8_t nskey;
+
+	nskey = sprintf(skey, "%u", i % num);
+
+	fill_zipmap(pkey, npkey, nval, num);
+
+	before = orwl_gettime();
+	zmap_delete(pkey, npkey, skey, nskey);
+	after = orwl_gettime();
+
+	empty_zipmap(pkey, npkey);
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
+
+    cc_free(times);
+}
+
+void
+get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+
+    if(times == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+	char skey[20];
+	uint8_t nskey;
+	void *val_ptr;
+	uint32_t val_len;
+
+	nskey = sprintf(skey, "%u", i % num);
+
+	fill_zipmap(pkey, npkey, nval, num);
+
+	before = orwl_gettime();
+	zmap_get(pkey, npkey, skey, nskey, &val_ptr, &val_len);
+	after = orwl_gettime();
+
+	empty_zipmap(pkey, npkey);
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
 
     cc_free(times);
 }

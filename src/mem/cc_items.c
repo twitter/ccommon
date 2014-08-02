@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static struct hash_table mem_hash_table;
+struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
 
 static uint64_t item_next_cas(void);
@@ -184,7 +184,7 @@ item_reuse(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
     ASSERT(item_is_linked(it->head));
-    ASSERT(it->head->refcount == 0);
+    ASSERT(it->refcount == 0);
 
     hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
 
@@ -1100,6 +1100,9 @@ _item_append(struct item *it, bool contig)
 
 		ASSERT(nit->next == NULL);
 
+		/* Copy over flags */
+		nit->flags = oit->flags;
+
 		/* Copy over current tail */
 		cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
 
@@ -1478,8 +1481,8 @@ item_prepare_tail(struct item *nit)
     /* set nit flags */
     nit->flags |= ITEM_CHAINED;
 
-    /* decrement nit refcount, since it was obtained via item_alloc */
-    --(nit->refcount);
+    /* Set refcount to zero */
+    nit->refcount = 0;
 }
 
 /* Returns true if candidate is a node in it, false otherwise */

@@ -27,6 +27,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+extern struct hash_table mem_hash_table;
+
 typedef enum item_flags {
     ITEM_LINKED  = 1,  /* item in hash */
     ITEM_CAS     = 2,  /* item has cas */

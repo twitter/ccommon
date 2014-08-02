@@ -714,6 +714,8 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
 #endif
 	item_remove(it);
     }
+
+    cc_free(new_item_buffer);
 }
 
 static void
