@@ -20,7 +20,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -133,10 +132,6 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
  *
  * cc_strchr
  * cc_strrchr
- *
- * cc_snprintf
- * cc_scnprintf
- * cc_vscnprintf
  */
 
 #define cc_memcpy(_d, _c, _n)                                   \
@@ -166,14 +161,6 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 #define cc_strrchr(_p, _s, _c)                                  \
     _cc_strrchr((uint8_t *)(_p),(uint8_t *)(_s), (uint8_t)(_c))
 
-#define cc_snprintf(_s, _n, ...)                                \
-    snprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
-
-#define cc_scnprintf(_s, _n, ...)                               \
-    _scnprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
-
-#define cc_vscnprintf(_s, _n, _f, _a)                           \
-    _vscnprintf((char *)(_s), (size_t)(_n), _f, _a)
 
 static inline uint8_t *
 _cc_strchr(uint8_t *p, uint8_t *last, uint8_t c)
@@ -200,8 +187,5 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 
     return NULL;
 }
-
-int _scnprintf(char *buf, size_t size, const char *fmt, ...);
-int _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 #endif

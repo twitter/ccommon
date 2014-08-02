@@ -26,6 +26,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 	cc_mbuf.c							\
 	cc_mm.c								\
 	cc_nio.c							\
+	cc_print.c							\
 	cc_stream.c							\
 	cc_string.c							\
 	event/cc_epoll.c						\
@@ -40,6 +41,7 @@ ccommon_include_HEADERS =						\
 	cc_mbuf.h							\
 	cc_mm.h								\
 	cc_nio.h							\
+	cc_print.h							\
 	cc_queue.h							\
 	cc_stream.h							\
 	cc_string.h							\

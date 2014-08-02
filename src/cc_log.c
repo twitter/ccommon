@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <cc_string.h>
+#include <cc_print.h>
 #include <cc_util.h>
 
 #include <cc_log.h>
