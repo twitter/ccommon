@@ -85,8 +85,8 @@ struct conn {
     err_t           err;            /* errno */
 };
 
-void conn_init(void);
-void conn_deinit(void);
+void conn_setup(void);
+void conn_teardown(void);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);

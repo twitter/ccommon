@@ -110,8 +110,8 @@ struct logger {
 #endif
 
 
-int log_init(int level, char *filename);
-void log_deinit(void);
+int log_setup(int level, char *filename);
+void log_teardown(void);
 
 void log_level_up(void);
 void log_level_down(void);

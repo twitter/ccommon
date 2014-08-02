@@ -25,17 +25,19 @@
 
 #include <cc_nio.h>
 
+#define NIO_MODULE_NAME "ccommon::nio"
+
 void
-conn_init(void)
+conn_setup(void)
 {
-    log_debug(LOG_VERB, "initialize connection");
+    log_debug(LOG_INFO, "set up the %s module", NIO_MODULE_NAME);
     log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
 }
 
 void
-conn_deinit(void)
+conn_teardown(void)
 {
-    log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
+    log_debug(LOG_INFO, "tear down the %s module", NIO_MODULE_NAME);
 }
 
 /*

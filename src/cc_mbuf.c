@@ -27,12 +27,12 @@
 
 #include <cc_mbuf.h>
 
-static bool initialized = false;
+#define MBUF_MODULE_NAME "ccommon::mbuf"
 
 static uint32_t nfree_mq;   /* # free mbuf */
 static struct mq free_mq; /* free mbuf q */
 
-static uint32_t mbuf_chunk_size; /* mbuf chunk size (all inclusive, const) */
+static uint32_t mbuf_chunk_size = MBUF_SIZE; /* chunk size (all inclusive) */
 static uint32_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
 static struct mbuf *
@@ -92,8 +92,6 @@ mbuf_get(void)
 {
     struct mbuf *mbuf;
 
-    ASSERT(initialized == true);
-
     mbuf = _mbuf_get();
     if (mbuf == NULL) {
         return NULL;
@@ -112,8 +110,8 @@ mbuf_get(void)
 /*
  * free an mbuf (assuming it has already been unlinked and not corrupted)
  */
-static void
-mbuf_free(struct mbuf *mbuf)
+void
+mbuf_destroy(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
@@ -179,8 +177,6 @@ mbuf_wsize(struct mbuf *mbuf)
 uint32_t
 mbuf_capacity(void)
 {
-    ASSERT(initialized == true);
-
     return mbuf_offset;
 }
 
@@ -200,8 +196,6 @@ mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 void
 mbuf_remove(struct mq *mq, struct mbuf *mbuf)
 {
-    ASSERT(initialized == true);
-
     log_debug(LOG_VVERB, "remove mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     STAILQ_REMOVE(mq, mbuf, mbuf, next);
@@ -232,9 +226,9 @@ mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n)
 }
 
 void
-mbuf_copy_string(struct mbuf *mbuf, const struct string str)
+mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring bstr)
 {
-    mbuf_copy(mbuf, str.data, str.len);
+    mbuf_copy(mbuf, bstr.data, bstr.len);
 }
 
 /*
@@ -276,16 +270,16 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
  * initialize the mbuf module by setting the module-local constants
  */
 void
-mbuf_init(uint32_t chunk_size)
+mbuf_setup(uint32_t chunk_size)
 {
+    log_debug(LOG_INFO, "set up the %s module", MBUF_MODULE_NAME);
+
     nfree_mq = 0;
     STAILQ_INIT(&free_mq);
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
-
-    initialized = true;
 
     log_debug(LOG_DEBUG, "mbuf: chunk size %zu, hdr size %d, offset %zu",
               mbuf_chunk_size, MBUF_HDR_SIZE, mbuf_offset);
@@ -295,14 +289,14 @@ mbuf_init(uint32_t chunk_size)
  * de-initialize the mbuf module by releasing all mbufs from the free_mq
  */
 void
-mbuf_deinit(void)
+mbuf_teardown(void)
 {
-    ASSERT(initialized == true);
+    log_debug(LOG_INFO, "tear down the %s module", MBUF_MODULE_NAME);
 
     while (!STAILQ_EMPTY(&free_mq)) {
         struct mbuf *mbuf = STAILQ_FIRST(&free_mq);
         mbuf_remove(&free_mq, mbuf);
-        mbuf_free(mbuf);
+        mbuf_destroy(mbuf);
         nfree_mq--;
     }
     ASSERT(nfree_mq == 0);
