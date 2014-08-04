@@ -6,7 +6,7 @@
 #include "../src/mem/cc_items.h"
 #include "../src/cc_define.h"
 #include "../src/hash/cc_hash_table.h"
-#include "../src/mem/cc_zipmap.h"
+#include "../src/data_structure/cc_zipmap.h"
 #include "../src/cc_mm.h"
 #include "../src/cc_string.h"
 

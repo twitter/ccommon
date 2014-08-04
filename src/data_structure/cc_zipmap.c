@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <mem/cc_zipmap.h>
+#include <data_structure/cc_zipmap.h>
 
 #include <mem/cc_items.h>
 #include <mem/cc_mem_interface.h>

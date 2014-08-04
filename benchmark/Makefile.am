@@ -32,8 +32,8 @@ membenchmark_SOURCES =							\
 	$(top_builddir)/src/mem/cc_slabs.h				\
 	$(top_builddir)/src/mem/cc_time.c				\
 	$(top_builddir)/src/mem/cc_time.h				\
-	$(top_builddir)/src/mem/cc_zipmap.c				\
-	$(top_builddir)/src/mem/cc_zipmap.h				\
+	$(top_builddir)/src/data_structure/cc_zipmap.c			\
+	$(top_builddir)/src/data_structure/cc_zipmap.h			\
 	cc_membench.c
 
 membenchmark_CFLAGS = $(AM_CFLAGS)

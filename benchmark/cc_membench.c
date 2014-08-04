@@ -2,7 +2,7 @@
 #include <mem/cc_settings.h>
 #include <mem/cc_slabs.h>
 #include <mem/cc_items.h>
-#include <mem/cc_zipmap.h>
+#include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
