@@ -120,28 +120,26 @@ typedef enum item_delta_result {
 /* TODO: move next_node and head for more compact memory alignment */
 struct item {
 #if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
-    uint32_t          magic;      /* item magic (const) */
+    uint32_t           magic;      /* item magic (const) */
 #endif
-    TAILQ_ENTRY(item) i_tqe;      /* link in the free q */
-    SLIST_ENTRY(item) h_sle;      /* link in hash */
-    rel_time_t        atime;      /* last access time in secs */
-    rel_time_t        exptime;    /* expiry time in secs */
-    uint32_t          nbyte;      /* data size */
-    uint32_t          offset;     /* offset of item in slab */
-    uint32_t          dataflags;  /* data flags opaque to the server */
-    uint16_t          refcount;   /* # concurrent users of item */
-    uint8_t           flags;      /* item flags */
-    uint8_t           id;         /* slab class id */
-    uint8_t           nkey;       /* key length */
+    STAILQ_ENTRY(item) stqe;       /* link in hash/free queue */
+    rel_time_t        atime;       /* last access time in secs */
+    rel_time_t        exptime;     /* expiry time in secs */
+    uint32_t          nbyte;       /* data size */
+    uint32_t          offset;      /* offset of item in slab */
+    uint32_t          dataflags;   /* data flags opaque to the server */
+    uint16_t          refcount;    /* # concurrent users of item */
+    uint8_t           flags;       /* item flags */
+    uint8_t           id;          /* slab class id */
+    uint8_t           nkey;        /* key length */
 #if defined CC_CHAINED && CC_CHAINED == 1
-    struct item       *next_node; /* next node, if item is chained */
-    struct item       *head;      /* head node */
+    struct item       *next_node;  /* next node, if item is chained */
+    struct item       *head;       /* head node */
 #endif
-    char              end[1];     /* item data */
+    char              end[1];      /* item data */
 };
 
-SLIST_HEAD(item_slh, item);
-TAILQ_HEAD(item_tqh, item);
+STAILQ_HEAD(item_stqh, item);
 
 #define ITEM_MAGIC      0xfeedface
 #define ITEM_HDR_SIZE   offsetof(struct item, end)

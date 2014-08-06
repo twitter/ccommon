@@ -125,14 +125,14 @@ TAILQ_HEAD(slab_tqh, slab);
  *            //
  */
 struct slabclass {
-    uint32_t        nitem;       /* # item per slab (const) */
-    size_t          size;        /* item size (const) */
+    uint32_t         nitem;       /* # item per slab (const) */
+    size_t           size;        /* item size (const) */
 
-    uint32_t        nfree_itemq; /* # free item q */
-    struct item_tqh free_itemq;  /* free item q */
+    uint32_t         nfree_itemq; /* # free item q */
+    struct item_stqh free_itemq;  /* free item q */
 
-    uint32_t        nfree_item;  /* # free item (in current slab) */
-    struct item     *free_item;  /* next free item (in current slab) */
+    uint32_t         nfree_item;  /* # free item (in current slab) */
+    struct item      *free_item;  /* next free item (in current slab) */
 };
 
 /*

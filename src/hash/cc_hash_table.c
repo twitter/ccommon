@@ -35,8 +35,8 @@
 #define HASH_DEFAULT_MOVE_SIZE  1
 #define HASH_DEFAULT_POWER      16
 
-static struct item_slh *hash_table_create(uint32_t table_size);
-static struct item_slh *hash_table_get_bucket(const char *key, size_t nkey,
+static struct item_stqh *hash_table_create(uint32_t table_size);
+static struct item_stqh *hash_table_get_bucket(const char *key, size_t nkey,
 					      struct hash_table *table);
 
 rstatus_t
@@ -71,7 +71,7 @@ hash_table_deinit(struct hash_table *table)
 struct item *
 hash_table_find(const char *key, size_t nkey, struct hash_table *table)
 {
-    struct item_slh *bucket;
+    struct item_stqh *bucket;
     struct item *it;
     uint32_t depth;
 
@@ -80,9 +80,9 @@ hash_table_find(const char *key, size_t nkey, struct hash_table *table)
     bucket = hash_table_get_bucket(key, nkey, table);
 
     /* search bucket for item */
-    for(depth = 0, it = SLIST_FIRST(bucket);
+    for(depth = 0, it = STAILQ_FIRST(bucket);
 	it != NULL;
-	++depth, it = SLIST_NEXT(it, h_sle)) {
+	++depth, it = STAILQ_NEXT(it, stqe)) {
 	if((nkey == it->nkey) && cc_memcmp(key, item_key(it), nkey) == 0) {
 	    return it;
 	}
@@ -94,13 +94,13 @@ hash_table_find(const char *key, size_t nkey, struct hash_table *table)
 void
 hash_table_insert(struct item *it, struct hash_table *table)
 {
-    struct item_slh *bucket;
+    struct item_stqh *bucket;
 
     ASSERT(hash_table_find(item_key(it), it->nkey, table) == NULL);
 
     /* insert item at the head of the bucket */
     bucket = hash_table_get_bucket(item_key(it), it->nkey, table);
-    SLIST_INSERT_HEAD(bucket, it, h_sle);
+    STAILQ_INSERT_HEAD(bucket, it, stqe);
 
     ++(table->nhash_item);
 }
@@ -108,7 +108,7 @@ hash_table_insert(struct item *it, struct hash_table *table)
 void
 hash_table_remove(const char *key, size_t nkey, struct hash_table *table)
 {
-    struct item_slh *bucket;
+    struct item_stqh *bucket;
     struct item *it, *prev;
 
     ASSERT(hash_table_find(key, nkey, table) != NULL);
@@ -116,18 +116,18 @@ hash_table_remove(const char *key, size_t nkey, struct hash_table *table)
     bucket = hash_table_get_bucket(key, nkey, table);
 
     /* search bucket for item to be removed */
-    for(prev = NULL, it = SLIST_FIRST(bucket);
+    for(prev = NULL, it = STAILQ_FIRST(bucket);
 	it != NULL;
-	prev = it, it = SLIST_NEXT(it, h_sle)) {
+	prev = it, it = STAILQ_NEXT(it, stqe)) {
 	if((nkey == it->nkey) && cc_memcmp(key, item_key(it), nkey) == 0) {
 	    break;
 	}
     }
 
     if(prev == NULL) {
-	SLIST_REMOVE_HEAD(bucket, h_sle);
+	STAILQ_REMOVE_HEAD(bucket, stqe);
     } else {
-	SLIST_REMOVE_AFTER(prev, h_sle);
+	STAILQ_REMOVE_AFTER(bucket, prev, stqe);
     }
 
     --(table->nhash_item);
@@ -136,10 +136,10 @@ hash_table_remove(const char *key, size_t nkey, struct hash_table *table)
 /*
  * Allocate a hash table with the given size.
  */
-static struct item_slh *
+static struct item_stqh *
 hash_table_create(uint32_t table_size)
 {
-    struct item_slh *table;
+    struct item_stqh *table;
     uint32_t i;
 
     table = cc_alloc(sizeof(*table) * table_size);
@@ -149,7 +149,7 @@ hash_table_create(uint32_t table_size)
     }
 
     for(i = 0; i < table_size; ++i) {
-	SLIST_INIT(&table[i]);
+	STAILQ_INIT(&table[i]);
     }
 
     return table;
@@ -158,7 +158,7 @@ hash_table_create(uint32_t table_size)
 /*
  * Obtain the bucket that would contain the item with the given key
  */
-static struct item_slh *
+static struct item_stqh *
 hash_table_get_bucket(const char *key, size_t nkey, struct hash_table *table)
 {
     return &(table->primary_hashtable[hash(key, nkey, 0) &

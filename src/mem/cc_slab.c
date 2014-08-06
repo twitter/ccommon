@@ -281,7 +281,7 @@ slab_slabclass_init(void)
         p->size = item_sz;
 
         p->nfree_itemq = 0;
-        TAILQ_INIT(&p->free_itemq);
+	STAILQ_INIT(&p->free_itemq);
 
         p->nfree_item = 0;
         p->free_item = NULL;
@@ -500,13 +500,13 @@ slab_evict_one(struct slab *slab)
             item_reuse(it);
         } else if (item_is_slabbed(it)) {
             ASSERT(slab == item_2_slab(it));
-            ASSERT(!TAILQ_EMPTY(&p->free_itemq));
+            ASSERT(!STAILQ_EMPTY(&p->free_itemq));
 
             it->flags &= ~ITEM_SLABBED;
 
             ASSERT(p->nfree_itemq > 0);
             p->nfree_itemq--;
-            TAILQ_REMOVE(&p->free_itemq, it, i_tqe);
+            STAILQ_REMOVE(&p->free_itemq, it, item, stqe);
         }
     }
 
@@ -617,7 +617,7 @@ slab_get(uint8_t id)
     struct slab *slab;
 
     ASSERT(slabclass[id].free_item == NULL);
-    ASSERT(TAILQ_EMPTY(&slabclass[id].free_itemq));
+    ASSERT(STAILQ_EMPTY(&slabclass[id].free_itemq));
 
     slab = slab_get_new();
 
@@ -657,7 +657,7 @@ slab_get_item_from_freeq(uint8_t id)
         return NULL;
     }
 
-    it = TAILQ_FIRST(&p->free_itemq);
+    it = STAILQ_FIRST(&p->free_itemq);
 
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(item_is_slabbed(it));
@@ -667,7 +667,7 @@ slab_get_item_from_freeq(uint8_t id)
     it->flags &= ~ITEM_SLABBED;
     ASSERT(p->nfree_itemq > 0);
     p->nfree_itemq--;
-    TAILQ_REMOVE(&p->free_itemq, it, i_tqe);
+    STAILQ_REMOVE(&p->free_itemq, it, item, stqe);
 
     log_debug(LOG_VERB, "get free q item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
@@ -742,7 +742,7 @@ slab_put_item_into_freeq(struct item *it)
     it->flags |= ITEM_SLABBED;
 
     p->nfree_itemq++;
-    TAILQ_INSERT_HEAD(&p->free_itemq, it, i_tqe);
+    STAILQ_INSERT_HEAD(&p->free_itemq, it, stqe);
 }
 
 /*

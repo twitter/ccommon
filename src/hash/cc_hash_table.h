@@ -26,11 +26,11 @@
 #define HASH_MAX_POWER  32
 
 struct hash_table {
-    struct item_slh *primary_hashtable;  /* primary (main) hash table */
-    /* struct item_slh *old_hashtable */ /* secondary hash table will be necessary
+    struct item_stqh *primary_hashtable;  /* primary (main) hash table */
+    /* struct item_stqh *old_hashtable */ /* secondary hash table will be necessary
                                             once the hash module is multi threaded */
-    uint32_t nhash_item;                 /* # items in hash table */
-    uint32_t hash_power;                 /* # buckets = 2^hash_power */
+    uint32_t nhash_item;                  /* # items in hash table */
+    uint32_t hash_power;                  /* # buckets = 2^hash_power */
 };
 
 /* Initialize hash table */
