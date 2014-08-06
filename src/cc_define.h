@@ -46,8 +46,8 @@
 # define CC_HAVE_BACKTRACE 1
 #endif
 
+/* TODO: add compile tome option to turn chaining on/off */
 #define CC_CHAINED 1
-
 
 #define CC_OK        0
 #define CC_ERROR    -1

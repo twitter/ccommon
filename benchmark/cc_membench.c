@@ -32,6 +32,7 @@ void flush_cache(void);
 void fill_zipmap(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num);
 void empty_zipmap(void *pkey, uint8_t npkey);
 
+void cc_alloc_benchmark(void);
 void set_benchmark(void);
 void add_benchmark(void);
 void replace_benchmark(void);
@@ -48,6 +49,7 @@ void zmap_add_benchmark(void);
 void zmap_replace_benchmark(void);
 void zmap_delete_benchmark(void);
 
+void get_cc_alloc_benchmark(uint32_t nbyte, uint32_t sample_size);
 void get_type1_benchmark(void (*fn)(void *, uint8_t, void *, uint32_t), uint32_t nval, uint32_t sample_size, bool full_cache, bool existing_key);
 void get_type2_benchmark(int (*fn)(void *, uint8_t, void *, uint8_t, void*, uint32_t), void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size, bool existing_key);
 void get_delta_benchmark(void (*fn)(void *, uint8_t, uint64_t), uint64_t delta, uint32_t sample_size);
@@ -68,6 +70,8 @@ int
 main()
 {
     init_benchmark();
+
+    cc_alloc_benchmark();
 
     set_benchmark();
     add_benchmark();
@@ -270,6 +274,20 @@ empty_zipmap(void *pkey, uint8_t npkey)
     zmap_init(pkey_cpy, npkey);
 
     cc_free(pkey_cpy);
+}
+
+void
+cc_alloc_benchmark(void)
+{
+    printf("-------------------- cc_alloc Benchmarks (for comparison) --------------------\n");
+    printf("Benchmark %hu: alloc 4 byte values\n", ++nbenchmark);
+    get_cc_alloc_benchmark(4, 10000);
+    printf("Benchmark %hu: alloc 1 KB values\n", ++nbenchmark);
+    get_cc_alloc_benchmark(KB, 5000);
+    printf("Benchmark %hu: alloc 1000 KB values\n", ++nbenchmark);
+    get_cc_alloc_benchmark(1000 * KB, 2000);
+    printf("Benchmark %hu: alloc 2 MB values\n", ++nbenchmark);
+    get_cc_alloc_benchmark(2 * MB, 1000);
 }
 
 void
@@ -554,6 +572,47 @@ zmap_get_benchmark(void)
     printf("Benchmark %hu: Getting 100 KB value from zipmap with 1000 items\n",
 	   ++nbenchmark);
     get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000);
+}
+
+void
+get_cc_alloc_benchmark(uint32_t nbyte, uint32_t sample_size)
+{
+    uint32_t i;
+    uint32_t *times;
+    void **vals;
+    void *val_cpy;
+
+    times = cc_alloc(sample_size * sizeof(uint32_t));
+    vals = cc_alloc(sample_size * sizeof(void *));
+    val_cpy = cc_alloc(nbyte);
+
+    if(times == NULL || vals == NULL || val_cpy == NULL) {
+	log_stderr("fatal: not enough memory to perform benchmark");
+	exit(1);
+    }
+
+    cc_memset(val_cpy, 0xff, nbyte);
+
+    for(i = 0; i < sample_size; ++i) {
+	struct timespec before, after;
+
+	before = orwl_gettime();
+	vals[i] = cc_alloc(nbyte);
+	cc_memcpy(vals[i], val_cpy, nbyte);
+	after = orwl_gettime();
+
+	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
+    }
+
+    get_time_stats(times, sample_size);
+
+    for(i = 0; i < sample_size; ++i) {
+	cc_free(vals[i]);
+    }
+
+    cc_free(val_cpy);
+    cc_free(vals);
+    cc_free(times);
 }
 
 void
@@ -934,7 +993,8 @@ void
 get_time_stats(uint32_t *times, uint32_t ntimes)
 {
     qsort(times, ntimes, sizeof(uint32_t), compare_int);
-    printf("sample size: %u\nall times in nanoseconds\nmin: %u\n25th percentile: %u\n"
+    printf("sample size: %u\nall times in nanoseconds\n"
+	   "min: %u\n25th percentile: %u\n"
 	   "50th percentile: %u\n75th percentile: %u\n90th percentile: %u\n"
 	   "95th percentile: %u\n99th percentile: %u\n99.9th percentile: %u\n"
 	   "max: %u\n\n", ntimes, times[0], times[(int)((double)ntimes * 0.25)],

@@ -4,8 +4,8 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_LDFLAGS = -version-info $(CCOMMON_SO_VER
 
 MAINTAINERCLEANFILES = Makefile.in
 
-AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-#AM_CPPFLAGS += -I $(top_srcdir)/src/event
+AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=AM
+#64_CPPFLAGS += -I $(top_srcdir)/src/event
 
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
@@ -23,6 +23,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_mm.c								\
 	cc_nio.c							\
 	cc_string.c							\
+	cc_time.c                                           	        \
 	event/cc_epoll.c						\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
@@ -32,7 +33,6 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	mem/cc_items.c							\
 	mem/cc_settings.c						\
 	mem/cc_slabs.c							\
-	mem/cc_time.c                                                   \
 	data_structure/cc_zipmap.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
@@ -46,6 +46,7 @@ ccommon_include_HEADERS =						\
 	cc_queue.h							\
 	cc_string.h							\
 	cc_define.h							\
+	cc_time.h                                                   	\
 	cc_util.h							\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
@@ -55,5 +56,4 @@ ccommon_include_HEADERS =						\
 	mem/cc_items.h							\
 	mem/cc_settings.h						\
 	mem/cc_slabs.h							\
-	mem/cc_time.h                                                   \
 	data_structure/cc_zipmap.h

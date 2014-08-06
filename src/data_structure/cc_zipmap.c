@@ -30,6 +30,8 @@
         (_entry_num) < (_map)->len;                                  \
 	++(_entry_num), zmap_advance_entry(&(_entry), &(_item_ptr)))
 
+rstatus_t set_pair(void *pair, void *pkey);
+rstatus_t set_numeric_pair(void *pair, void *pkey);
 
 static void *zmap_get_entry_ptr(struct zmap *zmap);
 static struct zmap_entry *zmap_entry_next(struct zmap_entry *entry);
@@ -99,31 +101,47 @@ zmap_set(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, void *val,
     return ZMAP_SET_OK;
 }
 
-zmap_set_result_t
-zmap_set_multiple(void *pkey, uint8_t npkey, zmap_key_val_vector_t *pairs)
+rstatus_t
+set_pair(void *pair, void *pkey)
 {
-    uint32_t i;
-    struct item *it;
-    struct zmap *zmap;
+    if(zmap_check_size(((buf_t *)pkey)->nbuf, ((key_val_pair_t *)pair)->nkey,
+		       ((key_val_pair_t *)pair)->nval)) {
+	struct item *it;
+	struct zmap *zmap;
 
-    for(i = 0; i < pairs->len; ++i) {
-	if(zmap_check_size(npkey, pairs->key_val_pairs[i].nkey,
-			   pairs->key_val_pairs[i].nval)) {
-	    it = item_get(pkey, npkey);
-	    zmap = item_to_zmap(it);
+	it = item_get(((buf_t *)pkey)->buf, ((buf_t *)pkey)->nbuf);
+	zmap = item_to_zmap(it);
 
-	    if(zmap == NULL) {
-		/* zmap not in cache */
-		return ZMAP_SET_NOT_FOUND;
-	    }
-
-	    zmap_set_raw(it, zmap, pairs->key_val_pairs[i].key,
-			 pairs->key_val_pairs[i].nkey, pairs->key_val_pairs[i].val,
-			 pairs->key_val_pairs[i].nval, 0);
-
-	    item_remove(it);
+	if(zmap == NULL) {
+	    /* zmap not in cache */
+	    return CC_ERROR;
 	}
+
+	zmap_set_raw(it, zmap, ((key_val_pair_t *)pair)->key,
+		     ((key_val_pair_t *)pair)->nkey, ((key_val_pair_t *)pair)->val,
+		     ((key_val_pair_t *)pair)->nval, 0);
+
+	item_remove(it);
     }
+    return CC_OK;
+}
+
+zmap_set_result_t
+zmap_set_multiple(void *pkey, uint8_t npkey, struct array *pairs)
+{
+    uint32_t status;
+    buf_t key;
+    err_t err;
+
+    key.buf = pkey;
+    key.nbuf = npkey;
+
+    status = array_each(pairs, &set_pair, &key, &err);
+
+    if(err == CC_ERROR) {
+	return ZMAP_SET_NOT_FOUND;
+    }
+
     return ZMAP_SET_OK;
 }
 
@@ -147,33 +165,47 @@ zmap_set_numeric(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, int64_t v
     return ZMAP_SET_OK;
 }
 
-zmap_set_result_t
-zmap_set_multiple_numeric(void *pkey, uint8_t npkey, zmap_key_numeric_vector_t *
-			  pairs)
+rstatus_t
+set_numeric_pair(void *pair, void *pkey)
 {
-    uint32_t i;
     struct item *it;
     struct zmap *zmap;
 
-    /* If even a 64 bit integer is too large to store, the cache is almost
-       certainly incorrectly configured */
-    ASSERT(zmap_check_size(npkey, nskey, sizeof(int64_t)));
+    ASSERT(zmap_check_size((buf_t)pkey->nbuf, (key_numeric_pair_t)pair->nkey,
+			   sizeof(int64_t)));
 
-    for(i = 0; i < pairs->len; ++i) {
-	it = item_get(pkey, npkey);
-	zmap = item_to_zmap(it);
+    it = item_get(((buf_t *)pkey)->buf, ((buf_t *)pkey)->nbuf);
+    zmap = item_to_zmap(it);
 
-	if(zmap == NULL) {
-	    /* zmap not in cache */
-	    return ZMAP_SET_NOT_FOUND;
-	}
+    if(zmap == NULL) {
+	/* zmap not in cache */
+	return CC_ERROR;
+    }
 
-	zmap_set_raw(it, zmap, pairs->key_numeric_pairs[i].key,
-		     pairs->key_numeric_pairs[i].nkey,
-		     &(pairs->key_numeric_pairs[i].val),
-		     sizeof(int64_t), ENTRY_IS_NUMERIC);
+    zmap_set_raw(it, zmap, ((key_numeric_pair_t *)pair)->key,
+		 ((key_numeric_pair_t *)pair)->nkey,
+		 &(((key_numeric_pair_t *)pair)->val),
+		 sizeof(int64_t), ENTRY_IS_NUMERIC);
 
-	item_remove(it);
+    item_remove(it);
+
+    return CC_OK;
+}
+
+zmap_set_result_t
+zmap_set_multiple_numeric(void *pkey, uint8_t npkey, struct array *pairs)
+{
+    uint32_t status;
+    buf_t key;
+    err_t err;
+
+    key.buf = pkey;
+    key.nbuf = npkey;
+
+    status = array_each(pairs, &set_numeric_pair, &key, &err);
+
+    if(err == CC_ERROR) {
+	return ZMAP_SET_NOT_FOUND;
     }
 
     return ZMAP_SET_OK;
@@ -370,166 +402,151 @@ zmap_exists(void *pkey, uint8_t npkey, void *skey, uint8_t nskey)
     return ZMAP_ENTRY_EXISTS;
 }
 
-zmap_key_val_vector_t
+struct array
 zmap_get_all(void *pkey, uint8_t npkey)
 {
     struct zmap_entry *iter;
     uint32_t i;
-    zmap_key_val_vector_t ret;
+    struct array ret;
     struct item *it = item_get(pkey, npkey);
     struct zmap *zmap = item_to_zmap(it);
     struct item *it_iter = it;
 
     if(zmap == NULL) {
 	/* zmap not in cache */
-	ret.len = -1;
-	ret.key_val_pairs = NULL;
+	ret.data = NULL;
 	return ret;
     }
 
     /* Allocate space for the return value */
-    /* TODO: switch from cc_alloc to using a preallocated pool */
-    ret.key_val_pairs = cc_alloc(zmap->len * sizeof(struct key_val_pair));
-    if(ret.key_val_pairs == NULL) {
+    if(array_data_alloc(&ret, zmap->len, sizeof(key_val_pair_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all pairs!");
-	ret.len = -1;
 	item_remove(it);
 	return ret;
     }
 
-    ret.len = zmap->len;
+    ret.nelem = zmap->len;
 
     /* Copy locations and sizes of key/val buffers */
     ZMAP_FOREACH(zmap, iter, i, it_iter) {
-	ret.key_val_pairs[i].key = entry_key(iter);
-	ret.key_val_pairs[i].val = entry_val(iter);
-	ret.key_val_pairs[i].nkey = iter->nkey;
-	ret.key_val_pairs[i].nval = iter->nval;
+	((key_val_pair_t *)(ret.data) + i)->key = entry_key(iter);
+	((key_val_pair_t *)(ret.data) + i)->val = entry_val(iter);
+	((key_val_pair_t *)(ret.data) + i)->nkey = iter->nkey;
+	((key_val_pair_t *)(ret.data) + i)->nval = iter->nval;
     }
 
     item_remove(it);
     return ret;
 }
 
-zmap_buffer_vector_t
+struct array
 zmap_get_keys(void *pkey, uint8_t npkey)
 {
     struct zmap_entry *iter;
     uint32_t i;
-    zmap_buffer_vector_t ret;
+    struct array ret;
     struct item *it = item_get(pkey, npkey);
     struct zmap *zmap = item_to_zmap(it);
     struct item *it_iter = it;
 
     if(zmap == NULL) {
 	/* zmap not in cache */
-	ret.len = -1;
-	ret.bufs = NULL;
+	ret.data = NULL;
 	return ret;
     }
 
     /* Allocate space for the return value */
-    /* TODO: switch from cc_alloc to using a preallocated pool */
-    ret.bufs = cc_alloc(zmap->len * sizeof(struct buf));
-    if(ret.bufs == NULL) {
+    if(array_data_alloc(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
-	ret.len = -1;
 	item_remove(it);
 	return ret;
     }
 
-    ret.len = zmap->len;
+    ret.nelem = zmap->len;
 
     /* Copy over keys */
     ZMAP_FOREACH(zmap, iter, i, it_iter) {
-	ret.bufs[i].buf = entry_key(iter);
-	ret.bufs[i].nbuf = iter->nkey;
+	((buf_t *)(ret.data) + i)->buf = entry_key(iter);
+	((buf_t *)(ret.data) + i)->nbuf = iter->nkey;
     }
 
     item_remove(it);
     return ret;
 }
 
-zmap_buffer_vector_t
+struct array
 zmap_get_vals(void *pkey, uint8_t npkey)
 {
     struct zmap_entry *iter;
     uint32_t i;
-    zmap_buffer_vector_t ret;
+    struct array ret;
     struct item *it = item_get(pkey, npkey);
     struct zmap *zmap = item_to_zmap(it);
     struct item *it_iter = it;
 
     if(zmap == NULL) {
 	/* zmap not in cache */
-	ret.len = -1;
-	ret.bufs = NULL;
+	ret.data = NULL;
 	return ret;
     }
 
     /* Allocate space for the return value */
-    /* TODO: switch from cc_alloc to using a preallocated pool */
-    ret.bufs = cc_alloc(zmap->len * sizeof(struct buf));
-    if(ret.bufs == NULL) {
+    if(array_data_alloc(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
-	ret.len = -1;
 	item_remove(it);
 	return ret;
     }
 
-    ret.len = zmap->len;
+    ret.nelem = zmap->len;
 
     /* Copy over vals */
     ZMAP_FOREACH(zmap, iter, i, it_iter) {
-	ret.bufs[i].buf = entry_val(iter);
-	ret.bufs[i].nbuf = iter->nval;
+	((buf_t *)(ret.data) + i)->buf = entry_val(iter);
+	((buf_t *)(ret.data) + i)->nbuf = iter->nval;
     }
 
     item_remove(it);
     return ret;
 }
 
-zmap_buffer_vector_t
-zmap_get_multiple(void *pkey, uint8_t npkey, zmap_buffer_vector_t *keys)
+struct array
+zmap_get_multiple(void *pkey, uint8_t npkey, struct array *keys)
 {
-    zmap_buffer_vector_t ret;
+    struct array ret;
     uint32_t i;
     struct item *it = item_get(pkey, npkey);
     struct zmap *zmap = item_to_zmap(it);
 
     if(zmap == NULL) {
 	/* zmap not in cache */
-	ret.len = -1;
-	ret.bufs = NULL;
+	ret.data = NULL;
 	return ret;
     }
 
     /* Allocate space for the return value */
-    /* TODO: switch from cc_alloc to using a preallocated pool */
-    ret.bufs = cc_alloc(keys->len *sizeof(struct buf));
-    if(ret.bufs == NULL) {
+    if(array_data_alloc(&ret, keys->nelem, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all vals!");
-	ret.len = -1;
 	item_remove(it);
 	return ret;
     }
 
-    ret.len = keys->len;
+    ret.nelem = keys->nelem;
 
     /* Search for each value */
-    for(i = 0; i < keys->len; ++i) {
+    for(i = 0; i < keys->nelem; ++i) {
 	struct zmap_entry *entry =
-	    zmap_lookup_raw(it, zmap, keys->bufs[i].buf, keys->bufs[i].nbuf);
+	    zmap_lookup_raw(it, zmap, ((buf_t *)(keys->data) + i)->buf,
+			    ((buf_t *)(keys->data) + i)->nbuf);
 
 	if(entry == NULL) {
-	    ret.bufs[i].buf = NULL;
+	    ((buf_t *)(ret.data) + i)->buf = NULL;
 	} else {
-	    ret.bufs[i].buf = entry_val(entry);
-	    ret.bufs[i].nbuf = entry->nval;
+	    ((buf_t *)(ret.data) + i)->buf = entry_val(entry);
+	    ((buf_t *)(ret.data) + i)->nbuf = entry->nval;
 	}
     }
 

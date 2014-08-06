@@ -18,9 +18,9 @@
 #ifndef _CC_ITEMS_H_
 #define _CC_ITEMS_H_
 
-#include <mem/cc_time.h>
 #include <cc_debug.h>
 #include <cc_define.h>
+#include <cc_time.h>
 #include <cc_queue.h>
 
 #include <stdbool.h>

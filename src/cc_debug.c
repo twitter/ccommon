@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-#include <ctype.h>
-#include <execinfo.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cc_debug.h>
 
 #include <cc_log.h>
 
-#include <cc_debug.h>
+#include <ctype.h>
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 void
 cc_log_assert(const char *cond, const char *file, int line, int panic)

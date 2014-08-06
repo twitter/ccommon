@@ -11,29 +11,23 @@ AM_LDFLAGS = -rdynamic -Wl -flat_namespace
 
 bin_PROGRAMS = membenchmark
 
-membenchmark_SOURCES =							\
-	$(top_builddir)/src/cc_debug.c $(top_builddir)/src/cc_debug.h	\
-	$(top_builddir)/src/cc_log.c $(top_builddir)/src/cc_log.h	\
-	$(top_builddir)/src/cc_mm.c $(top_builddir)/src/cc_mm.h		\
-	$(top_builddir)/src/cc_queue.h					\
-	$(top_builddir)/src/cc_string.c $(top_builddir)/src/cc_string.h \
-	$(top_builddir)/src/cc_define.h					\
-	$(top_builddir)/src/hash/cc_hash.c				\
-	$(top_builddir)/src/hash/cc_hash.h				\
-	$(top_builddir)/src/hash/cc_hash_table.c			\
-	$(top_builddir)/src/hash/cc_hash_table.h			\
-	$(top_builddir)/src/mem/cc_mem_interface.c			\
-	$(top_builddir)/src/mem/cc_mem_interface.h			\
-	$(top_builddir)/src/mem/cc_items.c				\
-	$(top_builddir)/src/mem/cc_items.h				\
-	$(top_builddir)/src/mem/cc_settings.c				\
-	$(top_builddir)/src/mem/cc_settings.h				\
-	$(top_builddir)/src/mem/cc_slabs.c				\
-	$(top_builddir)/src/mem/cc_slabs.h				\
-	$(top_builddir)/src/mem/cc_time.c				\
-	$(top_builddir)/src/mem/cc_time.h				\
-	$(top_builddir)/src/data_structure/cc_zipmap.c			\
-	$(top_builddir)/src/data_structure/cc_zipmap.h			\
+membenchmark_SOURCES =					\
+	$(top_srcdir)/src/cc_debug.h			\
+	$(top_srcdir)/src/cc_define.h			\
+	$(top_srcdir)/src/cc_log.h			\
+	$(top_srcdir)/src/cc_mm.h			\
+	$(top_srcdir)/src/cc_queue.h			\
+	$(top_srcdir)/src/cc_string.h			\
+	$(top_srcdir)/src/cc_time.h			\
+	$(top_srcdir)/src/data_structure/cc_zipmap.h	\
+	$(top_srcdir)/src/hash/cc_hash.h		\
+	$(top_srcdir)/src/hash/cc_hash_table.h		\
+	$(top_srcdir)/src/mem/cc_items.h		\
+	$(top_srcdir)/src/mem/cc_mem_interface.h	\
+	$(top_srcdir)/src/mem/cc_settings.h		\
+	$(top_srcdir)/src/mem/cc_slabs.h		\
 	cc_membench.c
 
 membenchmark_CFLAGS = $(AM_CFLAGS)
+
+membenchmark_LDADD = $(top_srcdir)/src/libccommon-@CCOMMON_RELEASE_VERSION@.la

@@ -19,8 +19,8 @@
 #define _CC_SLABS_H_
 
 #include <mem/cc_items.h>
-#include <mem/cc_time.h>
 #include <cc_define.h>
+#include <cc_time.h>
 #include <cc_queue.h>
 
 #include <limits.h>

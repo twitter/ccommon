@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <cc_array.h>
 #include <cc_define.h>
 
 struct item;
@@ -73,33 +74,23 @@ typedef enum zmap_exists_result {
     ZMAP_ENTRY_NOT_FOUND
 } zmap_exists_result_t;
 
-/* the zmap_get_all command returns an array of these */
-typedef struct zmap_key_val_vector {
-    struct key_val_pair {
-	void *key;
-	void *val;
-	uint8_t nkey;
-	uint32_t nval;
-    } *key_val_pairs;
-    int32_t len;
-} zmap_key_val_vector_t;
+typedef struct key_val_pair {
+    void *key;
+    void *val;
+    uint8_t nkey;
+    uint32_t nval;
+} key_val_pair_t;
 
-typedef struct zmap_buffer_vector {
-    struct buf {
-	void *buf;
-	uint8_t nbuf;
-    } *bufs;
-    int32_t len;
-} zmap_buffer_vector_t;
+typedef struct buf {
+    void *buf;
+    uint8_t nbuf;
+} buf_t;
 
-typedef struct zmap_key_numeric_vector {
-    struct key_numeric_pair {
-	uint64_t val;
-	void *key;
-	uint8_t nkey;
-    } *key_numeric_pairs;
-    int32_t len;
-} zmap_key_numeric_vector_t;
+typedef struct key_numeric_pair {
+    uint64_t val;
+    void *key;
+    uint8_t nkey;
+} key_numeric_pair_t;
 
 typedef enum zmap_delta_result {
     ZMAP_DELTA_OK,
@@ -182,13 +173,13 @@ zmap_set_result_t zmap_set(void *pkey, uint8_t npkey, void *skey, uint8_t nskey,
 
 /* Set multiple key-val pairs. Creates keys if they do not already exist.
    Oversized or otherwise invalid requests are ignored. */
-zmap_set_result_t zmap_set_multiple(void *pkey, uint8_t npkey, zmap_key_val_vector_t *pairs);
+zmap_set_result_t zmap_set_multiple(void *pkey, uint8_t npkey, struct array *pairs);
 
 /* Set key to value, where value is an integer */
 zmap_set_result_t zmap_set_numeric(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, int64_t val);
 
 /* Set multiple numeric key-val pairs. */
-zmap_set_result_t zmap_set_multiple_numeric(void *pkey, uint8_t npkey, zmap_key_numeric_vector_t *pairs);
+zmap_set_result_t zmap_set_multiple_numeric(void *pkey, uint8_t npkey, struct array *pairs);
 
 /* Set the key to value, but only if it does not already exist. */
 zmap_add_result_t zmap_add(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, void *val, uint32_t nval);
@@ -212,17 +203,17 @@ zmap_get_result_t zmap_get(void *pkey, uint8_t npkey, void *skey, uint8_t nskey,
 zmap_exists_result_t zmap_exists(void *pkey, uint8_t npkey, void *skey, uint8_t nskey);
 
 /* Get all key-val pairs in the zipmap. len = -1 if the request fails. */
-zmap_key_val_vector_t zmap_get_all(void *pkey, uint8_t npkey);
+struct array zmap_get_all(void *pkey, uint8_t npkey);
 
 /* Get all keys in the zipmap. len = -1 if the request fails. */
-zmap_buffer_vector_t zmap_get_keys(void *pkey, uint8_t npkey);
+struct array zmap_get_keys(void *pkey, uint8_t npkey);
 
 /* Get all vals in the zipmap. len = -1 if the request fails. */
-zmap_buffer_vector_t zmap_get_vals(void *pkey, uint8_t npkey);
+struct array zmap_get_vals(void *pkey, uint8_t npkey);
 
 /* Get values associated with the provided keys. len = -1 if the request fails;
    a buffer will be NULL if the key is not found. */
-zmap_buffer_vector_t zmap_get_multiple(void *pkey, uint8_t npkey, zmap_buffer_vector_t *keys);
+struct array zmap_get_multiple(void *pkey, uint8_t npkey, struct array *keys);
 
 /* Get the number of elements in the zipmap. Returns -1 if the zipmap is not found */
 int32_t zmap_len(void *pkey, uint8_t npkey);
