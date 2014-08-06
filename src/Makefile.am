@@ -30,9 +30,9 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	hash/cc_hash_table.c						\
 	mem/cc_mem_globals.c						\
 	mem/cc_mem_interface.c						\
-	mem/cc_items.c							\
+	mem/cc_item.c							\
 	mem/cc_settings.c						\
-	mem/cc_slabs.c							\
+	mem/cc_slab.c							\
 	data_structure/cc_zipmap.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
@@ -53,7 +53,7 @@ ccommon_include_HEADERS =						\
 	hash/cc_hash_table.h						\
 	mem/cc_mem_globals.h						\
 	mem/cc_mem_interface.h						\
-	mem/cc_items.h							\
+	mem/cc_item.h							\
 	mem/cc_settings.h						\
-	mem/cc_slabs.h							\
+	mem/cc_slab.h							\
 	data_structure/cc_zipmap.h

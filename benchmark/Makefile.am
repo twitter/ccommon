@@ -22,10 +22,10 @@ membenchmark_SOURCES =					\
 	$(top_srcdir)/src/data_structure/cc_zipmap.h	\
 	$(top_srcdir)/src/hash/cc_hash.h		\
 	$(top_srcdir)/src/hash/cc_hash_table.h		\
-	$(top_srcdir)/src/mem/cc_items.h		\
+	$(top_srcdir)/src/mem/cc_item.h			\
 	$(top_srcdir)/src/mem/cc_mem_interface.h	\
 	$(top_srcdir)/src/mem/cc_settings.h		\
-	$(top_srcdir)/src/mem/cc_slabs.h		\
+	$(top_srcdir)/src/mem/cc_slab.h			\
 	cc_membench.c
 
 membenchmark_CFLAGS = $(AM_CFLAGS)

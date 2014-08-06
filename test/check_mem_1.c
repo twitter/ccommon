@@ -2,8 +2,8 @@
 
 #include "../src/mem/cc_mem_interface.h"
 #include "../src/mem/cc_settings.h"
-#include "../src/mem/cc_slabs.h"
-#include "../src/mem/cc_items.h"
+#include "../src/mem/cc_slab.h"
+#include "../src/mem/cc_item.h"
 #include "../src/cc_define.h"
 #include "../src/hash/cc_hash_table.h"
 #include "../src/data_structure/cc_zipmap.h"

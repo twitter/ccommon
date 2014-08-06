@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-#include <mem/cc_items.h>
+#include <mem/cc_item.h>
 
 #include <mem/cc_mem_globals.h>
 #include <mem/cc_settings.h>
-#include <mem/cc_slabs.h>
+#include <mem/cc_slab.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_string.h>

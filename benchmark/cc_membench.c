@@ -1,7 +1,7 @@
 #include <mem/cc_mem_interface.h>
 #include <mem/cc_settings.h>
-#include <mem/cc_slabs.h>
-#include <mem/cc_items.h>
+#include <mem/cc_slab.h>
+#include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>

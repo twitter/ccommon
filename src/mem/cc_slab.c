@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <mem/cc_slabs.h>
+#include <mem/cc_slab.h>
 
-#include <mem/cc_items.h>
+#include <mem/cc_item.h>
 #include <mem/cc_settings.h>
 #include <cc_debug.h>
 #include <cc_log.h>

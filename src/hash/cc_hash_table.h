@@ -19,7 +19,7 @@
 #define _CC_HASH_TABLE_H_
 
 #include <cc_define.h>
-#include <mem/cc_items.h>
+#include <mem/cc_item.h>
 
 #include <stdlib.h>
 
