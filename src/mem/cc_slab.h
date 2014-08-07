@@ -184,4 +184,7 @@ void slab_put_item(struct item *it);
    SLAB_LRU_UPDATE_INTERVAL seconds */
 void slab_lruq_touch(struct slab *slab, bool allocated);
 
+/* Get the maximum amount of data an item can contain with the given specs */
+uint32_t slab_item_max_nbyte(uint8_t id, uint8_t nkey);
+
 #endif

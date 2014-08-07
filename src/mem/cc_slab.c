@@ -233,6 +233,12 @@ slab_lruq_touch(struct slab *slab, bool allocated)
     /*pthread_mutex_unlock(&slab_lock);*/
 }
 
+uint32_t
+slab_item_max_nbyte(uint8_t id, uint8_t nkey)
+{
+    return slab_item_size(id) - ITEM_HDR_SIZE - nkey;
+}
+
 /*
  * Get the idx^th item with a given size from the slab.
  */
@@ -596,7 +602,7 @@ slab_add_one(struct slab *slab, uint8_t id)
     for (i = 0; i < p->nitem; i++) {
         it = slab_2_item(slab, i, p->size);
         offset = (uint32_t)((uint8_t *)it - (uint8_t *)slab);
-        item_hdr_init(it, offset, id);
+        item_hdr_init(it, offset);
     }
 
     /* make this slab as the current slab */
@@ -722,7 +728,7 @@ _slab_get_item(uint8_t id)
 static void
 slab_put_item_into_freeq(struct item *it)
 {
-    uint8_t id = it->id;
+    uint8_t id = item_id(it);
     struct slabclass *p = &slabclass[id];
 
     ASSERT(id >= SLABCLASS_MIN_ID && id <= slabclass_max_id);

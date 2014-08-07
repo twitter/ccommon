@@ -22,6 +22,7 @@
 #include <cc_define.h>
 #include <cc_time.h>
 #include <cc_queue.h>
+#include <cc_util.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -113,38 +114,34 @@ typedef enum item_delta_result {
  *
  * item->end is followed by:
  * - 8-byte cas, if ITEM_CAS flag is set
- * - key with terminating '\0', length = item->nkey + 1
- * - data with no terminating '\0'
+ * - key
+ * - data
  */
 
 /* TODO: move next_node and head for more compact memory alignment */
 struct item {
 #if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
-    uint32_t           magic;      /* item magic (const) */
+    uint32_t           magic;       /* item magic (const) */
 #endif
-    STAILQ_ENTRY(item) stqe;       /* link in hash/free queue */
-    rel_time_t        atime;       /* last access time in secs */
-    rel_time_t        exptime;     /* expiry time in secs */
-    uint32_t          nbyte;       /* data size */
-    uint32_t          offset;      /* offset of item in slab */
-    uint32_t          dataflags;   /* data flags opaque to the server */
-    uint16_t          refcount;    /* # concurrent users of item */
-    uint8_t           flags;       /* item flags */
-    uint8_t           id;          /* slab class id */
-    uint8_t           nkey;        /* key length */
+    STAILQ_ENTRY(item) stqe;        /* link in hash/free queue */
+    rel_time_t         exptime;     /* expiry time in secs */
+    uint32_t           nbyte;       /* data size */
+    uint32_t           offset;      /* offset of item in slab */
+    uint16_t           refcount;    /* # concurrent users of item */
+    uint8_t            flags;       /* item flags */
+    uint8_t            nkey;        /* key length */
 #if defined CC_CHAINED && CC_CHAINED == 1
-    struct item       *next_node;  /* next node, if item is chained */
-    struct item       *head;       /* head node */
+    struct item        *next_node;  /* next node, if item is chained */
+    struct item        *head;       /* head node */
 #endif
-    char              end[1];      /* item data */
+    uint8_t               data[1];      /* item data */
 };
 
 STAILQ_HEAD(item_stqh, item);
 
 #define ITEM_MAGIC      0xfeedface
-#define ITEM_HDR_SIZE   offsetof(struct item, end)
-#define CRLF            "\x0d\x0a"
-#define CRLF_LEN        (uint32_t)(sizeof(CRLF) - 1)
+#define ITEM_HDR_SIZE   offsetof(struct item, data)
+#define CAS_LEN(it)     (sizeof(uint64_t) * ((it)->flags & ITEM_CAS))
 
 /*
  * An item chunk is the portion of the memory carved out from the slab
@@ -158,13 +155,13 @@ STAILQ_HEAD(item_stqh, item);
  * The largest item data is actually the room left in the slab_size()
  * slab, after the item header has been factored out
  */
-#define ITEM_MIN_PAYLOAD_SIZE  (sizeof("k") + sizeof(uint64_t))
+#define ITEM_MIN_PAYLOAD_SIZE  (sizeof(uint8_t) + sizeof(uint64_t))
 #define ITEM_MIN_CHUNK_SIZE \
-    MC_ALIGN(ITEM_HDR_SIZE + ITEM_MIN_PAYLOAD_SIZE, MC_ALIGNMENT)
+    CC_ALIGN(ITEM_HDR_SIZE + ITEM_MIN_PAYLOAD_SIZE, CC_ALIGNMENT)
 
 #define ITEM_PAYLOAD_SIZE      32
 #define ITEM_CHUNK_SIZE     \
-    MC_ALIGN(ITEM_HDR_SIZE + ITEM_PAYLOAD_SIZE, MC_ALIGNMENT)
+    CC_ALIGN(ITEM_HDR_SIZE + ITEM_PAYLOAD_SIZE, CC_ALIGNMENT)
 
 
 #if __GNUC__ >= 4 && __GNUC_MINOR__ >= 2
@@ -210,7 +207,7 @@ item_get_cas(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
 
     if (item_has_cas(it)) {
-        return *((uint64_t *)it->end);
+        return *((uint64_t *)it->data);
     }
 
     return 0;
@@ -222,7 +219,7 @@ item_set_cas(struct item *it, uint64_t cas)
     ASSERT(it->magic == ITEM_MAGIC);
 
     if (item_has_cas(it)) {
-        *((uint64_t *)it->end) = cas;
+        *((uint64_t *)it->data) = cas;
     }
 }
 
@@ -233,17 +230,14 @@ item_set_cas(struct item *it, uint64_t cas)
 /*
  * Get the location of the item's key
  */
-static inline char *
+static inline uint8_t *
 item_key(struct item *it)
 {
-    char *key;
+    uint8_t *key;
 
     ASSERT(it->magic == ITEM_MAGIC);
 
-    key = it->end;
-    if (item_has_cas(it)) {
-        key += sizeof(uint64_t);
-    }
+    key = it->data + CAS_LEN(it);
 
     return key;
 }
@@ -257,7 +251,7 @@ item_ntotal(uint8_t nkey, uint32_t nbyte, bool use_cas)
     size_t ntotal;
 
     ntotal = use_cas ? sizeof(uint64_t) : 0;
-    ntotal += ITEM_HDR_SIZE + nkey + 1 + nbyte + CRLF_LEN;
+    ntotal += ITEM_HDR_SIZE + nkey + nbyte + CRLF_LEN;
 
     return ntotal;
 }
@@ -268,32 +262,71 @@ item_ntotal(uint8_t nkey, uint32_t nbyte, bool use_cas)
 static inline size_t
 item_size(struct item *it)
 {
-    ASSERT(it->magic == ITEM_MAGIC);
-
     return item_ntotal(it->nkey, it->nbyte, item_has_cas(it));
+}
+
+/*
+ * Get the slab that this item belongs to
+ */
+static inline struct slab *
+item_2_slab(struct item *it)
+{
+    struct slab *slab;
+
+    ASSERT(it->magic == ITEM_MAGIC);
+    ASSERT(it->offset < settings.slab_size);
+
+    /* Beginning of slab is located at it->offset bytes behind it */
+    slab = (struct slab *)((uint8_t *)it - it->offset);
+
+    ASSERT(slab->magic == SLAB_MAGIC);
+
+    return slab;
+}
+
+/*
+ * Get total data size of item (sum of nbyte for all nodes)
+ */
+static inline uint64_t
+item_total_nbyte(struct item *it)
+{
+    ASSERT(it != NULL);
+
+#if defined CC_CHAINED && CC_CHAINED == 1
+    uint64_t nbyte = 0;
+
+    ASSERT(it->head == it);
+    for(; it != NULL; it = it->next_node) {
+	nbyte += it->nbyte;
+    }
+
+    return nbyte;
+#else
+    return it->nbyte;
+#endif
 }
 
 /*
  * Initialize/deinitialize item related facilities
  */
 rstatus_t item_init(uint32_t hash_power);
-void item_deinit(void);
+
+/*
+ * Get the slab id of the item
+ */
+uint8_t item_id(struct item *it);
 
 /* Get location of item payload */
-char * item_data(struct item *it);
-
-/* Get the slab that this item belongs to */
-struct slab *item_2_slab(struct item *it);
+uint8_t *item_data(struct item *it);
 
 /* Initialize the header of an item */
-void item_hdr_init(struct item *it, uint32_t offset, uint8_t id);
+void item_hdr_init(struct item *it, uint32_t offset);
 
 /* Get the slab id required for an item with key size nkey and data size nbyte */
 uint8_t item_slabid(uint8_t nkey, uint32_t nbyte);
 
 /* Allocate an item with the given parameters */
-struct item *item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
-			rel_time_t exptime, uint32_t nbyte);
+struct item *item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte);
 
 /* Make an item with zero refcount available for reuse. Frees all nodes in
    different slabs, and opens up nodes in provided node's slabs for reuse. */
@@ -304,7 +337,7 @@ void item_reuse(struct item *it);
 void item_remove(struct item *it);
 
 /* Get linked item with given key */
-struct item *item_get(const char *key, size_t nkey);
+struct item *item_get(const uint8_t *key, size_t nkey);
 
 /* Links an item into the hash table; if one already exists with the same key,
    the new item replaces the old one. */
@@ -328,16 +361,10 @@ item_annex_result_t item_append(struct item *it);
 item_annex_result_t item_prepend(struct item *it);
 
 /* Perform increment/decrement operation on item with given key */
-item_delta_result_t item_delta(char *key, size_t nkey, bool incr, uint64_t delta);
+item_delta_result_t item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta);
 
 /* Unlink an item. Removes it if its refcount drops to zero. */
-item_delete_result_t item_delete(char *key, size_t nkey);
-
-/* Get total data size of item (sum of nbyte for all nodes) */
-uint64_t item_total_nbyte(struct item *it);
-
-/* Get the maximum amount of data the given item can contain */
-uint32_t item_max_nbyte(uint8_t id, uint8_t nkey);
+item_delete_result_t item_delete(uint8_t *key, size_t nkey);
 
 #if defined CC_CHAINED && CC_CHAINED == 1
 /* Get the number of nodes in the item */
@@ -350,11 +377,11 @@ uint32_t item_num_nodes(struct item *it);
 item_annex_result_t item_append_contig(struct item *it);
 
 /* Get the last node in an item chain. */
-struct item *item_tail(struct item *it);
+struct item *ichain_tail(struct item *it);
 
 /* Remove the given node from the item (allows freed node to be reused).
    Does nothing if node is not in the chain belonging to it. */
-void item_remove_node(struct item *it, struct item *node);
+void ichain_remove_item(struct item *it, struct item *node);
 #endif
 
 #endif

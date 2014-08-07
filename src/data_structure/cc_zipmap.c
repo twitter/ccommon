@@ -17,13 +17,13 @@
 
 #include <data_structure/cc_zipmap.h>
 
-#include <mem/cc_item.h>
-#include <mem/cc_mem_interface.h>
-#include <mem/cc_slab.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_string.h>
+#include <mem/cc_item.h>
+#include <mem/cc_mem_interface.h>
+#include <mem/cc_slab.h>
 
 #define ZMAP_FOREACH(_map, _entry, _entry_num, _item_ptr)            \
     for((_entry_num) = 0, (_entry) = zmap_get_entry_ptr(_map);       \
@@ -612,7 +612,7 @@ zmap_delta(void *pkey, uint8_t npkey, void *skey, uint8_t nskey, int64_t delta)
 static void *
 zmap_get_entry_ptr(struct zmap *zmap)
 {
-    return (zmap->len == 0) ? NULL : zmap->end;
+    return (zmap->len == 0) ? NULL : zmap->data;
 }
 
 /* Get the next entry in the zmap */
@@ -620,7 +620,7 @@ static struct zmap_entry *
 zmap_entry_next(struct zmap_entry *entry)
 {
     ASSERT(entry != NULL);
-    return (struct zmap_entry *)((char *)entry + entry_size(entry));
+    return (struct zmap_entry *)((uint8_t *)entry + entry_size(entry));
 }
 
 /* Find the zipmap entry with the given key. returns NULL if doesn't exist */
@@ -672,7 +672,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
     struct zmap_entry new_entry_header;
     size_t entry_size = zmap_new_entry_size(nskey, nval);
     void *new_item_buffer;
-    char it_key[UCHAR_MAX];
+    uint8_t it_key[UCHAR_MAX];
     uint8_t it_nkey;
 #if defined CC_CHAINED && CC_CHAINED == 1
     uint32_t num_nodes_before;
@@ -720,7 +720,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
 #if defined CC_CHAINED && CC_CHAINED == 1
 	if(item_num_nodes(it) == num_nodes_before && zmap->len != 1) {
 	    /* Need to unflag second to last entry */
-	    struct item *tail = item_tail(it);
+	    struct item *tail = ichain_tail(it);
 	    struct zmap_entry *iter = (num_nodes_before == 1) ?
 		zmap_get_entry_ptr(zmap) : (struct zmap_entry *)item_data(tail);
 
@@ -744,14 +744,14 @@ zmap_item_hexdump(struct item *it)
     for(i = 1; it != NULL; ++i, it = it->next_node) {
 	log_debug(LOG_DEBUG, "node %u addr %p", i, it);
 	log_hexdump(LOG_DEBUG, it, 400, "");
-	log_hexdump(LOG_DEBUG, (char *)it + 400, 400, "");
-	log_hexdump(LOG_DEBUG, (char *)it + 800, 400, "");
+	log_hexdump(LOG_DEBUG, (uint8_t *)it + 400, 400, "");
+	log_hexdump(LOG_DEBUG, (uint8_t *)it + 800, 400, "");
     }
 #else
     log_debug(LOG_DEBUG, "addr %p", it);
     log_hexdump(LOG_DEBUG, it, 400, "");
-    log_hexdump(LOG_DEBUG, (char *)it + 400, 400, "");
-    log_hexdump(LOG_DEBUG, (char *)it + 800, 400, "");
+    log_hexdump(LOG_DEBUG, (uint8_t *)it + 400, 400, "");
+    log_hexdump(LOG_DEBUG, (uint8_t *)it + 800, 400, "");
 #endif
 }
 
@@ -778,7 +778,7 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry,
 	    if(zmap->len > 1 && node != it) {
 		/* entry's node is not head */
 		/* node is no longer needed, remove it */
-		item_remove_node(it, node);
+		ichain_remove_item(it, node);
 	    } else if(zmap->len > 1 && node == it) {
 		/* Node is head */
 		/* Removing the only entry in the first node; need to copy over
@@ -904,7 +904,7 @@ zmap_replace_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry,
     } else {
 	/* existing entry is not large enough to contain new entry, need to
 	   delete and replace */
-	char entry_key_cpy[UCHAR_MAX];
+	uint8_t entry_key_cpy[UCHAR_MAX];
 	uint8_t entry_nkey;
 
 	entry_nkey = entry->nkey;
@@ -964,7 +964,7 @@ zmap_check_size(uint8_t npkey, uint8_t nskey, uint32_t nval)
 {
     /* Return true iff entry size <= maximum nbyte for item */
     return entry_ntotal(nskey, nval, 3) <=
-	item_max_nbyte(slabclass_max_id, npkey);
+	slab_item_max_nbyte(slabclass_max_id, npkey);
 }
 
 #if defined CC_CHAINED && CC_CHAINED == 1
@@ -974,13 +974,14 @@ zmap_realloc_from_tail(struct item *it, struct item *node)
     struct item *tail;
     struct zmap_entry *iter;
 
-    while(((tail = item_tail(it))->nbyte <=
-	  (item_max_nbyte(node->id, node->nkey) - node->nbyte)) && tail != node) {
+    while(((tail = ichain_tail(it))->nbyte <=
+	   (slab_item_max_nbyte(item_id(node), node->nkey) - node->nbyte))
+	  && tail != node) {
 	/* All of the tail can fit, copy it over and free it */
 	cc_memcpy(item_data(node) + node->nbyte, item_data(tail), tail->nbyte);
 
 	node->nbyte += tail->nbyte;
-	item_remove_node(it, tail);
+	ichain_remove_item(it, tail);
 
         /* unflag old last entry */
         for(iter = (node == it) ? zmap_get_entry_ptr(item_to_zmap(it)) :
@@ -997,7 +998,7 @@ zmap_realloc_from_tail(struct item *it, struct item *node)
 
 	/* Find the index from where copying should start */
 	for(iter = (struct zmap_entry *)item_data(tail);
-            tail->nbyte - index > (item_max_nbyte(node->id, node->nkey) -
+            tail->nbyte - index > (slab_item_max_nbyte(item_id(node), node->nkey) -
 				   node->nbyte);
 	    iter = zmap_entry_next(iter)) {
 	    new_last = iter;

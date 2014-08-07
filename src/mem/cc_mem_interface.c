@@ -241,15 +241,19 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     uint32_t amt_copied = 0;
 
     /* Currently exptime is arbitrarily set; not sure what to do about this yet */
-    ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
+    ret = item_alloc(nkey, time_now() + 6000, nval);
+
     if(ret == NULL) {
 	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
 	return NULL;
     }
 
+    /* Copy over key */
+    cc_memcpy(item_key(ret), key, nkey);
+
     /* Copy over data in val */
     for(iter = ret; iter != NULL; iter = iter->next_node) {
-	cc_memcpy(item_data(iter), (char *)val + amt_copied, iter->nbyte);
+	cc_memcpy(item_data(iter), (uint8_t *)val + amt_copied, iter->nbyte);
 	amt_copied += iter->nbyte;
     }
 
@@ -269,13 +273,17 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     }
 
     /* Currently exptime is arbitrarily set; not sure what to do about this yet */
-    ret = item_alloc(key, nkey, 0, time_now() + 6000, nval);
+    ret = item_alloc(nkey, time_now() + 6000, nval);
+
     if(ret == NULL) {
 	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
 	return NULL;
     }
 
+    /* Copy over key and val */
+    cc_memcpy(item_key(ret), key, nkey);
     cc_memcpy(item_data(ret), val, nval);
+
     return ret;
 }
 #endif

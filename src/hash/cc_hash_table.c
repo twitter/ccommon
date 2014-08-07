@@ -36,7 +36,7 @@
 #define HASH_DEFAULT_POWER      16
 
 static struct item_stqh *hash_table_create(uint32_t table_size);
-static struct item_stqh *hash_table_get_bucket(const char *key, size_t nkey,
+static struct item_stqh *hash_table_get_bucket(const uint8_t *key, size_t nkey,
 					      struct hash_table *table);
 
 rstatus_t
@@ -69,7 +69,7 @@ hash_table_deinit(struct hash_table *table)
 }
 
 struct item *
-hash_table_find(const char *key, size_t nkey, struct hash_table *table)
+hash_table_find(const uint8_t *key, size_t nkey, struct hash_table *table)
 {
     struct item_stqh *bucket;
     struct item *it;
@@ -106,7 +106,7 @@ hash_table_insert(struct item *it, struct hash_table *table)
 }
 
 void
-hash_table_remove(const char *key, size_t nkey, struct hash_table *table)
+hash_table_remove(const uint8_t *key, size_t nkey, struct hash_table *table)
 {
     struct item_stqh *bucket;
     struct item *it, *prev;
@@ -159,7 +159,7 @@ hash_table_create(uint32_t table_size)
  * Obtain the bucket that would contain the item with the given key
  */
 static struct item_stqh *
-hash_table_get_bucket(const char *key, size_t nkey, struct hash_table *table)
+hash_table_get_bucket(const uint8_t *key, size_t nkey, struct hash_table *table)
 {
     return &(table->primary_hashtable[hash(key, nkey, 0) &
 				      HASHMASK(table->hash_power)]);

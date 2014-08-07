@@ -17,13 +17,13 @@
 
 #include <mem/cc_item.h>
 
-#include <mem/cc_mem_globals.h>
-#include <mem/cc_settings.h>
-#include <mem/cc_slab.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_string.h>
 #include <hash/cc_hash_table.h>
+#include <mem/cc_mem_globals.h>
+#include <mem/cc_settings.h>
+#include <mem/cc_slab.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -37,23 +37,22 @@ static bool item_expired(struct item *it);
 static void item_acquire_refcount(struct item *it);
 static void item_release_refcount(struct item *it);
 static void item_free(struct item *it);
-static void skip_space(const char **str, size_t *len);
-static bool strtoull_len(const char *str, uint64_t *out, size_t len);
+static void skip_space(const uint8_t **str, size_t *len);
+static bool strtoull_len(const uint8_t *str, uint64_t *out, size_t len);
 
-static struct item *_item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
-				rel_time_t exptime, uint32_t nbyte);
+static struct item *_item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte);
 static void _item_link(struct item *it);
 static void _item_unlink(struct item *it);
 static void _item_remove(struct item *it);
 static void _item_relink(struct item *it, struct item *nit);
-static struct item *_item_get(const char *key, size_t nkey);
+static struct item *_item_get(const uint8_t *key, size_t nkey);
 static void _item_set(struct item *it);
 static item_cas_result_t _item_cas(struct item *it);
 static item_add_result_t _item_add(struct item *it);
 static item_replace_result_t _item_replace(struct item *it);
 static item_annex_result_t _item_append(struct item *it, bool contig);
 static item_annex_result_t _item_prepend(struct item *it);
-static item_delta_result_t _item_delta(char *key, size_t nkey, bool incr,
+static item_delta_result_t _item_delta(uint8_t *key, size_t nkey, bool incr,
 				       uint64_t delta);
 static void item_append_same_id(struct item *oit, struct item *it, uint32_t
 				total_nbyte);
@@ -80,48 +79,30 @@ item_init(uint32_t hash_power)
     return hash_table_init(hash_power, &mem_hash_table);
 }
 
-void
-item_deinit(void)
+uint8_t
+item_id(struct item *it)
 {
+    return item_2_slab(it)->id;
 }
 
-char *
+uint8_t *
 item_data(struct item *it)
 {
-    char *data;
+    uint8_t *data;
 
     ASSERT(it->magic == ITEM_MAGIC);
 
     if (item_is_raligned(it)) {
-        data = (char *)it + slab_item_size(it->id) - it->nbyte;
+        data = (uint8_t *)it + slab_item_size(item_id(it)) - it->nbyte;
     } else {
-        data = it->end + it->nkey + 1; /* 1 for terminal '\0' in key */
-        if (item_has_cas(it)) {
-            data += sizeof(uint64_t);
-        }
+        data = it->data + it->nkey + CAS_LEN(it);
     }
 
     return data;
 }
 
-struct slab *
-item_2_slab(struct item *it)
-{
-    struct slab *slab;
-
-    ASSERT(it->magic == ITEM_MAGIC);
-    ASSERT(it->offset < settings.slab_size);
-
-    /* Beginning of slab is located at it->offset bytes behind it */
-    slab = (struct slab *)((char *)it - it->offset);
-
-    ASSERT(slab->magic == SLAB_MAGIC);
-
-    return slab;
-}
-
 void
-item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
+item_hdr_init(struct item *it, uint32_t offset)
 {
     ASSERT(offset >= SLAB_HDR_SIZE && offset < settings.slab_size);
 
@@ -129,7 +110,6 @@ item_hdr_init(struct item *it, uint32_t offset, uint8_t id)
     it->magic = ITEM_MAGIC;
 #endif
     it->offset = offset;
-    it->id = id;
     it->refcount = 0;
     it->flags = 0;
 #if defined CC_CHAINED && CC_CHAINED == 1
@@ -201,13 +181,12 @@ uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
 }
 
 struct item *
-item_alloc(char *key, uint8_t nkey, uint32_t dataflags,
-           rel_time_t exptime, uint32_t nbyte)
+item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 {
     struct item *it;
 
     /*pthread_mutex_lock(&cache_lock);*/
-    it = _item_alloc(key, nkey, dataflags, exptime, nbyte);
+    it = _item_alloc(nkey, exptime, nbyte);
     /*pthread_mutex_unlock(&cache_lock);*/
 
     return it;
@@ -222,7 +201,7 @@ item_remove(struct item *it)
 }
 
 struct item *
-item_get(const char *key, size_t nkey)
+item_get(const uint8_t *key, size_t nkey)
 {
     struct item *it;
 
@@ -300,7 +279,7 @@ item_prepend(struct item *it)
 }
 
 item_delta_result_t
-item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
+item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta)
 {
     item_delta_result_t ret;
 
@@ -315,7 +294,7 @@ item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
  * Unlink an item and remove it (if its refcount drops to zero).
  */
 item_delete_result_t
-item_delete(char *key, size_t nkey)
+item_delete(uint8_t *key, size_t nkey)
 {
     item_delete_result_t ret = DELETE_OK;
     struct item *it;
@@ -332,30 +311,6 @@ item_delete(char *key, size_t nkey)
     /*pthread_mutex_unlock(&cache_lock);*/
 
     return ret;
-}
-
-uint64_t
-item_total_nbyte(struct item *it)
-{
-    ASSERT(it != NULL);
-
-#if defined CC_CHAINED && CC_CHAINED == 1
-    uint64_t nbyte = 0;
-
-    ASSERT(it->head == it);
-    for(; it != NULL; it = it->next_node) {
-	nbyte += it->nbyte;
-    }
-
-    return nbyte;
-#else
-    return it->nbyte;
-#endif
-}
-
-uint32_t item_max_nbyte(uint8_t id, uint8_t nkey)
-{
-    return slab_item_size(id) - ITEM_HDR_SIZE - nkey - 1;
 }
 
 /* Chaining specific functions */
@@ -383,7 +338,7 @@ item_append_contig(struct item *it)
 }
 
 struct item *
-item_tail(struct item *it)
+ichain_tail(struct item *it)
 {
     ASSERT(it != NULL);
     for(; it->next_node != NULL; it = it->next_node);
@@ -391,7 +346,7 @@ item_tail(struct item *it)
 }
 
 void
-item_remove_node(struct item *it, struct item *node) {
+ichain_remove_item(struct item *it, struct item *node) {
     struct item *iter, *prev = NULL;
 
     /*pthread_mutex_lock(&cache_lock);*/
@@ -533,7 +488,7 @@ item_free(struct item *it)
 
 /* Skip spaces in str */
 static void
-skip_space(const char **str, size_t *len)
+skip_space(const uint8_t **str, size_t *len)
 {
     while(*len > 0 && isspace(**str)) {
 	(*str)++;
@@ -543,7 +498,7 @@ skip_space(const char **str, size_t *len)
 
 /* Convert string to integer, used for delta */
 static bool
-strtoull_len(const char *str, uint64_t *out, size_t len)
+strtoull_len(const uint8_t *str, uint64_t *out, size_t len)
 {
     *out = 0ULL;
 
@@ -577,8 +532,7 @@ strtoull_len(const char *str, uint64_t *out, size_t len)
  */
 #if defined CC_CHAINED && CC_CHAINED == 1
 static struct item *
-_item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
-	    exptime, uint32_t nbyte)
+_item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 {
     struct item *it = NULL, *current_node, *prev_node = NULL;
     uint8_t id;
@@ -630,7 +584,6 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	current_node->flags |= ITEM_CHAINED;
 	current_node->head = it;
 
-	current_node->dataflags = dataflags;
 	current_node->exptime = exptime;
 
 	if(current_node == it) {
@@ -640,14 +593,11 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	    current_node->nkey = 0;
 	}
 
-	/* set key ('\0' by default) */
-	*(item_key(current_node)) = '\0';
-
 	/* Set nbyte equal to either the number of bytes left or the number
 	   of bytes that can fit in the item, whichever is less */
 	current_node->nbyte =
-	    (nbyte < slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1) ?
-	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey - 1;
+	    (nbyte < slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey) ?
+	    nbyte : slab_item_size(id) - ITEM_HDR_SIZE - current_node->nkey;
 
 	nbyte -= current_node->nbyte;
 
@@ -673,22 +623,17 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
 	it->flags |= ITEM_CAS;
     }
 
-    /* copy item key */
-    cc_memcpy(item_key(it), key, nkey);
-    *(item_key(it) + nkey) = '\0';
-
     item_set_cas(it, 0);
 
-    log_debug(LOG_VERB, "alloc item %s at offset %u with id %hhu expiry %u "
-	    " refcount %hu", item_key(it), it->offset, it->id, it->exptime,
+    log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
+	    " refcount %hu", it->offset, it->id, it->exptime,
 	    it->refcount);
 
     return it;
 }
 #else
 static struct item *
-_item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
-	    exptime, uint32_t nbyte)
+_item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 {
     struct item *it;
     uint8_t id;
@@ -721,15 +666,13 @@ _item_alloc(char *key, uint8_t nkey, uint32_t dataflags, rel_time_t
     item_acquire_refcount(it);
 
     it->flags = settings.use_cas ? ITEM_CAS : 0;
-    it->dataflags = dataflags;
     it->nbyte = nbyte;
     it->exptime = exptime;
     it->nkey = nkey;
-    memcpy(item_key(it), key, nkey);
     item_set_cas(it, 0);
 
-    log_debug(LOG_VERB, "alloc item %s at offset %u with id %hhu expiry %u "
-	    " refcount %hu", item_key(it), it->offset, it->id, it->exptime,
+    log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
+	    " refcount %hu", it->offset, it->id, it->exptime,
 	    it->refcount);
 
     return it;
@@ -836,7 +779,7 @@ _item_relink(struct item *it, struct item *nit)
  * release refcount on the item
  */
 static struct item *
-_item_get(const char *key, size_t nkey)
+_item_get(const uint8_t *key, size_t nkey)
 {
     struct item *it;
 
@@ -851,13 +794,6 @@ _item_get(const char *key, size_t nkey)
     if (it->exptime != 0 && it->exptime <= time_now()) {
         _item_unlink(it);
 	log_debug(LOG_VERB, "get item %s expired and nuked", key);
-        return NULL;
-    }
-
-    if (settings.oldest_live != 0 && settings.oldest_live <= time_now() &&
-        it->atime <= settings.oldest_live) {
-        _item_unlink(it);
-	log_debug(LOG_VERB, "item %s nuked", key);
         return NULL;
     }
 
@@ -877,7 +813,7 @@ _item_get(const char *key, size_t nkey)
 static void
 _item_set(struct item *it)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit;
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
@@ -902,7 +838,7 @@ _item_set(struct item *it)
 static item_cas_result_t
 _item_cas(struct item *it)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit;
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
@@ -936,7 +872,7 @@ static item_add_result_t
 _item_add(struct item *it)
 {
     item_add_result_t ret;
-    char *key;
+    uint8_t *key;
     struct item *oit;
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
@@ -966,7 +902,7 @@ static item_replace_result_t
 _item_replace(struct item *it)
 {
     item_replace_result_t ret;
-    char *key;
+    uint8_t *key;
     struct item *oit;
 
     ASSERT(it->head == it);
@@ -993,7 +929,7 @@ _item_replace(struct item *it)
 static item_annex_result_t
 _item_append(struct item *it, bool contig)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit, *oit_tail;
     uint8_t nid;
     uint32_t total_nbyte;
@@ -1013,11 +949,11 @@ _item_append(struct item *it, bool contig)
     ASSERT(!item_is_slabbed(oit));
 
     /* get tail of the item */
-    oit_tail = item_tail(oit);
+    oit_tail = ichain_tail(oit);
     total_nbyte = oit_tail->nbyte + it->nbyte; /* get size of new tail */
     nid = item_slabid(oit_tail->nkey, total_nbyte);
 
-    if(nid <= oit_tail->id && !item_is_raligned(oit_tail)) {
+    if(nid <= item_id(oit_tail) && !item_is_raligned(oit_tail)) {
 	/* if oit is large enough to hold the extra data and left-aligned,
 	 * which is the default behavior, we copy the delta to the end of
 	 * the existing data. Otherwise, allocate a new item and store the
@@ -1028,7 +964,7 @@ _item_append(struct item *it, bool contig)
 	struct item *nit;
 	if(contig && nid == SLABCLASS_CHAIN_ID) {
 	    /* Need to allocate new node to contiguously store new data */
-	    nit = _item_alloc("", 0, oit->dataflags, oit->exptime, it->nbyte);
+	    nit = _item_alloc(0, oit->exptime, it->nbyte);
 
 	    /* Could not allocate new tail */
 	    if(nit == NULL) {
@@ -1062,8 +998,7 @@ _item_append(struct item *it, bool contig)
 		   contiguous memory */
 		uint32_t nit_amt_copied;
 
-		nit = _item_alloc(item_key(oit_tail), oit_tail->nkey, oit->dataflags,
-				  oit->exptime, total_nbyte);
+		nit = _item_alloc(oit_tail->nkey, oit->exptime, total_nbyte);
 
 		/* Could not allocate new tail */
 		if(nit == NULL) {
@@ -1074,11 +1009,14 @@ _item_append(struct item *it, bool contig)
 		ASSERT(item_is_chained(nit));
 		ASSERT(nit->next_node != NULL);
 
+		/* Copy over key */
+		cc_memcpy(item_key(nit), item_key(oit_tail), oit_tail->nkey);
+
 		/* Copy over current tail */
 		cc_memcpy(item_data(nit), item_data(oit_tail), oit_tail->nbyte);
 
-		nit_amt_copied = slab_item_size(nit->id) - ITEM_HDR_SIZE -
-		    oit_tail->nbyte - oit_tail->nkey - 1;
+		nit_amt_copied = slab_item_size(item_id(nit)) - ITEM_HDR_SIZE -
+		    oit_tail->nbyte - oit_tail->nkey;
 
 		/* Copy over as much of the new data as possible to the first node */
 		cc_memcpy(item_data(nit) + oit_tail->nbyte, item_data(it),
@@ -1089,8 +1027,7 @@ _item_append(struct item *it, bool contig)
 			  it->nbyte - nit_amt_copied);
 	    } else {
 		/* Simply need to allocate item in larger slabclass */
-		nit = _item_alloc(item_key(oit_tail), oit_tail->nkey, oit->dataflags,
-				  oit->exptime, total_nbyte);
+		nit = _item_alloc(oit_tail->nkey, oit->exptime, total_nbyte);
 
 		/* Could not allocate larger item */
 		if(nit == NULL) {
@@ -1099,6 +1036,9 @@ _item_append(struct item *it, bool contig)
 		}
 
 		ASSERT(nit->next == NULL);
+
+		/* Copy over key */
+		cc_memcpy(item_key(nit), item_key(oit_tail), oit_tail->nkey);
 
 		/* Copy over flags */
 		nit->flags = oit->flags;
@@ -1157,7 +1097,7 @@ _item_append(struct item *it, bool contig)
 static item_annex_result_t
 _item_append(struct item *it, bool contig)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit, *nit;
     uint8_t nid;
     uint32_t total_nbyte;
@@ -1180,16 +1120,23 @@ _item_append(struct item *it, bool contig)
     if(nid == oit->id && !item_is_raligned(oit)) {
 	item_append_same_id(oit, it, total_nbyte);
     } else {
-	nit = _item_alloc(key, oit->nkey, oit->dataflags, oit->exptime, total_nbyte);
+	nit = _item_alloc(oit->nkey, oit->exptime, total_nbyte);
 
 	if(nit == NULL) {
 	    _item_remove(oit);
 	    return ANNEX_EOM;
 	}
 
+	/* Copy over key */
+	cc_memcpy(item_key(nit), key, oit->nkey);
+
+	/* Copy over data */
 	cc_memcpy(item_data(nit), item_data(oit), oit->nbyte);
 	cc_memcpy(item_data(nit) + oit->nbyte, item_data(it), it->nbyte);
+
+	/* Replace in hash */
 	_item_relink(oit, nit);
+
 	_item_remove(nit);
     }
 
@@ -1202,7 +1149,7 @@ _item_append(struct item *it, bool contig)
 static item_annex_result_t
 _item_prepend(struct item *it)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit, *nit = NULL;
     uint8_t nid;
     uint32_t total_nbyte;
@@ -1225,7 +1172,7 @@ _item_prepend(struct item *it)
     total_nbyte = oit->nbyte + it->nbyte;
     nid = item_slabid(oit->nkey, total_nbyte);
 
-    if(nid == oit->id && item_is_raligned(oit)) {
+    if(nid == item_id(oit) && item_is_raligned(oit)) {
 	/* oit head is raligned, and can contain the new data. Simply
 	   prepend the data at the beginning of oit, not needing to
 	   allocate more space. */
@@ -1234,8 +1181,7 @@ _item_prepend(struct item *it)
 	/* Additional data can fit in a single larger head node */
 	struct item *iter;
 
-	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
-			  oit->exptime, total_nbyte);
+	nit = _item_alloc(oit->nkey, oit->exptime, total_nbyte);
 
 	if(nit == NULL) {
 	    /* Could not allocate larger node */
@@ -1245,6 +1191,7 @@ _item_prepend(struct item *it)
 
 	/* Right align nit, copy over data */
 	nit->flags |= ITEM_RALIGN;
+	cc_memcpy(item_key(nit), item_key(oit), oit->nkey);
 	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
 	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
 
@@ -1260,10 +1207,9 @@ _item_prepend(struct item *it)
     } else {
 	struct item *iter, *nit_second;
 	uint32_t nit_second_nbyte = slab_item_size(slabclass_max_id) -
-	    ITEM_HDR_SIZE - 1;
+	    ITEM_HDR_SIZE;
 
-	nit_second = _item_alloc("", 0, oit->dataflags, oit->exptime,
-				 nit_second_nbyte);
+	nit_second = _item_alloc(0, oit->exptime, nit_second_nbyte);
 
 	if(nit_second == NULL) {
 	    _item_remove(oit);
@@ -1273,8 +1219,7 @@ _item_prepend(struct item *it)
 	ASSERT(!item_is_chained(nit_second));
 	ASSERT(nit_second->next_node == NULL);
 
-	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags, oit->exptime,
-			  total_nbyte - nit_second_nbyte);
+	nit = _item_alloc(oit->nkey, oit->exptime, total_nbyte - nit_second_nbyte);
 
 	if(nit == NULL) {
 	    _item_remove(oit);
@@ -1284,8 +1229,10 @@ _item_prepend(struct item *it)
 
 	ASSERT(!item_is_chained(nit));
 	ASSERT(nit->next_node == NULL);
-
 	ASSERT(nit->nbyte <= it->nbyte);
+
+	/* copy over oit key to nit key */
+	cc_memcpy(item_key(nit), item_key(oit), oit->nkey);
 
 	/* copy the first nit->nbyte bytes of it to nit */
 	cc_memcpy(item_data(nit), item_data(it), nit->nbyte);
@@ -1319,7 +1266,7 @@ _item_prepend(struct item *it)
 static item_annex_result_t
 _item_prepend(struct item *it)
 {
-    char *key;
+    uint8_t *key;
     struct item *oit, *nit = NULL;
     uint8_t nid;
     uint32_t total_nbyte;
@@ -1341,16 +1288,16 @@ _item_prepend(struct item *it)
 	   allocate more space */
 	item_prepend_same_id(oit, it, total_nbyte);
     } else if(nid != SLABCLASS_CHAIN_ID) {
-	nit = _item_alloc(item_key(oit), oit->nkey, oit->dataflags,
-			  oit->exptime, total_nbyte);
+	nit = _item_alloc(oit->nkey, oit->exptime, total_nbyte);
 
 	if(nit == NULL) {
 	    _item_remove(oit);
 	    return ANNEX_EOM;
 	}
 
-	/* Right align nit, copy over data */
+	/* Right align nit, copy over key and data */
 	nit->flags |= ITEM_RALIGN;
+	cc_memcpy(item_key(nit), item_key(oit), oit->nkey);
 	cc_memcpy(item_data(nit), item_data(it), it->nbyte);
 	cc_memcpy(item_data(nit) + it->nbyte, item_data(oit), oit->nbyte);
 
@@ -1376,13 +1323,13 @@ _item_prepend(struct item *it)
  * Apply a delta value (positive or negative) to an item. (increment/decrement)
  */
 static item_delta_result_t
-_item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
+_item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta)
 {
     item_delta_result_t ret = DELTA_OK;
     int res;
-    char *ptr;
+    uint8_t *ptr;
     struct item *it;
-    char buf[INCR_MAX_STORAGE_LEN];
+    uint8_t buf[INCR_MAX_STORAGE_LEN];
     uint64_t value;
 
     it = _item_get(key, nkey);
@@ -1419,13 +1366,14 @@ _item_delta(char *key, size_t nkey, bool incr, uint64_t delta)
     if (res > it->nbyte) { /* need to realloc */
         struct item *new_it;
 
-        new_it = _item_alloc(item_key(it), it->nkey, it->dataflags,
-                             it->exptime, res);
+        new_it = _item_alloc(it->nkey, it->exptime, res);
+
         if (new_it == NULL) {
 	    _item_remove(it);
 	    return DELTA_EOM;
         }
 
+	cc_memcpy(item_key(new_it), item_key(it), it->nkey);
         cc_memcpy(item_data(new_it), buf, res);
         _item_relink(it, new_it);
         _item_remove(it);

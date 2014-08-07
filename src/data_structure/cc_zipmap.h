@@ -103,7 +103,7 @@ typedef enum zmap_delta_result {
 /* Header for zipmap */
 struct zmap {
     uint32_t len; /* number of key-val pairs in the zipmap */
-    char end[1];  /* beginning of key-val pairs */
+    uint8_t data[1];  /* beginning of key-val pairs */
 };
 
 /* Header for zipmap entry */
@@ -112,11 +112,11 @@ struct zmap_entry {
     uint8_t nkey; /* key length, in bytes */
     uint8_t npadding; /* padding length, in bytes */
     uint8_t flags; /* entry flags */
-    char end[1]; /* entry data */
+    uint8_t data[1]; /* entry data */
 };
 
-#define ZMAP_HDR_SIZE        offsetof(struct zmap, end)
-#define ZMAP_ENTRY_HDR_SIZE  offsetof(struct zmap_entry, end)
+#define ZMAP_HDR_SIZE        offsetof(struct zmap, data)
+#define ZMAP_ENTRY_HDR_SIZE  offsetof(struct zmap_entry, data)
 #define ZMAP_PADDING_MAX     UCHAR_MAX
 
 static inline bool
@@ -134,17 +134,17 @@ entry_last_in_node(struct zmap_entry *entry)
 #endif
 
 /* Get the location of the entry's key */
-static inline char *
+static inline uint8_t *
 entry_key(struct zmap_entry *entry)
 {
-    return entry->end;
+    return entry->data;
 }
 
 /* Get the location of the entry's val */
-static inline char *
+static inline uint8_t *
 entry_val(struct zmap_entry *entry)
 {
-    return entry->end + entry->nkey;
+    return entry->data + entry->nkey;
 }
 
 /* Get the total size of an entry given nkey and nval */

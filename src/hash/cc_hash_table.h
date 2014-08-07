@@ -40,12 +40,12 @@ rstatus_t hash_table_init(uint32_t hash_power, struct hash_table *table);
 void hash_table_deinit(struct hash_table *table);
 
 /* Find the item associated with the given key */
-struct item *hash_table_find(const char *key, size_t nkey, struct hash_table *table);
+struct item *hash_table_find(const uint8_t *key, size_t nkey, struct hash_table *table);
 
 /* Insert the item into the hash table */
 void hash_table_insert(struct item *it, struct hash_table *table);
 
 /* Remove the item with the given key from the hash table */
-void hash_table_remove(const char *key, size_t nkey, struct hash_table *table);
+void hash_table_remove(const uint8_t *key, size_t nkey, struct hash_table *table);
 
 #endif /* _CC_HASH_TABLE_H_ */
