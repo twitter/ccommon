@@ -46,6 +46,9 @@
  * vd [key length] [key] [val]
  * Decrement val: decrements val associated with given key by given val
  *
+ * si [key length] [key]
+ * Init secondary key: creates a zipmap with the given key
+ *
  * ss [key length] [key] [secondary key length] [secondary key] [val length] [val]
  * Set secondary key: sets the value to the key/secondary key pair
  *
@@ -73,6 +76,7 @@ void demo_append_val(void);
 void demo_prepend_val(void);
 void demo_increment_val(void);
 void demo_decrement_val(void);
+void demo_init_secondary(void);
 void demo_set_secondary(void);
 void demo_add_secondary(void);
 void demo_replace_secondary(void);
@@ -87,7 +91,7 @@ int main()
 	char first, second;
 
 	/* fetch command */
-	printf("\nccommon # ");
+	printf("\nccommon# ");
 	while(isspace(first = getchar()));
 	while(isspace(second = getchar()));
 
@@ -139,6 +143,9 @@ int main()
 	}
 	case 's': {
 	    switch(second) {
+	    case 'i':
+		demo_init_secondary();
+		break;
 	    case 's':
 		demo_set_secondary();
 		break;
@@ -442,6 +449,21 @@ demo_decrement_val(void)
     }
 
     decrement_val(key, nkey, val);
+
+    free(key);
+}
+
+void
+demo_init_secondary(void)
+{
+    uint32_t nkey;
+    char *key;
+
+    if(!get_str(&nkey, &key)) {
+	return;
+    }
+
+    zmap_init(key, nkey);
 
     free(key);
 }
