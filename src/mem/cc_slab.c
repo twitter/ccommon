@@ -17,11 +17,11 @@
 
 #include <mem/cc_slab.h>
 
-#include <mem/cc_item.h>
-#include <mem/cc_settings.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
+#include <mem/cc_item.h>
+#include <mem/cc_settings.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -105,24 +105,24 @@ slab_print(void)
 void
 slab_acquire_refcount(struct slab *slab)
 {
-    log_debug(LOG_DEBUG, "acquiring refcount on slab with id %hhu refcount %hu",
+    log_debug(LOG_VVERB, "acquiring refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     slab->refcount++;
-    log_debug(LOG_DEBUG, "refcount now %hu", slab->refcount);
+    log_debug(LOG_VVERB, "refcount now %hu", slab->refcount);
 }
 
 void
 slab_release_refcount(struct slab *slab)
 {
-    log_debug(LOG_DEBUG, "releasing refcount on slab with id %hhu refcount %hu",
+    log_debug(LOG_VVERB, "releasing refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     ASSERT(slab->refcount > 0);
     slab->refcount--;
-    log_debug(LOG_DEBUG, "refcount now %hu", slab->refcount);
+    log_debug(LOG_VVERB, "refcount now %hu", slab->refcount);
 }
 
 size_t
@@ -225,7 +225,7 @@ slab_lruq_touch(struct slab *slab, bool allocated)
         return;
     }
 
-    log_debug(LOG_VERB, "update slab with id %hhu in the slab lruq", slab->id);
+    log_debug(LOG_VVERB, "update slab with id %hhu in the slab lruq", slab->id);
 
     /*pthread_mutex_lock(&slab_lock);*/
     _slab_unlink_lruq(slab);
@@ -317,25 +317,25 @@ slab_heapinfo_init(void)
     if (settings.prealloc) {
         heapinfo.base = cc_alloc(heapinfo.max_nslab * settings.slab_size);
         if (heapinfo.base == NULL) {
-	    log_debug(LOG_ERR, "pre-alloc %zu bytes for %u slabs failed",
+	    log_debug(LOG_CRIT, "pre-alloc %zu bytes for %u slabs failed",
 		    heapinfo.max_nslab * settings.slab_size, heapinfo.max_nslab);
             return CC_ENOMEM;
         }
 
-	log_debug(LOG_VERB, "pre-allocated %zu bytes for %u slabs",
+	log_debug(LOG_INFO, "pre-allocated %zu bytes for %u slabs",
 		settings.maxbytes, heapinfo.max_nslab);
     }
     heapinfo.curr = heapinfo.base;
 
     heapinfo.slab_table = cc_alloc(sizeof(*heapinfo.slab_table) * heapinfo.max_nslab);
     if (heapinfo.slab_table == NULL) {
-	log_debug(LOG_ERR, "creation of slab table with %u entries failed",
+	log_debug(LOG_CRIT, "creation of slab table with %u entries failed",
 		heapinfo.max_nslab);
         return CC_ENOMEM;
     }
     TAILQ_INIT(&heapinfo.slab_lruq);
 
-    log_debug(LOG_VERB, "created slab table with %u entries", heapinfo.max_nslab);
+    log_debug(LOG_INFO, "created slab table with %u entries", heapinfo.max_nslab);
 
     return CC_OK;
 }
@@ -415,7 +415,7 @@ slab_lruq_head()
 static void
 slab_lruq_append(struct slab *slab)
 {
-    log_debug(LOG_VERB, "append slab with id %hhu to lruq", slab->id);
+    log_debug(LOG_VVERB, "append slab with id %hhu to lruq", slab->id);
     TAILQ_INSERT_TAIL(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -423,7 +423,7 @@ slab_lruq_append(struct slab *slab)
 static void
 slab_lruq_remove(struct slab *slab)
 {
-    log_debug(LOG_VERB, "remove slab with id %hhu from lruq", slab->id);
+    log_debug(LOG_VVERB, "remove slab with id %hhu from lruq", slab->id);
     TAILQ_REMOVE(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -675,7 +675,7 @@ slab_get_item_from_freeq(uint8_t id)
     p->nfree_itemq--;
     STAILQ_REMOVE(&p->free_itemq, it, item, stqe);
 
-    log_debug(LOG_VERB, "get free q item with key %s at offset %u with id %hhu",
+    log_debug(LOG_VVERB, "get free q item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
 
     return it;
@@ -742,7 +742,7 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(it->refcount == 0);
     ASSERT(it->offset != 0);
 
-    log_debug(LOG_VERB, "put free queue item with key %s at offset %u with id %hhu",
+    log_debug(LOG_VVERB, "put free queue item with key %s at offset %u with id %hhu",
 	    item_key(it), it->offset, it->id);
 
     it->flags |= ITEM_SLABBED;

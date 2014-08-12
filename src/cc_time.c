@@ -128,5 +128,5 @@ time_init(void)
      */
     process_started = time(NULL) - 2;
 
-    log_debug(LOG_VERB, "process started at %llu", (int64_t)process_started);
+    log_debug(LOG_INFO, "process started at %llu", (int64_t)process_started);
 }

@@ -577,7 +577,7 @@ void
 demo_get_secondary(void)
 {
     uint32_t npkey, nskey, nval;
-    char *pkey, *skey;
+    char *pkey, *skey, *val_cpy;
     void *val;
 
     if(!get_str(&npkey, &pkey)) {
@@ -590,7 +590,10 @@ demo_get_secondary(void)
     }
 
     if(zmap_get(pkey, npkey, skey, nskey, &val, &nval) == ZMAP_GET_OK) {
-	printf("val: %s\n", (char *)val);
+	val_cpy = malloc(nval + 1);
+	memcpy(val_cpy, val, nval);
+	val_cpy[nval] = '\0';
+	printf("val: %s\n", val_cpy);
     } else {
 	printf("get failed\n");
     }

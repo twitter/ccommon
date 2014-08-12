@@ -70,7 +70,7 @@ static bool item_is_contained(struct item *it, struct item *candidate);
 rstatus_t
 item_init(uint32_t hash_power)
 {
-    log_debug(LOG_VERB, "item header size: %zu\n", ITEM_HDR_SIZE);
+    log_debug(LOG_INFO, "item header size: %zu\n", ITEM_HDR_SIZE);
 
     /*pthread_mutex_init(&cache_lock, NULL);*/
 
@@ -557,7 +557,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
 	    if(current_node == NULL) {
 		/* Could not successfully allocate item(s) */
-		log_debug(LOG_VERB, "server error on allocating item in slab %hhu",
+		log_debug(LOG_WARN, "server error on allocating item in slab %hhu",
 			   id);
 		return NULL;
 	    }
@@ -653,7 +653,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     if(it == NULL) {
 	/* Could not successfully allocate item */
-	log_debug(LOG_VERB, "server error on allocating item in slab %hhu", id);
+	log_debug(LOG_WARN, "server error on allocating item in slab %hhu", id);
 	return NULL;
     }
 
@@ -787,19 +787,17 @@ _item_get(const uint8_t *key, size_t nkey)
 
     it = hash_table_find(key, nkey, &mem_hash_table);
     if (it == NULL) {
-	log_debug(LOG_VERB, "get item %s not found", key);
         return NULL;
     }
 
     if (it->exptime != 0 && it->exptime <= time_now()) {
         _item_unlink(it);
-	log_debug(LOG_VERB, "get item %s expired and nuked", key);
         return NULL;
     }
 
     item_acquire_refcount(it);
 
-    log_debug(LOG_VERB, "get item %s found at offset %u with flags %hhu id %hhu",
+    log_debug(LOG_VVERB, "get item %s found at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 
     return it;
@@ -827,7 +825,7 @@ _item_set(struct item *it)
         _item_remove(oit);
     }
 
-    log_debug(LOG_VERB, "store item %s at offset %u with flags %hhu id %hhu",
+    log_debug(LOG_VVERB, "store item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
 }
 
@@ -851,14 +849,14 @@ _item_cas(struct item *it)
 
     /* oit is not NULL, some item was found */
     if (item_get_cas(it) != item_get_cas(oit)) {
-	log_debug(LOG_VERB, "cas mismatch %llu != %llu on item %s",
+	log_debug(LOG_VVERB, "cas mismatch %llu != %llu on item %s",
 		item_get_cas(oit), item_get_cas(it), item_key(it));
 	_item_remove(oit);
 	return CAS_EXISTS;
     }
 
     _item_relink(oit, it);
-    log_debug(LOG_VERB, "cas item %s at offset %u with flags %hhu id %hhu",
+    log_debug(LOG_VVERB, "cas item %s at offset %u with flags %hhu id %hhu",
 	    item_key(it), it->offset, it->flags, it->id);
     _item_remove(oit);
     return CAS_OK;
@@ -888,7 +886,7 @@ _item_add(struct item *it)
 
         ret = ADD_OK;
 
-	log_debug(LOG_VERB, "add item %s at offset %u with flags %hhu id %hhu",
+	log_debug(LOG_VVERB, "add item %s at offset %u with flags %hhu id %hhu",
 		item_key(it), it->offset, it->flags, it->id);
     }
 
@@ -912,7 +910,7 @@ _item_replace(struct item *it)
     if (oit == NULL) {
         ret = REPLACE_NOT_FOUND;
     } else {
-	log_debug(LOG_VERB, "replace oit %s at offset %u with flags %hhu id %hhu",
+	log_debug(LOG_VVERB, "replace oit %s at offset %u with flags %hhu id %hhu",
 		item_key(oit), oit->offset, oit->flags, oit->id);
 
         _item_relink(oit, it);

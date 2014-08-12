@@ -992,14 +992,26 @@ compare_int(const void *a, const void *b)
 void
 get_time_stats(uint32_t *times, uint32_t ntimes)
 {
+    uint64_t sum = 0;
+    uint32_t i;
     qsort(times, ntimes, sizeof(uint32_t), compare_int);
+
+    for(i = 0; i < ntimes; ++i) {
+	sum += times[i];
+    }
+
     printf("sample size: %u\nall times in nanoseconds\n"
 	   "min: %u\n25th percentile: %u\n"
 	   "50th percentile: %u\n75th percentile: %u\n90th percentile: %u\n"
 	   "95th percentile: %u\n99th percentile: %u\n99.9th percentile: %u\n"
-	   "max: %u\n\n", ntimes, times[0], times[(int)((double)ntimes * 0.25)],
-	   times[(int)((double)ntimes * 0.5)], times[(int)((double)ntimes * 0.75)],
-	   times[(int)((double)ntimes * 0.9)], times[(int)((double)ntimes * 0.95)],
-	   times[(int)((double)ntimes * 0.99)], times[(int)((double)ntimes * 0.999)],
-	   times[ntimes - 1]);
+	   "max: %u\navg: %llu\n\n", ntimes, times[0],
+	   times[(int)((double)ntimes * 0.25)],
+	   times[(int)((double)ntimes * 0.5)],
+	   times[(int)((double)ntimes * 0.75)],
+	   times[(int)((double)ntimes * 0.9)],
+	   times[(int)((double)ntimes * 0.95)],
+	   times[(int)((double)ntimes * 0.99)],
+	   times[(int)((double)ntimes * 0.999)],
+	   times[ntimes - 1],
+	   sum / ntimes);
 }

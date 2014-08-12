@@ -22,12 +22,11 @@
 
 #include <hash/cc_hash_table.h>
 
-#include <hash/cc_hash.h>
 #include <cc_debug.h>
-#include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_queue.h>
 #include <cc_string.h>
+#include <hash/cc_hash.h>
 
 #define HASHSIZE(_n) (1UL << (_n))
 #define HASHMASK(_n) (HASHSIZE(_n) - 1)

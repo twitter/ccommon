@@ -20,8 +20,8 @@
 
 #include <cc_debug.h>
 #include <cc_define.h>
-#include <cc_time.h>
 #include <cc_queue.h>
+#include <cc_time.h>
 #include <cc_util.h>
 
 #include <stdbool.h>

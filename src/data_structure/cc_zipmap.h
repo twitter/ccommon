@@ -18,14 +18,14 @@
 #ifndef _CC_ZIPMAP_H_
 #define _CC_ZIPMAP_H_
 
+#include <cc_array.h>
+#include <cc_define.h>
+
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#include <cc_array.h>
-#include <cc_define.h>
 
 struct item;
 

@@ -17,14 +17,14 @@
 
 #include <mem/cc_mem_interface.h>
 
-#include <mem/cc_item.h>
-#include <mem/cc_settings.h>
-#include <mem/cc_slab.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_string.h>
 #include <cc_time.h>
+#include <mem/cc_item.h>
+#include <mem/cc_settings.h>
+#include <mem/cc_slab.h>
 
 #include <limits.h>
 
@@ -229,7 +229,7 @@ remove_key(void *key, uint8_t nkey)
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
 	log_debug(LOG_NOTICE, "key %s does not exist", key);
     } else {
-	log_debug(LOG_NOTICE, "Item %s deleted", key);
+	log_debug(LOG_VERB, "Item %s deleted", key);
     }
 }
 
@@ -244,7 +244,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     ret = item_alloc(nkey, time_now() + 6000, nval);
 
     if(ret == NULL) {
-	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
+	log_debug(LOG_WARN, "Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -276,7 +276,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     ret = item_alloc(nkey, time_now() + 6000, nval);
 
     if(ret == NULL) {
-	log_debug(LOG_NOTICE, "Not enough memory to allocate item");
+	log_debug(LOG_WARN, "Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -302,7 +302,7 @@ check_annex_status(item_annex_result_t ret)
 	log_debug(LOG_NOTICE, "Cannot annex: no item with that key found");
 	break;
     case ANNEX_EOM:
-	log_debug(LOG_NOTICE, "Cannot annex: not enough memory");
+	log_debug(LOG_WARN, "Cannot annex: not enough memory");
 	break;
     default:
 	break;
@@ -323,7 +323,7 @@ check_delta_status(item_delta_result_t ret)
 	log_debug(LOG_NOTICE, "Cannot perform delta operation: value is not numeric.");
 	break;
     case DELTA_EOM:
-	log_debug(LOG_NOTICE, "Cannot perform delta operation: not enough memory.");
+	log_debug(LOG_WARN, "Cannot perform delta operation: not enough memory.");
 	break;
     case DELTA_CHAINED:
 	log_debug(LOG_NOTICE, "Cannot perform delta operation: target is chained.");
