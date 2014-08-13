@@ -44,6 +44,7 @@ struct slabclass slabclass[SLABCLASS_MAX_IDS];
 uint8_t slabclass_max_id;                 /* maximum slabclass id */
 static struct slab_heapinfo heapinfo;     /* info of all allocated slabs */
 /*pthread_mutex_t slab_lock;*/            /* lock protecting slabclass and heapinfo */
+static bool evict_enabled = true;
 
 #define SLAB_RAND_MAX_TRIES         50
 #define SLAB_LRU_MAX_TRIES          50
@@ -237,6 +238,18 @@ uint32_t
 slab_item_max_nbyte(uint8_t id, uint8_t nkey)
 {
     return slab_item_size(id) - ITEM_HDR_SIZE - nkey;
+}
+
+void
+slab_disable_eviction(void)
+{
+    evict_enabled = false;
+}
+
+void
+slab_enable_eviction(void)
+{
+    evict_enabled = true;
 }
 
 /*
@@ -628,16 +641,17 @@ slab_get(uint8_t id)
     slab = slab_get_new();
 
     /* If failed to get a slab from the slab pool, evict */
-    if (slab == NULL && settings.evict_lru) {
-        slab = slab_evict_lru(id);
-    } else if (slab == NULL) {
-        slab = slab_evict_rand();
+    if(evict_enabled && slab == NULL) {
+	if(settings.evict_lru) {
+	    slab = slab_evict_lru(id);
+	} else {
+	    slab = slab_evict_rand();
+	}
     }
 
-    /* Got slab, prepare it for use */
-    if (slab != NULL) {
-        slab_add_one(slab, id);
-        return CC_OK;
+    if(slab != NULL) {
+	slab_add_one(slab, id);
+	return CC_OK;
     }
 
     return CC_ENOMEM;

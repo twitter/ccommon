@@ -58,7 +58,7 @@ void get_getval_benchmark(uint32_t nval, uint32_t sample_size);
 void get_remove_benchmark(uint32_t nval, uint32_t sample_size);
 void get_zipmap_replace_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t new_nval, uint32_t sample_size);
 void get_zipmap_delete_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size);
-void get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size);
+void get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size, uint32_t index);
 
 void print_times(uint32_t *times, uint32_t ntimes);
 int compare_int(const void *a, const void *b);
@@ -73,14 +73,14 @@ main()
 
     cc_alloc_benchmark();
 
-    set_benchmark();
-    add_benchmark();
-    replace_benchmark();
-    append_benchmark();
-    prepend_benchmark();
-    delta_benchmark();
-    get_benchmark();
-    remove_benchmark();
+    /* set_benchmark(); */
+    /* add_benchmark(); */
+    /* replace_benchmark(); */
+    /* append_benchmark(); */
+    /* prepend_benchmark(); */
+    /* delta_benchmark(); */
+    /* get_benchmark(); */
+    /* remove_benchmark(); */
     zmap_benchmark();
 
     return 0;
@@ -429,10 +429,10 @@ void
 zmap_benchmark(void)
 {
     zmap_init("zmap", 4);
-    zmap_set_benchmark();
-    zmap_add_benchmark();
-    zmap_replace_benchmark();
-    zmap_delete_benchmark();
+    /* zmap_set_benchmark(); */
+    /* zmap_add_benchmark(); */
+    /* zmap_replace_benchmark(); */
+    /* zmap_delete_benchmark(); */
     zmap_get_benchmark();
 }
 
@@ -554,24 +554,109 @@ void
 zmap_get_benchmark(void)
 {
     printf("-------------------- Zipmap Get Benchmarks --------------------\n");
-    printf("Benchmark %hu: Getting 4 byte value from zipmap with 100 items\n",
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 100, 10000, 0);
+    printf("Benchmark %hu: Getting 1 KB value from beginning of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 100, 5000, 0);
+    printf("Benchmark %hu: Getting 100 KB value from beginning of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 100, 3000, 0);
+
+
+
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 1000, 5000, 0);
+    printf("Benchmark %hu: Getting 1 KB value from beginning of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 1000, 2500, 0);
+    printf("Benchmark %hu: Getting 100 KB value from beginning of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000, 0);
+
+
+
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 100, 10000, 49);
+    printf("Benchmark %hu: Getting 1 KB value from middle of zipmap with 100 items\n",
 	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, 4, 100, 10000);
-    printf("Benchmark %hu: Getting 1 KB value from zipmap with 100 items\n",
+    get_zipmap_get_benchmark("zmap", 4, KB, 100, 5000, 49);
+    printf("Benchmark %hu: Getting 100 KB value from middle of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 100, 3000, 49);
+
+
+
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 1000, 5000, 499);
+    printf("Benchmark %hu: Getting 1 KB value from middle of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 1000, 2500, 499);
+    printf("Benchmark %hu: Getting 100 KB value from middle of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000, 499);
+
+
+
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 100, 10000, 99);
+    printf("Benchmark %hu: Getting 1 KB value from end of zipmap with 100 items\n",
 	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, KB, 100, 5000);
-    printf("Benchmark %hu: Getting 100 KB value from zipmap with 100 items\n",
-	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 100, 3000);
-    printf("Benchmark %hu: Getting 4 byte value from zipmap with 1000 items\n",
-	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, 4, 1000, 5000);
-    printf("Benchmark %hu: Getting 1 KB value from zipmap with 1000 items\n",
-	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, KB, 1000, 2500);
-    printf("Benchmark %hu: Getting 100 KB value from zipmap with 1000 items\n",
-	   ++nbenchmark);
-    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000);
+    get_zipmap_get_benchmark("zmap", 4, KB, 100, 5000, 99);
+    printf("Benchmark %hu: Getting 100 KB value from end of zipmap with 100 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 100, 3000, 99);
+
+
+
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 1000, 5000, 999);
+    printf("Benchmark %hu: Getting 1 KB value from end of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, KB, 1000, 2500, 999);
+    printf("Benchmark %hu: Getting 100 KB value from end of zipmap with 1000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 100 * KB, 1000, 1000, 999);
+
+    printf("-------------------- Zipmap Get Benchmarks: num items --------------------\n");
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 20 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20, 10000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 20 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20, 10000, 9);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 20 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20, 10000, 19);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 200 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200, 5000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 200 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200, 5000, 99);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 200 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200, 5000, 199);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 500 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 500, 5000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 500 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 500, 5000, 249);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 500 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 500, 5000, 499);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 2000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 2000, 3000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 2000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 2000, 3000, 999);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 2000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 2000, 3000, 1999);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 5000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 5000, 3000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 5000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 5000, 3000, 2499);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 5000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 5000, 3000, 4999);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 20000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20000, 2000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 20000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20000, 2000, 9999);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 20000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 20000, 2000, 19999);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 50000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 50000, 2000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 50000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 50000, 2000, 24999);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 50000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 50000, 2000, 49999);
+    printf("Benchmark %hu: Getting 4 byte value from beginning of zipmap with 200000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200000, 1000, 0);
+    printf("Benchmark %hu: Getting 4 byte value from middle of zipmap with 200000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200000, 1000, 99999);
+    printf("Benchmark %hu: Getting 4 byte value from end of zipmap with 200000 items\n", ++nbenchmark);
+    get_zipmap_get_benchmark("zmap", 4, 4, 200000, 1000, 199999);
 }
 
 void
@@ -936,10 +1021,12 @@ get_zipmap_delete_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t n
 }
 
 void
-get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size)
+get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num, uint32_t sample_size, uint32_t index)
 {
     uint32_t i;
     uint32_t *times;
+    char skey[20];
+    uint8_t nskey;
 
     times = cc_alloc(sample_size * sizeof(uint32_t));
 
@@ -948,25 +1035,23 @@ get_zipmap_get_benchmark(void *pkey, uint8_t npkey, uint32_t nval, uint32_t num,
 	exit(1);
     }
 
+    nskey = sprintf(skey, "%u", index);
+
+    fill_zipmap(pkey, npkey, nval, num);
+
     for(i = 0; i < sample_size; ++i) {
 	struct timespec before, after;
-	char skey[20];
-	uint8_t nskey;
 	void *val_ptr;
 	uint32_t val_len;
-
-	nskey = sprintf(skey, "%u", i % num);
-
-	fill_zipmap(pkey, npkey, nval, num);
 
 	before = orwl_gettime();
 	zmap_get(pkey, npkey, skey, nskey, &val_ptr, &val_len);
 	after = orwl_gettime();
 
-	empty_zipmap(pkey, npkey);
-
 	times[i] = (after.tv_nsec - before.tv_nsec) + 1000000000 * (after.tv_sec - before.tv_sec);
     }
+
+    empty_zipmap(pkey, npkey);
 
     get_time_stats(times, sample_size);
 

@@ -118,22 +118,21 @@ typedef enum item_delta_result {
  * - data
  */
 
-/* TODO: move next_node and head for more compact memory alignment */
 struct item {
 #if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     uint32_t           magic;       /* item magic (const) */
 #endif
     STAILQ_ENTRY(item) stqe;        /* link in hash/free queue */
+#if defined CC_CHAINED && CC_CHAINED == 1
+    struct item        *next_node;  /* next node, if item is chained */
+    struct item        *head;       /* head node */
+#endif
     rel_time_t         exptime;     /* expiry time in secs */
     uint32_t           nbyte;       /* data size */
     uint32_t           offset;      /* offset of item in slab */
     uint16_t           refcount;    /* # concurrent users of item */
     uint8_t            flags;       /* item flags */
     uint8_t            nkey;        /* key length */
-#if defined CC_CHAINED && CC_CHAINED == 1
-    struct item        *next_node;  /* next node, if item is chained */
-    struct item        *head;       /* head node */
-#endif
     uint8_t               data[1];      /* item data */
 };
 
