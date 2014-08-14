@@ -46,9 +46,14 @@ START_TEST(check_mem_basic)
     init_settings();
     time_init();
 
-    return_status = item_init(0); /* Parameter is hash table power, 0 for default. */
+    return_status = item_init();
     if(return_status != CC_OK) {
 	ck_abort_msg("Item init failed! Error code %d", return_status);
+    }
+
+    return_status = item_hash_init(0); /* Parameter is hash table power, 0 for default. */
+    if(return_status != CC_OK) {
+	ck_abort_msg("Slab init failed! Error code %d", return_status);
     }
 
     return_status = slab_init();
@@ -154,9 +159,14 @@ START_TEST(check_mem_replace)
     init_settings();
     time_init();
 
-    return_status = item_init(0);
+    return_status = item_init();
     if(return_status != CC_OK) {
 	ck_abort_msg("Item init failed! Error code %d", return_status);
+    }
+
+    return_status = item_hash_init(0);
+    if(return_status != CC_OK) {
+	ck_abort_msg("Item hash init failed! Error code %d", return_status);
     }
 
     return_status = slab_init();
@@ -194,9 +204,14 @@ START_TEST(check_zipmap_basic)
     init_settings();
     time_init();
 
-    return_status = item_init(0);
+    return_status = item_init();
     if(return_status != CC_OK) {
 	ck_abort_msg("Item init failed! Error code %d", return_status);
+    }
+
+    return_status = item_hash_init(0);
+    if(return_status != CC_OK) {
+	ck_abort_msg("Item hash init failed! error code %d", return_status);
     }
 
     return_status = slab_init();
@@ -391,9 +406,14 @@ START_TEST(check_mem_evict)
     init_settings();
     time_init();
 
-    return_status = item_init(0);
+    return_status = item_init();
     if(return_status != CC_OK) {
 	ck_abort_msg("Item init failed! Error code %d", return_status);
+    }
+
+    return_status = item_hash_init(0);
+    if(return_status != CC_OK) {
+	ck_abort_msg("Item hash init failed! Error code %d", return_status);
     }
 
     return_status = slab_init();

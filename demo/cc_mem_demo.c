@@ -191,8 +191,6 @@ int main()
 void
 init_cache(void)
 {
-    rstatus_t return_status;
-
     init_settings();
     time_init();
 
@@ -201,14 +199,17 @@ init_cache(void)
 	exit(1);
     }
 
-    return_status = item_init(20);
-    if(return_status != CC_OK) {
+    if(item_init() != CC_OK) {
 	log_stderr("fatal: item_init failed!");
 	exit(1);
     }
 
-    return_status = slab_init();
-    if(return_status != CC_OK) {
+    if(item_hash_init(0) != CC_OK) {
+	log_stderr("fatal: item_hash_init failed!");
+	exit(1);
+    }
+
+    if(slab_init() != CC_OK) {
 	log_stderr("fatal: slab_init failed!");
 	exit(1);
     }

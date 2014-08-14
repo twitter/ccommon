@@ -308,7 +308,12 @@ item_total_nbyte(struct item *it)
 /*
  * Initialize/deinitialize item related facilities
  */
-rstatus_t item_init(uint32_t hash_power);
+rstatus_t item_init(void);
+
+/*
+ * Initialize mem module hash table
+ */
+rstatus_t item_hash_init(uint32_t hash_power);
 
 /*
  * Get the slab id of the item

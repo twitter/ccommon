@@ -68,7 +68,7 @@ static bool item_is_contained(struct item *it, struct item *candidate);
 #define GET_ITEM_MAX_TRIES   50
 
 rstatus_t
-item_init(uint32_t hash_power)
+item_init(void)
 {
     log_debug(LOG_INFO, "item header size: %zu\n", ITEM_HDR_SIZE);
 
@@ -76,6 +76,12 @@ item_init(uint32_t hash_power)
 
     cas_id = 0ULL;
 
+    return CC_OK;
+}
+
+rstatus_t
+item_hash_init(uint32_t hash_power)
+{
     return hash_table_init(hash_power, &mem_hash_table);
 }
 
