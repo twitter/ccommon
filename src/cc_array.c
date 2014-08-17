@@ -96,6 +96,7 @@ array_destroy(struct array **arr)
 {
     array_data_destroy(*arr);
     cc_free(*arr);
+    *arr = NULL;
 }
 
 /* index of the given element address in the array */

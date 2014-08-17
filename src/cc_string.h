@@ -25,6 +25,7 @@
 
 #include <cc_define.h>
 
+/* TODO(yao): separate byte string related functionalities into cc_bstring */
 struct bstring {
     uint32_t len;   /* string length */
     uint8_t  *data; /* string data */

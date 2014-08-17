@@ -34,6 +34,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =					\
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
+	$(top_srcdir)/config.h						\
 	cc_array.h							\
 	cc_debug.h							\
 	cc_define.h							\
