@@ -23,6 +23,7 @@
 #include <cc_queue.h>
 #include <cc_time.h>
 #include <cc_util.h>
+#include <mem/cc_settings.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -273,12 +274,10 @@ item_2_slab(struct item *it)
     struct slab *slab;
 
     ASSERT(it->magic == ITEM_MAGIC);
-    ASSERT(it->offset < settings.slab_size);
+    ASSERT(it->offset < settings.slab_size.val.uint32_val);
 
     /* Beginning of slab is located at it->offset bytes behind it */
     slab = (struct slab *)((uint8_t *)it - it->offset);
-
-    ASSERT(slab->magic == SLAB_MAGIC);
 
     return slab;
 }

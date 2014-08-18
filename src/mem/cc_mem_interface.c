@@ -23,7 +23,6 @@
 #include <cc_string.h>
 #include <cc_time.h>
 #include <mem/cc_item.h>
-#include <mem/cc_settings.h>
 #include <mem/cc_slab.h>
 
 #include <limits.h>

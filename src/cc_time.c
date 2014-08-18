@@ -17,7 +17,6 @@
 
 #include <cc_time.h>
 
-#include <mem/cc_settings.h>
 #include <cc_log.h>
 
 #include <stdio.h>

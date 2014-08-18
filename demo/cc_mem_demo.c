@@ -191,7 +191,7 @@ int main()
 void
 init_cache(void)
 {
-    init_settings();
+    settings_load("demo.config");
     time_init();
 
     if(log_init(LOG_WARN, "out.txt") == -1) {
@@ -213,33 +213,6 @@ init_cache(void)
 	log_stderr("fatal: slab_init failed!");
 	exit(1);
     }
-}
-
-void
-init_settings(void)
-{
-    settings.prealloc = true;
-    settings.evict_lru = true;
-    settings.use_freeq = true;
-    settings.use_cas = false;
-    settings.maxbytes = 2 * 1024 * (MB + SLAB_HDR_SIZE);
-    settings.slab_size = MB + SLAB_HDR_SIZE;
-    settings.profile[1] = 128;
-    settings.profile[2] = 256;
-    settings.profile[3] = 512;
-    settings.profile[4] = KB;
-    settings.profile[5] = 2 * KB;
-    settings.profile[6] = 4 * KB;
-    settings.profile[7] = 8 * KB;
-    settings.profile[8] = 16 * KB;
-    settings.profile[9] = 32 * KB;
-    settings.profile[10] = 64 * KB;
-    settings.profile[11] = 128 * KB;
-    settings.profile[12] = 256 * KB;
-    settings.profile[13] = 512 * KB;
-    settings.profile[14] = MB;
-    settings.profile_last_id = 14;
-    settings.oldest_live = 6000;
 }
 
 bool

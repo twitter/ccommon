@@ -16,24 +16,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-void init_settings(void);
-
-void
-init_settings(void) {
-    settings.prealloc = true;
-    settings.evict_lru = false;
-    settings.use_freeq = true;
-    settings.use_cas = false;
-    settings.maxbytes = 8448;
-    settings.slab_size = 1056;
-    settings.profile[1] = 128;
-    settings.profile[2] = 256;
-    settings.profile[3] = 512;
-    settings.profile[4] = 1024;
-    settings.profile_last_id = 4;
-    settings.oldest_live = 6000;
-}
-
 START_TEST(check_mem_basic)
 {
     rstatus_t return_status;
@@ -43,7 +25,7 @@ START_TEST(check_mem_basic)
     struct item *it;
     uint32_t i;
 
-    init_settings();
+    settings_load("check.config");
     time_init();
 
     return_status = item_init();
@@ -156,7 +138,6 @@ START_TEST(check_mem_replace)
     rstatus_t return_status;
     char *val;
 
-    init_settings();
     time_init();
 
     return_status = item_init();
@@ -201,7 +182,6 @@ START_TEST(check_zipmap_basic)
     int64_t num;
     struct array numeric_pairs;
 
-    init_settings();
     time_init();
 
     return_status = item_init();
@@ -403,7 +383,6 @@ START_TEST(check_mem_evict)
     uint32_t i, n;
     char *val, *key;
 
-    init_settings();
     time_init();
 
     return_status = item_init();

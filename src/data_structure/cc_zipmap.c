@@ -171,9 +171,6 @@ set_numeric_pair(void *pair, void *pkey)
     struct item *it;
     struct zmap *zmap;
 
-    ASSERT(zmap_check_size((buf_t)pkey->nbuf, (key_numeric_pair_t)pair->nkey,
-			   sizeof(int64_t)));
-
     it = item_get(((buf_t *)pkey)->buf, ((buf_t *)pkey)->nbuf);
     zmap = item_to_zmap(it);
 
@@ -762,7 +759,6 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry,
     struct zmap_entry *iter;
 
     ASSERT(zmap != NULL);
-    ASSERT(zmap_entry != NULL);
     ASSERT(zmap->len > 0);
 
 #if defined CC_CHAINED && CC_CHAINED == 1

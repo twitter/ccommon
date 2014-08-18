@@ -18,28 +18,55 @@
 #ifndef _CC_SETTINGS_H_
 #define _CC_SETTINGS_H_
 
+#include <cc_define.h>
 #include <cc_time.h>
-#include <mem/cc_slab.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 
+/*
+ *         NAME             REQUIRED        TYPE                DYNAMIC         DEFAULT             DESCRIPTION
+ */
+#define SETTINGS_MEM(ACTION)                                                                                                                                        \
+    ACTION(prealloc,        true,           bool_val,           false,          false,              "Whether or not slabs are preallocated upon startup")           \
+    ACTION(evict_lru,       false,          bool_val,           true,           true,               "Whether we use an LRU eviction scheme or random eviction")     \
+    ACTION(use_freeq,       false,          bool_val,           true,           true,               "Whether we use items in the free queue or not")                \
+    ACTION(use_cas,         false,          bool_val,           false,          false,              "Whether or not check-and-set is supported")                    \
+    ACTION(maxbytes,        true,           uint64_val,         false,          0,                  "Maximum bytes allowed for slabs")                              \
+    ACTION(slab_size,       true,           uint32_val,         false,          0,                  "Number of bytes in each slab")                                 \
+    ACTION(hash_power,      false,          uint8_val,          false,          0,                  "Default hash table power")                                     \
+    ACTION(profile,         true,           uint32ptr_val,      false,          NULL,               "Slab profile - slab class sizes")                              \
+    ACTION(profile_last_id, true,           uint8_val,          false,          0,                  "Last id in the slab profile array")                            \
+    ACTION(oldest_live,     false,          reltime_val,        true,           6000,               "Ignore existing items older than this")                        \
+
+
+#define SETTINGS_DECLARE(_name, _required, _type, _dynamic, _default, _description) \
+    struct setting _name;
+
+//    struct setting _name = { .val._type = (_default), .required = (_required), .dynamic = (_dynamic), .desc = _description, .initialized = false };
+
+
 struct settings {
-    bool            prealloc;  /* memory  : whether we preallocate for slabs */
-    bool            evict_lru; /* memory  : if true, use lru eviction; else, random */
-    bool            use_freeq; /* memory  : whether use items in freeq or not */
-    bool            use_cas;   /* protocol: whether cas is supported */
+    struct setting {
+	const bool required;
+	const bool dynamic;
+	bool initialized;
+	const char *desc;
+	union val_u {
+	    bool bool_val;
+	    uint8_t uint8_val;
+	    uint32_t uint32_val;
+	    uint64_t uint64_val;
+	    rel_time_t reltime_val;
+	    uint32_t *uint32ptr_val;
+	} val;
+    };
 
-    size_t          maxbytes; /* memory   : maximum bytes allowed for slabs */
-    size_t          slab_size; /* memory  : slab size */
-    uint32_t        hash_power; /* hash   : hash power (default is 16) */
-
-    size_t          profile[SLABCLASS_MAX_IDS]; /* memory  : slab profile */
-    uint8_t         profile_last_id; /* memory  : last id in slab profile */
-
-    rel_time_t      oldest_live; /* data  : ignore existing items older than this */
+    SETTINGS_MEM(SETTINGS_DECLARE)
 };
 
 extern struct settings settings;
+
+rstatus_t settings_load(char *config_file);
 
 #endif

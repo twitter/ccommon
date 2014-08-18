@@ -10,7 +10,7 @@ AM_CPPFLAGS = -D_GNU_SOURCE -D_FILE_OFFSET_BITS=AM
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
-AM_CFLAGS += -fstrict-aliasing -flat_namespace
+AM_CFLAGS += -fstrict-aliasing -flat_namespace -std=c99
 AM_CFLAGS += -g
 
 AM_LDFLAGS = -rdynamic -Wl -flat_namespace
@@ -22,6 +22,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_mbuf.c							\
 	cc_mm.c								\
 	cc_nio.c							\
+	cc_sds.c							\
 	cc_string.c							\
 	cc_time.c                                           	        \
 	event/cc_epoll.c						\
@@ -44,6 +45,7 @@ ccommon_include_HEADERS =						\
 	cc_mm.h								\
 	cc_nio.h							\
 	cc_queue.h							\
+	cc_sds.h							\
 	cc_string.h							\
 	cc_define.h							\
 	cc_time.h                                                   	\
