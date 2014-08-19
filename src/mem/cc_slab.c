@@ -20,8 +20,8 @@
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
+#include <cc_settings.h>
 #include <mem/cc_item.h>
-#include <mem/cc_settings.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -109,7 +109,9 @@ slab_acquire_refcount(struct slab *slab)
     log_debug(LOG_VVERB, "acquiring refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
+
     ASSERT(slab->magic == SLAB_MAGIC);
+
     slab->refcount++;
     log_debug(LOG_VVERB, "refcount now %hu", slab->refcount);
 }
@@ -511,7 +513,7 @@ slab_evict_one(struct slab *slab)
         ASSERT(it->offset != 0);
 
 	/* If it is in hash, reuse it. Otherwise, take it off the free queue */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
         if(it->head != NULL && item_is_linked(it->head)) {
 #else
         if(item_is_linked(it)) {
@@ -749,7 +751,7 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(item_2_slab(it)->id == id);
     ASSERT(!item_is_linked(it));
     ASSERT(!item_is_slabbed(it));
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     ASSERT(!item_is_chained(it));
     ASSERT(it->next_node == NULL);
 #endif

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <mem/cc_settings.h>
+#include <cc_settings.h>
 
 #include <cc_define.h>
 #include <cc_log.h>

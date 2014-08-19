@@ -58,7 +58,7 @@ static void item_append_same_id(struct item *oit, struct item *it, uint32_t
 static void item_prepend_same_id(struct item *oit, struct item *it, uint32_t
 				 total_nbyte);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static void item_prepare_tail(struct item *nit);
 static bool item_is_contained(struct item *it, struct item *candidate);
 #endif
@@ -117,7 +117,7 @@ item_hdr_init(struct item *it, uint32_t offset)
     it->offset = offset;
     it->refcount = 0;
     it->flags = 0;
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     it->next_node = NULL;
     it->head = NULL;
 #endif
@@ -128,7 +128,7 @@ item_hdr_init(struct item *it, uint32_t offset)
  * evicting a slab does not necessarily evict all items with nodes in that
  * slab; this is a possibility worth considering later
  */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 void
 item_reuse(struct item *it)
 {
@@ -319,7 +319,7 @@ item_delete(uint8_t *key, size_t nkey)
 }
 
 /* Chaining specific functions */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 uint32_t
 item_num_nodes(struct item *it)
 {
@@ -426,7 +426,7 @@ item_acquire_refcount(struct item *it)
 
     it->refcount++;
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     for(; it != NULL; it = it->next_node) {
 	slab_acquire_refcount(item_2_slab(it));
     }
@@ -447,7 +447,7 @@ item_release_refcount(struct item *it)
 
     it->refcount--;
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     for(; it != NULL; it = it->next_node) {
 	slab_release_refcount(item_2_slab(it));
     }
@@ -465,7 +465,7 @@ item_free(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_linked(it));
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     /* Keep two pointers to the chain of items, one to do the freeing (prev) and
        the other to keep a handle on the rest of the chain (it) */
     struct item *prev = it;
@@ -535,7 +535,7 @@ strtoull_len(const uint8_t *str, uint64_t *out, size_t len)
  * Allocate an item. We allocate an item by consuming the next free item from
  * the item's slab class.
  */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static struct item *
 _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 {
@@ -632,7 +632,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
 	      " refcount %hu", it->offset, item_id(it), it->exptime,
-	    it->refcount);
+	      it->refcount);
 
     return it;
 }
@@ -823,6 +823,7 @@ _item_set(struct item *it)
 
     key = item_key(it);
     oit = _item_get(key, it->nkey);
+
     if (oit == NULL) {
         _item_link(it);
     } else {
@@ -831,7 +832,7 @@ _item_set(struct item *it)
     }
 
     log_debug(LOG_VVERB, "store item %s at offset %u with flags %hhu id %hhu",
-	      item_key(it), it->offset, it->flags, item_id(it));
+    	      item_key(it), it->offset, it->flags, item_id(it));
 }
 
 /*
@@ -927,7 +928,7 @@ _item_replace(struct item *it)
     return ret;
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 /* Append for chaining enabled */
 static item_annex_result_t
 _item_append(struct item *it, bool contig)
@@ -1148,7 +1149,7 @@ _item_append(struct item *it, bool contig)
 }
 #endif
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static item_annex_result_t
 _item_prepend(struct item *it)
 {
@@ -1342,7 +1343,7 @@ _item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta)
 
     /* it is not NULL, needs to have reference count decremented */
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     if(item_is_chained(it)) {
 	_item_remove(it);
 	return DELTA_CHAINED;
@@ -1424,7 +1425,7 @@ item_prepend_same_id(struct item *oit, struct item *it, uint32_t total_nbyte)
     item_set_cas(oit, item_next_cas());
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 /* Prepare nit to be the tail of a chained object */
 static void
 item_prepare_tail(struct item *nit)

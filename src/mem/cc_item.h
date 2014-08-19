@@ -21,9 +21,9 @@
 #include <cc_debug.h>
 #include <cc_define.h>
 #include <cc_queue.h>
+#include <cc_settings.h>
 #include <cc_time.h>
 #include <cc_util.h>
-#include <mem/cc_settings.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -36,7 +36,7 @@ typedef enum item_flags {
     ITEM_CAS     = 2,  /* item has cas */
     ITEM_SLABBED = 4,  /* item in free q */
     ITEM_RALIGN  = 8,  /* item data (payload) is right-aligned */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     ITEM_CHAINED = 16, /* item is chained */
 #endif
 } item_flags_t;
@@ -124,7 +124,7 @@ struct item {
     uint32_t           magic;       /* item magic (const) */
 #endif
     STAILQ_ENTRY(item) stqe;        /* link in hash/free queue */
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     struct item        *next_node;  /* next node, if item is chained */
     struct item        *head;       /* head node */
 #endif
@@ -191,7 +191,7 @@ item_is_raligned(struct item *it) {
     return (it->flags & ITEM_RALIGN);
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static inline bool
 item_is_chained(struct item *it) {
     return (it->flags & ITEM_CHAINED);
@@ -290,7 +290,7 @@ item_total_nbyte(struct item *it)
 {
     ASSERT(it != NULL);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     uint64_t nbyte = 0;
 
     ASSERT(it->head == it);
@@ -369,7 +369,7 @@ item_delta_result_t item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t de
 /* Unlink an item. Removes it if its refcount drops to zero. */
 item_delete_result_t item_delete(uint8_t *key, size_t nkey);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 /* Get the number of nodes in the item */
 uint32_t item_num_nodes(struct item *it);
 

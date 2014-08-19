@@ -23,6 +23,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_mm.c								\
 	cc_nio.c							\
 	cc_sds.c							\
+	cc_settings.c							\
 	cc_string.c							\
 	cc_time.c                                           	        \
 	event/cc_epoll.c						\
@@ -32,7 +33,6 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	mem/cc_mem_globals.c						\
 	mem/cc_mem_interface.c						\
 	mem/cc_item.c							\
-	mem/cc_settings.c						\
 	mem/cc_slab.c							\
 	data_structure/cc_zipmap.c
 
@@ -46,6 +46,7 @@ ccommon_include_HEADERS =						\
 	cc_nio.h							\
 	cc_queue.h							\
 	cc_sds.h							\
+	cc_settings.h							\
 	cc_string.h							\
 	cc_define.h							\
 	cc_time.h                                                   	\
@@ -54,8 +55,6 @@ ccommon_include_HEADERS =						\
 	hash/cc_hash.h							\
 	hash/cc_hash_table.h						\
 	mem/cc_mem_globals.h						\
-	mem/cc_mem_interface.h						\
 	mem/cc_item.h							\
-	mem/cc_settings.h						\
 	mem/cc_slab.h							\
 	data_structure/cc_zipmap.h

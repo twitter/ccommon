@@ -1,11 +1,11 @@
 #include <mem/cc_mem_interface.h>
-#include <mem/cc_settings.h>
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
+#include <cc_settings.h>
 #include <cc_string.h>
 #include <hash/cc_hash_table.h>
 
@@ -64,7 +64,7 @@
  * sg [key length] [key] [secondary key length] [secondary key]
  * Get secondary key: gets value associated with key/secondary key
  */
-void init_cache(void);
+void init_cache(char *config_file);
 void init_settings(void);
 bool get_str(uint32_t *len, char **str);
 void demo_set_key(void);
@@ -83,9 +83,14 @@ void demo_replace_secondary(void);
 void demo_delete_secondary(void);
 void demo_get_secondary(void);
 
-int main()
+int main(int argc, char *argv[])
 {
-    init_cache();
+    if(argc < 2) {
+	printf("usage: memdemo [config file]\n");
+	return 1;
+    }
+
+    init_cache(argv[1]);
 
     while(true) {
 	char first, second;
@@ -189,9 +194,9 @@ int main()
 }
 
 void
-init_cache(void)
+init_cache(char *config_file)
 {
-    settings_load("demo.config");
+    settings_load(config_file);
     time_init();
 
     if(log_init(LOG_WARN, "out.txt") == -1) {

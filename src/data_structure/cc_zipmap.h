@@ -31,7 +31,7 @@ struct item;
 
 typedef enum entry_flags {
     ENTRY_IS_NUMERIC = 1,
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     ENTRY_LAST_IN_NODE = 2,
 #endif
 } entry_flags_t;
@@ -125,7 +125,7 @@ entry_is_numeric(struct zmap_entry *entry)
     return (entry->flags & ENTRY_IS_NUMERIC);
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static inline bool
 entry_last_in_node(struct zmap_entry *entry)
 {

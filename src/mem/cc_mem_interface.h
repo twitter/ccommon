@@ -73,7 +73,7 @@ void decrement_val(void *key, uint8_t nkey, uint64_t delta);
  */
 uint64_t get_val_size(void *key, uint8_t nkey);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 /*
  * Get the number of nodes for the item with the given key
  */

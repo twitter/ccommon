@@ -47,7 +47,7 @@ static bool zmap_item_append(struct item *it, void *new_item_buffer, size_t entr
 static void zmap_advance_entry(struct zmap_entry **entry, struct item **it);
 static bool zmap_check_size(uint8_t npkey, uint8_t nskey, uint32_t nval);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static void zmap_realloc_from_tail(struct item *it, struct item *node);
 static struct zmap_entry *zmap_get_prev_entry(struct item *node, struct zmap_entry *entry, bool head);
 #endif
@@ -671,14 +671,14 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
     void *new_item_buffer;
     uint8_t it_key[UCHAR_MAX];
     uint8_t it_nkey;
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     uint32_t num_nodes_before;
 #endif
 
     ASSERT(it != NULL);
     it_nkey = it->nkey;
     cc_memcpy(it_key, item_key(it), it_nkey);
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     num_nodes_before = item_num_nodes(it);
 #endif
 
@@ -693,7 +693,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
     new_entry_header.nkey = nskey;
     new_entry_header.nval = nval;
     new_entry_header.npadding = entry_size - ZMAP_ENTRY_HDR_SIZE - nskey - nval;
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     new_entry_header.flags = flags | ENTRY_LAST_IN_NODE;
 #else
     new_entry_header.flags = flags;
@@ -714,7 +714,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
 
 	++(zmap->len);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 	if(item_num_nodes(it) == num_nodes_before && zmap->len != 1) {
 	    /* Need to unflag second to last entry */
 	    struct item *tail = ichain_tail(it);
@@ -735,7 +735,7 @@ zmap_add_raw(struct item *it, struct zmap *zmap, void *skey, uint8_t nskey,
 static void
 zmap_item_hexdump(struct item *it)
 {
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     uint32_t i;
 
     for(i = 1; it != NULL; ++i, it = it->next_node) {
@@ -761,7 +761,7 @@ zmap_delete_raw(struct item *it, struct zmap *zmap, struct zmap_entry *entry,
     ASSERT(zmap != NULL);
     ASSERT(zmap->len > 0);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     uint32_t deleted_size = entry_size(entry);
 
     if(entry_last_in_node(entry)) {
@@ -918,7 +918,7 @@ zmap_item_append(struct item *it, void *new_item_buffer, size_t entry_size)
     struct item *appended = create_item(item_key(it), it->nkey, new_item_buffer,
 					entry_size);
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     ret = (item_append_contig(appended) == ANNEX_OK);
 #else
     ret = (item_append(appended) == ANNEX_OK);
@@ -935,7 +935,7 @@ zmap_advance_entry(struct zmap_entry **entry, struct item **it)
 {
     ASSERT(*entry != NULL);
     ASSERT(*it != NULL);
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     if(!entry_last_in_node(*entry)) {
 	/* Entry is not last in node, advance it normally */
 	*entry = zmap_entry_next(*entry);
@@ -963,7 +963,7 @@ zmap_check_size(uint8_t npkey, uint8_t nskey, uint32_t nval)
 	slab_item_max_nbyte(slabclass_max_id, npkey);
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 static void
 zmap_realloc_from_tail(struct item *it, struct item *node)
 {

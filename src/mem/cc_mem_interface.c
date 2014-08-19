@@ -111,7 +111,7 @@ get_val_size(void *key, uint8_t nkey)
     return ret;
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 size_t
 get_num_nodes(void *key, uint8_t nkey)
 {
@@ -134,7 +134,7 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
 {
     uint32_t i = 0;
     struct item *it;
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     struct item *iter;
 #endif
 
@@ -147,7 +147,7 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
 	return false;
     }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     /* Store the item payload location and number of bytes for each node into
        vector */
     for(iter = it; iter != NULL; iter = iter->next_node, ++i) {
@@ -168,7 +168,7 @@ bool
 get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 {
     struct item *it;
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     uint64_t amt_copied;
     size_t amt_to_copy;
     struct item *iter;
@@ -183,7 +183,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 	return false;
     }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
     /* Get to the correct node for offset */
     for(iter = it; iter != NULL && offset > iter->nbyte;
 	iter = iter->next_node, offset -= iter->nbyte);
@@ -232,7 +232,7 @@ remove_key(void *key, uint8_t nkey)
     }
 }
 
-#if defined CC_CHAINED && CC_CHAINED == 1
+#if defined CC_HAVE_CHAINED && CC_HAVE_CHAINED == 1
 struct item *
 create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
 {

@@ -1,11 +1,11 @@
-#include <mem/cc_mem_interface.h>
-#include <mem/cc_settings.h>
+#include <mem/cc_mem_interface.h>x
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
+#include <cc_settings.h>
 #include <cc_string.h>
 #include <hash/cc_hash_table.h>
 
@@ -21,7 +21,7 @@
 #define FILL_DEFAULT_NVAL (1000 * (KB))
 #define FILL_DEFAULT_NUM 2048
 
-void init_benchmark(void);
+void init_benchmark(char *config_file);
 void init_settings(void);
 struct timespec orwl_gettime(void);
 void fill_cache_default(void);
@@ -67,9 +67,14 @@ void get_time_stats(uint32_t *times, uint32_t ntimes);
 uint16_t nbenchmark = 0;
 
 int
-main()
+main(int argc, char *argv[])
 {
-    init_benchmark();
+    if(argc < 2) {
+	printf("usage: membenchmark [config file]\n");
+	return 1;
+    }
+
+    init_benchmark(argv[1]);
 
     cc_alloc_benchmark();
 
@@ -87,9 +92,9 @@ main()
 }
 
 void
-init_benchmark(void)
+init_benchmark(char *config_file)
 {
-    settings_load("benchmark.config");
+    settings_load(config_file);
     time_init();
 
     if(log_init(LOG_WARN, "out.txt") == -1) {

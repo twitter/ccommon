@@ -1,7 +1,7 @@
 #include <check.h>
 
 #include "../src/mem/cc_mem_interface.h"
-#include "../src/mem/cc_settings.h"
+#include "../src/cc_settings.h"
 #include "../src/mem/cc_slab.h"
 #include "../src/mem/cc_item.h"
 #include "../src/cc_define.h"
@@ -25,7 +25,7 @@ START_TEST(check_mem_basic)
     struct item *it;
     uint32_t i;
 
-    settings_load("check.config");
+    settings_load("test/check.config");
     time_init();
 
     return_status = item_init();
@@ -138,6 +138,7 @@ START_TEST(check_mem_replace)
     rstatus_t return_status;
     char *val;
 
+    settings_load("test/check.config");
     time_init();
 
     return_status = item_init();
@@ -182,6 +183,7 @@ START_TEST(check_zipmap_basic)
     int64_t num;
     struct array numeric_pairs;
 
+    settings_load("test/check.config");
     time_init();
 
     return_status = item_init();
@@ -383,6 +385,7 @@ START_TEST(check_mem_evict)
     uint32_t i, n;
     char *val, *key;
 
+    settings_load("test/check.config");
     time_init();
 
     return_status = item_init();
