@@ -16,14 +16,13 @@
  */
 
 #ifndef __CC_NIO_H_
-#define __cc_NIO_H_
+#define __CC_NIO_H_
 
 #include <unistd.h>
 #include <sys/socket.h>
 
 #include <cc_array.h>
 #include <cc_define.h>
-#include <cc_queue.h>
 
 /* Note(yao): the abstraction of the io module is subject to re-design in the
  * near future.
@@ -53,9 +52,17 @@
 #define CONN_EOF        2
 #define CONN_CLOSE      3
 
-struct conn {
-    void            *owner;         /* owner of this connection */
+struct conn;
 
+typedef void (*conn_connect_t)(struct conn *);
+typedef void (*conn_close_t)(struct conn *);
+
+typedef struct conn_handler {
+    conn_connect_t  connect;        /* connect handler */
+    conn_close_t    close;          /* close handler */
+} conn_handler_t;
+
+struct conn {
     int             sd;             /* socket descriptor */
     int             family;         /* socket address family */
     socklen_t       addrlen;        /* socket length */
@@ -73,43 +80,13 @@ struct conn {
     unsigned        state:2;        /* connect|connected|eof|close */
     unsigned        flags:12;       /* annotation fields */
 
+    conn_handler_t  *handler;       /* setup and teardown of connections */
+
     err_t           err;            /* errno */
 };
 
-typedef void (*conn_connect_t)(struct conn *);
-typedef void (*conn_close_t)(struct conn *);
-/* generic handlers, such as when read/write events are triggered */
-typedef rstatus_t (*conn_recv_t)(struct conn *); /* generic recv/read */
-typedef rstatus_t (*conn_send_t)(struct conn *); /* generic send/write */
-
-struct conn_handler {
-    conn_connect_t  connect;        /* connect handler */
-    conn_close_t    close;          /* close handler */
-    conn_recv_t     recv;           /* receive handler */
-    conn_send_t     send;           /* send handler */
-};
-
-/**
- * when a framed protocol is used, these callbacks allow I/O on individual
- * messages, and allow handling these messages individually
- */
-struct msg;
-
-typedef struct msg * (*msg_recv_next_t)(struct conn *); /* recv next msg */
-typedef struct msg * (*msg_send_next_t)(struct conn *); /* send next msg */
-/* to trigger next step processing when io is done */
-typedef void (*msg_recv_done_t)(struct conn *, struct msg *); /* post-recv */
-typedef void (*msg_send_done_t)(struct conn *, struct msg *); /* post-send */
-
-struct msg_handler {
-    msg_recv_next_t recv_next;      /* receive next message handler */
-    msg_send_next_t send_next;      /* send next message handler */
-    msg_recv_done_t recv_done;      /* receive done handler */
-    msg_send_done_t send_done;      /* send done handler */
-};
-
-void conn_init(void);
-void conn_deinit(void);
+void conn_setup(void);
+void conn_teardown(void);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);

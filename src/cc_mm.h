@@ -18,6 +18,8 @@
 #ifndef _CC_MM_H_
 #define _CC_MM_H_
 
+#include <stddef.h>
+
 /*
  * Memory allocation and free wrappers with debugging information.
  *

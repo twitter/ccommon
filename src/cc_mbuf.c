@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -26,11 +27,13 @@
 
 #include <cc_mbuf.h>
 
+#define MBUF_MODULE_NAME "ccommon::mbuf"
+
 static uint32_t nfree_mq;   /* # free mbuf */
 static struct mq free_mq; /* free mbuf q */
 
-static size_t mbuf_chunk_size; /* mbuf chunk size (all inclusive, const) */
-static size_t mbuf_offset;     /* mbuf offset/data capacity (const) */
+static uint32_t mbuf_chunk_size = MBUF_SIZE; /* chunk size (all inclusive) */
+static uint32_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
 static struct mbuf *
 _mbuf_get(void)
@@ -107,8 +110,8 @@ mbuf_get(void)
 /*
  * free an mbuf (assuming it has already been unlinked and not corrupted)
  */
-static void
-mbuf_free(struct mbuf *mbuf)
+void
+mbuf_destroy(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
@@ -171,7 +174,7 @@ mbuf_wsize(struct mbuf *mbuf)
 /*
  * total capacity of any mbuf, which are fixed sized and 2^32(4G) bytes at most
  */
-size_t
+uint32_t
 mbuf_capacity(void)
 {
     return mbuf_offset;
@@ -206,7 +209,7 @@ mbuf_remove(struct mq *mq, struct mbuf *mbuf)
  * enough space for n bytes.
  */
 void
-mbuf_copy(struct mbuf *mbuf, uint8_t *addr, size_t n)
+mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n)
 {
     if (n == 0) {
         return;
@@ -222,6 +225,12 @@ mbuf_copy(struct mbuf *mbuf, uint8_t *addr, size_t n)
     mbuf->wpos += n;
 }
 
+void
+mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring bstr)
+{
+    mbuf_copy(mbuf, bstr.data, bstr.len);
+}
+
 /*
  * split the mbuf by copying data from addr onward to a new mbuf
  * before the copy, we invoke a precopy handler cb that will copy a predefined
@@ -231,7 +240,7 @@ struct mbuf *
 mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
 {
     struct mbuf *nbuf;
-    size_t size;
+    uint32_t size;
 
     nbuf = mbuf_get();
     if (nbuf == NULL) {
@@ -244,7 +253,7 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     }
 
     /* copy data from mbuf to nbuf */
-    size = (size_t)(mbuf->wpos - addr);
+    size = mbuf->wpos - addr;
     mbuf_copy(nbuf, addr, size);
 
     /* adjust mbuf */
@@ -261,8 +270,10 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
  * initialize the mbuf module by setting the module-local constants
  */
 void
-mbuf_init(size_t chunk_size)
+mbuf_setup(uint32_t chunk_size)
 {
+    log_debug(LOG_INFO, "set up the %s module", MBUF_MODULE_NAME);
+
     nfree_mq = 0;
     STAILQ_INIT(&free_mq);
 
@@ -278,12 +289,14 @@ mbuf_init(size_t chunk_size)
  * de-initialize the mbuf module by releasing all mbufs from the free_mq
  */
 void
-mbuf_deinit(void)
+mbuf_teardown(void)
 {
+    log_debug(LOG_INFO, "tear down the %s module", MBUF_MODULE_NAME);
+
     while (!STAILQ_EMPTY(&free_mq)) {
         struct mbuf *mbuf = STAILQ_FIRST(&free_mq);
         mbuf_remove(&free_mq, mbuf);
-        mbuf_free(mbuf);
+        mbuf_destroy(mbuf);
         nfree_mq--;
     }
     ASSERT(nfree_mq == 0);

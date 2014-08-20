@@ -15,52 +15,50 @@
  * limitations under the License.
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-
 #include <cc_debug.h>
 #include <cc_mm.h>
 
 #include <cc_string.h>
 
 /*
- * String (struct string) is a sequence of unsigned char objects terminated
- * by the null character '\0'. The length of the string is pre-computed and
- * made available explicitly as an additional field. This means that we don't
- * have to walk the entire character sequence until the null terminating
- * character everytime that the length of the String is requested
+ * Byte string (struct bstring) is a sequence of unsigned char
+ * The length of the string is pre-computed and explicitly available.
+ * This means that we don't have to walk the entire character sequence until
+ * the null terminating character every time. We also treat the strings as
+ * byte strings, meaning we ignore the terminating '\0' and only use the length
+ * information in copy, comparison etc.
  *
- * The only way to create a String is to initialize it using, string_init()
- * and duplicate an existing String - string_duplicate() or copy an existing
- * raw sequence of character bytes - string_copy(). Such String's must be
- * freed using string_deinit()
+ * The only way to create a String is to initialize it using, bstring_init()
+ * and duplicate an existing String - bstring_duplicate() or copy an existing
+ * raw sequence of character bytes - bstring_copy(). Such String's must be
+ * freed using bstring_deinit()
  *
- * We can also create String as reference to raw string - string_set_raw()
- * or to text string - string_set_text() or string(). Such String don't have
- * to be freed.
+ * We can also create String as reference to raw string - bstring_set_raw()
+ * or to string literal - bstring_set_text() or bstring(). Such bstrings don't
+ * have to be freed.
  */
 
 void
-string_init(struct string *str)
+bstring_init(struct bstring *bstr)
 {
-    str->len = 0;
-    str->data = NULL;
+    bstr->len = 0;
+    bstr->data = NULL;
 }
 
 void
-string_deinit(struct string *str)
+bstring_deinit(struct bstring *bstr)
 {
-    ASSERT((str->len == 0 && str->data == NULL) ||
-           (str->len != 0 && str->data != NULL));
+    ASSERT((bstr->len == 0 && bstr->data == NULL) ||
+           (bstr->len != 0 && bstr->data != NULL));
 
-    if (str->data != NULL) {
-        cc_free(str->data);
-        string_init(str);
+    if (bstr->data != NULL) {
+        cc_free(bstr->data);
+        bstring_init(bstr);
     }
 }
 
 bool
-string_empty(const struct string *str)
+bstring_empty(const struct bstring *str)
 {
     ASSERT((str->len == 0 && str->data == NULL) ||
            (str->len != 0 && str->data != NULL));
@@ -68,86 +66,49 @@ string_empty(const struct string *str)
 }
 
 rstatus_t
-string_duplicate(struct string *dst, const struct string *src)
+bstring_duplicate(struct bstring *dst, const struct bstring *src)
 {
     ASSERT(dst->len == 0 && dst->data == NULL);
     ASSERT(src->len != 0 && src->data != NULL);
 
-    dst->data = cc_strndup(src->data, src->len + 1);
+    dst->data = cc_alloc(src->len);
     if (dst->data == NULL) {
         return CC_ENOMEM;
     }
 
+    cc_memcpy(dst->data, src->data, src->len);
     dst->len = src->len;
-    dst->data[dst->len] = '\0';
 
     return CC_OK;
 }
 
 rstatus_t
-string_copy(struct string *dst, const uint8_t *src, uint32_t srclen)
+bstring_copy(struct bstring *dst, const uint8_t *src, uint32_t srclen)
 {
     ASSERT(dst->len == 0 && dst->data == NULL);
     ASSERT(src != NULL && srclen != 0);
 
-    dst->data = cc_strndup(src, srclen + 1);
+    dst->data = cc_alloc(srclen);
     if (dst->data == NULL) {
         return CC_ENOMEM;
     }
 
+    cc_memcpy(dst->data, src, srclen);
     dst->len = srclen;
-    dst->data[dst->len] = '\0';
 
     return CC_OK;
 }
 
 int
-string_compare(const struct string *s1, const struct string *s2)
+bstring_compare(const struct bstring *s1, const struct bstring *s2)
 {
-    if (s1->len != s2->len) {
-        return s1->len - s2->len > 0 ? 1 : -1;
-    }
-
-    return cc_strncmp(s1->data, s2->data, s1->len);
-}
-
-int
-_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
-{
-    int i;
-
-    i = vsnprintf(buf, size, fmt, args);
-
     /*
-     * The return value is the number of characters which would be written
-     * into buf not including the trailing '\0'. If size is == 0 the
-     * function returns 0.
-     *
-     * On error, the function also returns 0. This is to allow idiom such
-     * as len += _vscnprintf(...)
-     *
-     * See: http://lwn.net/Articles/69419/
+     * the max value difference between two unsigned chars is 255,
+     * so we can use 256 to indicate a length difference in case it's useful
      */
-    if (i <= 0) {
-        return 0;
+    if (s1->len != s2->len) {
+        return s1->len - s2->len > 0 ? 256 : -256;
     }
 
-    if (i < size) {
-        return i;
-    }
-
-    return size - 1;
-}
-
-int
-_scnprintf(char *buf, size_t size, const char *fmt, ...)
-{
-    va_list args;
-    int i;
-
-    va_start(args, fmt);
-    i = _vscnprintf(buf, size, fmt, args);
-    va_end(args);
-
-    return i;
+    return cc_bcmp(s1->data, s2->data, s1->len);
 }

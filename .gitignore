@@ -64,3 +64,6 @@ Makefile
 Makefile.in
 
 ccommon*.pc
+
+# Docs
+/docs/_build

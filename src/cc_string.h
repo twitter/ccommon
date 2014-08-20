@@ -20,36 +20,105 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <cc_define.h>
 
-struct string {
+/* TODO(yao): separate byte string related functionalities into cc_bstring */
+struct bstring {
     uint32_t len;   /* string length */
     uint8_t  *data; /* string data */
 };
 
-#define string(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
+#define bstring(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
 #define null_string    { 0, NULL }
 
-#define string_set_text(_str, _text) do {       \
+#define bstring_set_text(_str, _text) do {       \
     (_str)->len = (uint32_t)(sizeof(_text) - 1);\
     (_str)->data = (uint8_t *)(_text);          \
 } while (0);
 
-#define string_set_raw(_str, _raw) do {         \
+#define bstring_set_raw(_str, _raw) do {         \
     (_str)->len = (uint32_t)(cc_strlen(_raw));  \
     (_str)->data = (uint8_t *)(_raw);           \
 } while (0);
 
-void string_init(struct string *str);
-void string_deinit(struct string *str);
-bool string_empty(const struct string *str);
-rstatus_t string_duplicate(struct string *dst, const struct string *src);
-rstatus_t string_copy(struct string *dst, const uint8_t *src, uint32_t srclen);
-int string_compare(const struct string *s1, const struct string *s2);
+void bstring_init(struct bstring *str);
+void bstring_deinit(struct bstring *str);
+bool bstring_empty(const struct bstring *str);
+rstatus_t bstring_duplicate(struct bstring *dst, const struct bstring *src);
+rstatus_t bstring_copy(struct bstring *dst, const uint8_t *src, uint32_t srclen);
+int bstring_compare(const struct bstring *s1, const struct bstring *s2);
+
+/* efficient implementation of string comparion of short strings */
+#define str3cmp(m, c0, c1, c2)                                                              \
+    (m[0] == c0 && m[1] == c1 && m[2] == c2)
+
+#ifdef CC_LITTLE_ENDIAN
+
+#define str4cmp(m, c0, c1, c2, c3)                                                          \
+    (*(uint32_t *) m == ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0))
+
+#define str5cmp(m, c0, c1, c2, c3, c4)                                                      \
+    (str4cmp(m, c0, c1, c2, c3) && (m[4] == c4))
+
+#define str6cmp(m, c0, c1, c2, c3, c4, c5)                                                  \
+    (str4cmp(m, c0, c1, c2, c3) &&                                                          \
+        (((uint32_t *) m)[1] & 0xffff) == ((c5 << 8) | c4))
+
+#define str7cmp(m, c0, c1, c2, c3, c4, c5, c6)                                              \
+    (str6cmp(m, c0, c1, c2, c3, c4, c5) && (m[6] == c6))
+
+#define str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                                          \
+    (str4cmp(m, c0, c1, c2, c3) &&                                                          \
+        (((uint32_t *) m)[1] == ((c7 << 24) | (c6 << 16) | (c5 << 8) | c4)))
+
+#define str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8)                                      \
+    (str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7) && m[8] == c8)
+
+#define str10cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)                                 \
+    (str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7) &&                                          \
+        (((uint32_t *) m)[2] & 0xffff) == ((c9 << 8) | c8))
+
+#define str11cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10)                            \
+    (str10cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9) && (m[10] == c10))
+
+#define str12cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)                       \
+    (str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7) &&                                          \
+        (((uint32_t *) m)[2] == ((c11 << 24) | (c10 << 16) | (c9 << 8) | c8)))
+
+#else // BIG ENDIAN
+
+#define str4cmp(m, c0, c1, c2, c3)                                                          \
+    (str3cmp(m, c0, c1, c2) && (m3 == c3))
+
+#define str5cmp(m, c0, c1, c2, c3, c4)                                                      \
+    (str4cmp(m, c0, c1, c2, c3) && (m[4] == c4))
+
+#define str6cmp(m, c0, c1, c2, c3, c4, c5)                                                  \
+    (str5cmp(m, c0, c1, c2, c3, c4) && m[5] == c5)
+
+#define str7cmp(m, c0, c1, c2, c3, c4, c5, c6)                                              \
+    (str6cmp(m, c0, c1, c2, c3, c4, c5) && m[6] == c6)
+
+#define str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                                          \
+    (str7cmp(m, c0, c1, c2, c3, c4, c5, c6) && m[7] == c7)
+
+#define str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8)                                      \
+    (str8cmp(m, c0, c1, c2, c3, c4, c5, c6, c7) && m[8] == c8)
+
+#define str10cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)                                 \
+    (str9cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8) && m[9] == c9)
+
+#define str11cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10)                            \
+    (str10cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9) && m[10] == c10)
+
+#define str12cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)                       \
+    (str11cmp(m, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) && m[11] == c11)
+
+#endif // CC_LITTLE_ENDIAN
+
 
 /*
  * Wrapper around common routines for manipulating C character strings
@@ -66,10 +135,6 @@ int string_compare(const struct string *s1, const struct string *s2);
  *
  * cc_strchr
  * cc_strrchr
- *
- * cc_snprintf
- * cc_scnprintf
- * cc_vscnprintf
  */
 #define cc_memcmp(_p1, _p2, _n)                                 \
     memcmp(_p1, _p2, (size_t)(_n))
@@ -89,6 +154,9 @@ int string_compare(const struct string *s1, const struct string *s2);
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))
 
+#define cc_bcmp(_s1, _s2, _n)                                   \
+    bcmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
+
 #define cc_strncmp(_s1, _s2, _n)                                \
     strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
 
@@ -101,14 +169,6 @@ int string_compare(const struct string *s1, const struct string *s2);
 #define cc_strrchr(_p, _s, _c)                                  \
     _cc_strrchr((uint8_t *)(_p),(uint8_t *)(_s), (uint8_t)(_c))
 
-#define cc_snprintf(_s, _n, ...)                                \
-    snprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
-
-#define cc_scnprintf(_s, _n, ...)                               \
-    _scnprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
-
-#define cc_vscnprintf(_s, _n, _f, _a)                           \
-    _vscnprintf((char *)(_s), (size_t)(_n), _f, _a)
 
 static inline uint8_t *
 _cc_strchr(uint8_t *p, uint8_t *last, uint8_t c)
@@ -135,8 +195,5 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 
     return NULL;
 }
-
-int _scnprintf(char *buf, size_t size, const char *fmt, ...);
-int _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 #endif

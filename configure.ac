@@ -36,11 +36,12 @@ AC_LANG([C])
 # Checks for programs
 AC_PROG_CC
 AC_PROG_MAKE_SET
+AM_PROG_CC_C_O
 AM_PROG_AR
-AC_PROG_LIBTOOL
 
 # Initialize libtool
 LT_INIT
+AC_PROG_LIBTOOL
 
 # Checks for typedefs, structures, and compiler characteristics
 AC_C_INLINE
@@ -66,8 +67,7 @@ AC_TYPE_UID_T
 # Checks for header files
 AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([stdarg.h stddef.h stdlib.h])
-#AC_CHECK_HEADERS([float.h limits.h])
-AC_CHECK_HEADERS([inttypes.h stdint.h])
+AC_CHECK_HEADERS([inttypes.h stdint.h limits.h])
 AC_CHECK_HEADERS([ctype.h errno.h execinfo.h time.h])
 AC_CHECK_HEADERS([fcntl.h string.h unistd.h])
 AC_CHECK_HEADERS([sys/mman.h sys/stat.h sys/socket.h sys/types.h sys/uio.h])
@@ -87,6 +87,50 @@ AC_CHECK_FUNCS([memchr memmove memset])
 AC_CHECK_FUNCS([strchr strndup strtol strtoul strtoull])
 AC_CHECK_FUNCS([backtrace])
 AC_CHECK_FUNCS([read write readv writev])
+
+
+AC_C_BIGENDIAN(
+  [],
+  [AC_DEFINE(HAVE_LITTLE_ENDIAN, 1, [Define to 1 if machine is little endian])],
+  [AC_MSG_ERROR([endianess of this machine is unknown])],
+  [AC_MSG_ERROR([universial endianess not supported])]
+)
+
+# Check whether to enable debug logs and asserts
+AC_MSG_CHECKING([whether to enable debug logs and asserts])
+AC_ARG_ENABLE([debug],
+  [AS_HELP_STRING(
+    [--enable-debug=@<:@panic|assert|log|no@:>@],
+    [enable debug logs and asserts @<:@default=no@:>@])
+  ],
+  [],
+  [enable_debug=no])
+AS_CASE([x$enable_debug],
+  [xpanic], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
+                      [Define to 1 if panic on an assert is enabled])
+            AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
+           ],
+  [xassert], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
+                     [Define to 1 if log on an assert is enabled])
+           AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
+          ],
+  [xlog], [AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])],
+  [xno], [],
+  [AC_MSG_FAILURE([invalid value ${enable_debug} for --enable-debug])])
+AC_MSG_RESULT([$enable_debug])
+
+AC_MSG_CHECKING([whether to disable stats])
+AC_ARG_ENABLE([stats],
+  [AS_HELP_STRING(
+    [--disable-stats],
+    [disable stats])
+  ],
+  [disable_stats=yes],
+  [disable_stats=no])
+AS_IF([test "x$disable_stats" = xyes],
+  [],
+  [AC_DEFINE([HAVE_STATS], [1], [Define to 1 if stats is not disabled])])
+AC_MSG_RESULT($disable_stats)
 
 # This is called on Linux systems
 AC_CACHE_CHECK([if epoll works], [ac_cv_epoll_works],
