@@ -19,6 +19,7 @@
 #define _CC_UTIL_H_
 
 #include <unistd.h>
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 /*
@@ -66,9 +67,6 @@
     (void *) (((uintptr_t) (p) + ((uintptr_t) n - 1)) & ~((uintptr_t) n - 1))
 
 /* math */
-#define MIN(a, b)           ((a) < (b) ? (a) : (b))
-#define MAX(a, b)           ((a) > (b) ? (a) : (b))
-
 #define SQUARE(d)           ((d) * (d))
 #define VAR(s, s2, n)       (((n) < 2) ? 0.0 : ((s2) - SQUARE(s)/(n)) / ((n) - 1))
 #define STDDEV(s, s2, n)    (((n) < 2) ? 0.0 : sqrt(VAR((s), (s2), (n))))
