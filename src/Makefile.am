@@ -8,6 +8,7 @@ AM_CPPFLAGS =
 AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 AM_CPPFLAGS += -I $(top_srcdir)/src
 AM_CPPFLAGS += -I $(top_srcdir)/src/event
+AM_CPPFLAGS += -I $(top_srcdir)/src/hash
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -36,6 +37,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
 	hash/cc_hash_table.c						\
+	hash/cc_lookup3.c						\
 	mem/cc_mem_globals.c						\
 	mem/cc_mem_interface.c						\
 	mem/cc_item.c							\
@@ -64,6 +66,7 @@ ccommon_include_HEADERS =						\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
 	hash/cc_hash_table.h						\
+	hash/cc_lookup3.h						\
 	mem/cc_mem_globals.h						\
 	mem/cc_item.h							\
 	mem/cc_slab.h							\

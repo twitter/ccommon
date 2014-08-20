@@ -22,6 +22,8 @@
 
 #ifdef HAVE_LITTLE_ENDIAN
 # define CC_LITTLE_ENDIAN 1
+#elif HAVE_BIG_ENDIAN
+# define CC_BIG_ENDIAN 1
 #endif
 
 #ifdef HAVE_DEBUG_LOG
