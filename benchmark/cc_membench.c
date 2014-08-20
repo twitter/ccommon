@@ -97,7 +97,7 @@ init_benchmark(char *config_file)
     settings_load(config_file);
     time_init();
 
-    if(log_init(LOG_WARN, "out.txt") == -1) {
+    if(log_setup(LOG_WARN, "out.txt") == -1) {
 	log_stderr("fatal: log_init failed!");
 	exit(1);
     }

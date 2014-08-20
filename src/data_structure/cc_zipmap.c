@@ -416,7 +416,7 @@ zmap_get_all(void *pkey, uint8_t npkey)
     }
 
     /* Allocate space for the return value */
-    if(array_data_alloc(&ret, zmap->len, sizeof(key_val_pair_t)) != CC_OK) {
+    if(array_data_create(&ret, zmap->len, sizeof(key_val_pair_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all pairs!");
 	item_remove(it);
@@ -454,7 +454,7 @@ zmap_get_keys(void *pkey, uint8_t npkey)
     }
 
     /* Allocate space for the return value */
-    if(array_data_alloc(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
+    if(array_data_create(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
 	item_remove(it);
@@ -490,7 +490,7 @@ zmap_get_vals(void *pkey, uint8_t npkey)
     }
 
     /* Allocate space for the return value */
-    if(array_data_alloc(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
+    if(array_data_create(&ret, zmap->len, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all keys!");
 	item_remove(it);
@@ -524,7 +524,7 @@ zmap_get_multiple(void *pkey, uint8_t npkey, struct array *keys)
     }
 
     /* Allocate space for the return value */
-    if(array_data_alloc(&ret, keys->nelem, sizeof(buf_t)) != CC_OK) {
+    if(array_data_create(&ret, keys->nelem, sizeof(buf_t)) != CC_OK) {
 	/* Could not allocate enough memory */
 	log_debug(LOG_WARN, "Could not allocate enough memory to get all vals!");
 	item_remove(it);
