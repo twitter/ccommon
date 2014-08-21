@@ -44,13 +44,18 @@ static bool settings_initialized = false; /* Whether or not settings have been i
   oldest_live 6000
  */
 
-#define SETTINGS_REQUIRED(_name, _required, _type, _dynamic, _default, _description) \
-    (!settings._name.required || settings._name.initialized) &&
-
+/* Initialize settings members */
 #define SETTINGS_INIT(_name, _required, _type, _dynamic, _default, _description) \
     ._name = {.required = (_required), .dynamic = (_dynamic), .initialized = false, .desc = _description, .val._type = _default},
 
 struct settings settings = { SETTINGS_MEM(SETTINGS_INIT) };
+
+
+
+
+/* Macro for checking whether or not all required settings have been initialized */
+#define SETTINGS_REQUIRED(_name, _required, _type, _dynamic, _default, _description) \
+    (!settings._name.required || settings._name.initialized) &&
 
 rstatus_t
 settings_load(char *config_file)
@@ -201,4 +206,17 @@ settings_load(char *config_file)
     }
 
     return CC_OK;
+}
+
+
+
+
+/* Print out a description of each setting */
+#define SETTINGS_PRINT(_name, _required, _type, _dynamic, _default, _description) \
+    loga(#_name ": %s", _description);
+
+void
+settings_desc(void)
+{
+    SETTINGS_MEM(SETTINGS_PRINT)
 }

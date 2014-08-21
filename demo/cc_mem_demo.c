@@ -63,6 +63,9 @@
  *
  * sg [key length] [key] [secondary key length] [secondary key]
  * Get secondary key: gets value associated with key/secondary key
+ *
+ * ps
+ * Print settings descriptions
  */
 void init_cache(char *config_file);
 void init_settings(void);
@@ -165,6 +168,18 @@ int main(int argc, char *argv[])
 		break;
 	    case 'g':
 		demo_get_secondary();
+		break;
+	    default:
+		printf("unknown command entered\n");
+		while(fgetc(stdin) != '\n');
+		break;
+	    }
+	    break;
+	}
+	case 'p': {
+	    switch(second) {
+	    case 's':
+		settings_desc();
 		break;
 	    default:
 		printf("unknown command entered\n");
