@@ -56,7 +56,7 @@ struct settings settings = { SETTINGS_MEM(SETTINGS_INIT) };
     (!settings._name.required || settings._name.initialized) &&
 
 
-
+/* Macro for carrying out config file directives */
 #define SETTINGS_EXE(_name, _required, _type, _dynamic, _default, _description)    \
     if(!strcasecmp(argv[0], #_name) && argc >= 2) {                                \
         if(_dynamic && settings_initialized) {                                     \
@@ -153,6 +153,7 @@ settings_desc(void)
     SETTINGS_MEM(SETTINGS_PRINT)
 }
 
+/* Sets the given setting, depending on the type */
 static void
 set_setting(struct setting *setting, char *type, int32_t argc, sds *argv)
 {
