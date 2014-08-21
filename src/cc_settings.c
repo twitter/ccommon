@@ -29,8 +29,6 @@
 
 #define SETTING_LINE_MAX 1024
 
-static bool settings_initialized = false; /* Whether or not settings have been initialized for the first time */
-
 /* Sample Config File */
 /*
   prealloc 1
@@ -45,15 +43,34 @@ static bool settings_initialized = false; /* Whether or not settings have been i
   oldest_live 6000
  */
 
+/* Whether or not settings have been initialized for the first time */
+static bool settings_initialized = false;
+
+
+
+/* Enum used to match setting to type in order to set values */
+typedef enum settings_type {
+    bool_val_setting,
+    uint8_val_setting,
+    uint32_val_setting,
+    uint64_val_setting,
+    reltime_val_setting,
+    uint32ptr_val_setting
+} settings_type_t;
+
+
+
 /* Initialize settings members */
 #define SETTINGS_INIT(_name, _required, _type, _dynamic, _default, _description) \
-    ._name = {.required = (_required), .dynamic = (_dynamic), .initialized = false, .desc = _description, .val._type = _default},
+    ._name = {.initialized = false, .val._type = _default},
 
 struct settings settings = { SETTINGS_MEM(SETTINGS_INIT) };
 
+
+
 /* Macro for checking whether or not all required settings have been initialized */
 #define SETTINGS_REQUIRED(_name, _required, _type, _dynamic, _default, _description) \
-    (!settings._name.required || settings._name.initialized) &&
+    (!_required || settings._name.initialized) &&
 
 
 /* Macro for carrying out config file directives */
@@ -62,12 +79,12 @@ struct settings settings = { SETTINGS_MEM(SETTINGS_INIT) };
         if(_dynamic && settings_initialized) {                                     \
 	    log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting " #_name); \
 	} else {                                                                   \
-	    set_setting(&settings._name, #_type, argc, argv);		           \
+	    set_setting(&settings._name, _type ## _setting, argc, argv);	   \
 	    settings._name.initialized = true;                                     \
 	}                                                                          \
     } else                                                                         \
 
-static void set_setting(struct setting *setting, char *type, int32_t argc, sds *argv);
+static void set_setting(struct setting *setting,  settings_type_t type, int32_t argc, sds *argv);
 
 rstatus_t
 settings_load(char *config_file)
@@ -155,27 +172,35 @@ settings_desc(void)
 
 /* Sets the given setting, depending on the type */
 static void
-set_setting(struct setting *setting, char *type, int32_t argc, sds *argv)
+set_setting(struct setting *setting, settings_type_t type, int32_t argc, sds *argv)
 {
     ASSERT(type != NULL);
 
-    if(strncmp("bool_val", type, 8) == 0) {
+    switch(type) {
+    case bool_val_setting:
 	setting->val.bool_val = atoi(argv[1]);
-    } else if(strncmp("uint8_val", type, 9) == 0) {
+	break;
+    case uint8_val_setting:
 	setting->val.uint8_val = atoi(argv[1]);
-    } else if(strncmp("uint32_val", type, 10) == 0) {
+	break;
+    case uint32_val_setting:
 	setting->val.uint32_val = atoi(argv[1]);
-    } else if(strncmp("uint64_val", type, 10) == 0) {
+	break;
+    case uint64_val_setting:
 	setting->val.uint64_val = atol(argv[1]);
-    } else if(strncmp("reltime_val", type, 11) == 0) {
+	break;
+    case reltime_val_setting:
 	setting->val.reltime_val = atoi(argv[1]);
-    } else if(strncmp("uint32ptr_val", type, 13) == 0) {
+	break;
+    case uint32ptr_val_setting: {
 	uint32_t i;
 	setting->val.uint32ptr_val = cc_alloc((argc - 1) * sizeof(uint32_t));
 	for(i = 0; i < argc - 1; ++i) {
 	    setting->val.uint32ptr_val[i] = atoi(argv[i + 1]);
 	}
-    } else {
+	break;
+    }
+    default:
 	log_debug(LOG_CRIT, "fatal: unrecognized setting type");
 	exit(1);
     }

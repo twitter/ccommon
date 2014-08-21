@@ -60,10 +60,7 @@
 /* Struct that holds all of the settings specified in the settings matrix */
 struct settings {
     struct setting {
-	const bool required;
-	const bool dynamic;
 	bool initialized;
-	const char *desc;
 	union val_u {
 	    bool bool_val;
 	    uint8_t uint8_val;
