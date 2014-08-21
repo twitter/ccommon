@@ -17,6 +17,7 @@
 
 #include <cc_settings.h>
 
+#include <cc_debug.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
@@ -50,12 +51,23 @@ static bool settings_initialized = false; /* Whether or not settings have been i
 
 struct settings settings = { SETTINGS_MEM(SETTINGS_INIT) };
 
-
-
-
 /* Macro for checking whether or not all required settings have been initialized */
 #define SETTINGS_REQUIRED(_name, _required, _type, _dynamic, _default, _description) \
     (!settings._name.required || settings._name.initialized) &&
+
+
+
+#define SETTINGS_EXE(_name, _required, _type, _dynamic, _default, _description)    \
+    if(!strcasecmp(argv[0], #_name) && argc >= 2) {                                \
+        if(_dynamic && settings_initialized) {                                     \
+	    log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting " #_name); \
+	} else {                                                                   \
+	    set_setting(&settings._name, #_type, argc, argv);		           \
+	    settings._name.initialized = true;                                     \
+	}                                                                          \
+    } else                                                                         \
+
+static void set_setting(struct setting *setting, char *type, int32_t argc, sds *argv);
 
 rstatus_t
 settings_load(char *config_file)
@@ -89,90 +101,13 @@ settings_load(char *config_file)
 	    continue;
 	}
 
-	printf("line: %s\n", line);
-
 	/* Split into arguments */
 	argv = sdssplitargs(line, &argc);
 	sdstolower(argv[0]);
 
 	/* execute config file directives */
-	/* Currently, the settings members and types are hard coded, will think about
-	   how to do this based on the SETTINGS_MEM macro */
-	if(!strcasecmp(argv[0], "prealloc") && argc == 2) {
-	    if(settings_initialized && !settings.prealloc.dynamic) {
-		/* Attempting to overwrite static setting */
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.prealloc.val.bool_val = atoi(argv[1]);
-		settings.prealloc.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "evict_lru") && argc == 2) {
-	    if(settings_initialized && !settings.evict_lru.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.evict_lru.val.bool_val = atoi(argv[1]);
-		settings.evict_lru.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "use_freeq") && argc == 2) {
-	    if(settings_initialized && !settings.use_freeq.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.use_freeq.val.bool_val = atoi(argv[1]);
-		settings.use_freeq.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "use_cas") && argc == 2) {
-	    if(settings_initialized && !settings.use_cas.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.use_cas.val.bool_val = atoi(argv[1]);
-		settings.use_cas.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "maxbytes") && argc == 2) {
-	    if(settings_initialized && !settings.maxbytes.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.maxbytes.val.uint64_val = atol(argv[1]);
-		settings.maxbytes.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "slab_size") && argc == 2) {
-	    if(settings_initialized && !settings.slab_size.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.slab_size.val.uint32_val = atoi(argv[1]);
-		settings.slab_size.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "hash_power") && argc == 2) {
-	    if(settings_initialized && !settings.hash_power.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.hash_power.val.uint8_val = atoi(argv[1]);
-		settings.hash_power.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "profile")) {
-	    if(settings_initialized && !settings.profile.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.profile.val.uint32ptr_val = cc_alloc((argc - 1) * sizeof(uint32_t));
-		for(i = 0; i < argc - 1; ++i) {
-		    settings.profile.val.uint32ptr_val[i] = atoi(argv[i + 1]);
-		}
-		settings.profile.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "profile_last_id") && argc == 2) {
-	    if(settings_initialized && !settings.profile_last_id.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.profile_last_id.val.uint8_val = atoi(argv[1]);
-		settings.profile_last_id.initialized = true;
-	    }
-	} else if(!strcasecmp(argv[0], "oldest_live") && argc == 2) {
-	    if(settings_initialized && !settings.oldest_live.dynamic) {
-		log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting %s!", argv[0]);
-	    } else {
-		settings.oldest_live.val.reltime_val = atoi(argv[1]);
-		settings.oldest_live.initialized = true;
-	    }
-	} else {
+	SETTINGS_MEM(SETTINGS_EXE)
+	{
 	    log_debug(LOG_CRIT, "Error in config file: incorrect number or type of elements at line %u", linenum);
 	    log_debug(LOG_CRIT, ">>> '%s'", line);
 
@@ -208,9 +143,6 @@ settings_load(char *config_file)
     return CC_OK;
 }
 
-
-
-
 /* Print out a description of each setting */
 #define SETTINGS_PRINT(_name, _required, _type, _dynamic, _default, _description) \
     loga(#_name ": %s", _description);
@@ -219,4 +151,31 @@ void
 settings_desc(void)
 {
     SETTINGS_MEM(SETTINGS_PRINT)
+}
+
+static void
+set_setting(struct setting *setting, char *type, int32_t argc, sds *argv)
+{
+    ASSERT(type != NULL);
+
+    if(strncmp("bool_val", type, 8) == 0) {
+	setting->val.bool_val = atoi(argv[1]);
+    } else if(strncmp("uint8_val", type, 9) == 0) {
+	setting->val.uint8_val = atoi(argv[1]);
+    } else if(strncmp("uint32_val", type, 10) == 0) {
+	setting->val.uint32_val = atoi(argv[1]);
+    } else if(strncmp("uint64_val", type, 10) == 0) {
+	setting->val.uint64_val = atol(argv[1]);
+    } else if(strncmp("reltime_val", type, 11) == 0) {
+	setting->val.reltime_val = atoi(argv[1]);
+    } else if(strncmp("uint32ptr_val", type, 13) == 0) {
+	uint32_t i;
+	setting->val.uint32ptr_val = cc_alloc((argc - 1) * sizeof(uint32_t));
+	for(i = 0; i < argc - 1; ++i) {
+	    setting->val.uint32ptr_val[i] = atoi(argv[i + 1]);
+	}
+    } else {
+	log_debug(LOG_CRIT, "fatal: unrecognized setting type");
+	exit(1);
+    }
 }

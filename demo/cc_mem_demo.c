@@ -66,6 +66,30 @@
  *
  * ps
  * Print settings descriptions
+ *
+ * qp
+ * Query prealloc setting
+ *
+ * qe
+ * Query evict_lru setting
+ *
+ * qf
+ * Query use_freeq setting
+ *
+ * qc
+ * Query use_cas setting
+ *
+ * qb
+ * Query maxbytes setting
+ *
+ * qs
+ * Query slab_size setting
+ *
+ * qh
+ * Query hash_power setting
+ *
+ * qq
+ * quit
  */
 void init_cache(char *config_file);
 void init_settings(void);
@@ -189,10 +213,32 @@ int main(int argc, char *argv[])
 	    break;
 	}
 	case 'q': {
-	    if(second == 'q') {
+	    switch(second) {
+	    case 'p':
+		printf(settings.prealloc.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'e':
+		printf(settings.evict_lru.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'f':
+		printf(settings.use_freeq.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'c':
+		printf(settings.use_cas.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'b':
+		printf("%llu\n", settings.maxbytes.val.uint64_val);
+		break;
+	    case 's':
+		printf("%u\n", settings.slab_size.val.uint32_val);
+		break;
+	    case 'h':
+		printf("%hhu\n", settings.hash_power.val.uint8_val);
+		break;
+	    case 'q':
 		printf("done\n");
 		return 0;
-	    } else {
+	    default:
 		printf("unknown command entered\n");
 		while(fgetc(stdin) != '\n');
 		break;
