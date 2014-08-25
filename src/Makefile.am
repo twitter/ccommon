@@ -40,6 +40,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	hash/cc_lookup3.c						\
 	mem/cc_mem_globals.c						\
 	mem/cc_mem_interface.c						\
+	mem/cc_mem_settings.c						\
 	mem/cc_item.c							\
 	mem/cc_slab.c							\
 	data_structure/cc_zipmap.c
@@ -68,6 +69,8 @@ ccommon_include_HEADERS =						\
 	hash/cc_hash_table.h						\
 	hash/cc_lookup3.h						\
 	mem/cc_mem_globals.h						\
+	mem/cc_mem_interface.h						\
+	mem/cc_mem_settings.h						\
 	mem/cc_item.h							\
 	mem/cc_slab.h							\
 	data_structure/cc_zipmap.h

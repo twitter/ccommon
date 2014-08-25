@@ -19,6 +19,7 @@
 #define _CC_SETTINGS_H_
 
 #include <cc_define.h>
+#include <cc_sds.h>
 #include <cc_time.h>
 
 #include <stdbool.h>
@@ -34,20 +35,7 @@
  *     it is not.
  *   - DEFAULT is the default value of the setting.
  *   - DESCRIPTION is a brief description of what the setting does.
- *
- *         NAME             REQUIRED        TYPE                DYNAMIC         DEFAULT             DESCRIPTION
  */
-#define SETTINGS_MEM(ACTION)                                                                                                                                        \
-    ACTION(prealloc,        false,          bool_val,           false,          true,               "Whether or not slabs are preallocated upon startup")           \
-    ACTION(evict_lru,       false,          bool_val,           true,           true,               "Whether we use an LRU eviction scheme or random eviction")     \
-    ACTION(use_freeq,       false,          bool_val,           true,           true,               "Whether we use items in the free queue or not")                \
-    ACTION(use_cas,         false,          bool_val,           false,          false,              "Whether or not check-and-set is supported")                    \
-    ACTION(maxbytes,        true,           uint64_val,         false,          0,                  "Maximum bytes allowed for slabs")                              \
-    ACTION(slab_size,       true,           uint32_val,         false,          0,                  "Number of bytes in each slab")                                 \
-    ACTION(hash_power,      false,          uint8_val,          false,          0,                  "Default hash table power")                                     \
-    ACTION(profile,         true,           uint32ptr_val,      false,          NULL,               "Slab profile - slab class sizes")                              \
-    ACTION(profile_last_id, true,           uint8_val,          false,          0,                  "Last id in the slab profile array")                            \
-    ACTION(oldest_live,     false,          reltime_val,        true,           6000,               "Ignore existing items older than this")                        \
 
 
 /*
@@ -56,33 +44,48 @@
 #define SETTINGS_DECLARE(_name, _required, _type, _dynamic, _default, _description) \
     struct setting _name;
 
+/* Initialize settings members */
+#define SETTINGS_INIT(_name, _required, _type, _dynamic, _default, _description) \
+    ._name = {.initialized = false, .val._type = _default},
 
-/* Struct that holds all of the settings specified in the settings matrix */
-struct settings {
-    struct setting {
-	const bool required;
-	const bool dynamic;
-	bool initialized;
-	const char *desc;
-	union val_u {
-	    bool bool_val;
-	    uint8_t uint8_val;
-	    uint32_t uint32_val;
-	    uint64_t uint64_val;
-	    rel_time_t reltime_val;
-	    uint32_t *uint32ptr_val;
-	} val;
-    };
+/* Print out a description of each setting */
+#define SETTINGS_PRINT(_name, _required, _type, _dynamic, _default, _description) \
+    loga(#_name ": %s", _description);
 
-    SETTINGS_MEM(SETTINGS_DECLARE)
+
+/* Union containing payload for setting */
+union val_u {
+    bool bool_val;
+    uint8_t uint8_val;
+    uint32_t uint32_val;
+    uint64_t uint64_val;
+    rel_time_t reltime_val;
+    uint32_t *uint32ptr_val;
 };
 
-extern struct settings settings;
+/* Struct containing data for one individual setting */
+struct setting {
+    bool initialized;
+    union val_u val;
+};
 
-/* Load the settings from the provided config file */
-rstatus_t settings_load(char *config_file);
+/* Enum used to match setting to type in order to set values */
+typedef enum settings_type {
+    bool_val_setting,
+    uint8_val_setting,
+    uint32_val_setting,
+    uint64_val_setting,
+    reltime_val_setting,
+    uint32ptr_val_setting,
+} settings_type_t;
 
-/* Print out a description of each of the settings */
-void settings_desc(void);
+struct setting_val {
+    settings_type_t type;
+    void *val;
+};
+
+rstatus_t settings_set(struct setting *setting, struct setting_val *val);
+
+void *settings_str_to_val(settings_type_t type, int32_t argc, sds *argv);
 
 #endif

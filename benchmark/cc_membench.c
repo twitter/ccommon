@@ -1,11 +1,11 @@
-#include <mem/cc_mem_interface.h>x
+#include <mem/cc_mem_interface.h>
+#include <mem/cc_mem_settings.h>
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_settings.h>
 #include <cc_string.h>
 #include <hash/cc_hash_table.h>
 
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
 void
 init_benchmark(char *config_file)
 {
-    settings_load(config_file);
+    mem_settings_load_from_file(config_file);
     time_init();
 
     if(log_setup(LOG_WARN, "out.txt") == -1) {
