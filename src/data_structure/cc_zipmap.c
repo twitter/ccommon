@@ -129,14 +129,13 @@ set_pair(void *pair, void *pkey)
 zmap_set_result_t
 zmap_set_multiple(void *pkey, uint8_t npkey, struct array *pairs)
 {
-    uint32_t status;
     buf_t key;
     err_t err;
 
     key.buf = pkey;
     key.nbuf = npkey;
 
-    status = array_each(pairs, &set_pair, &key, &err);
+    array_each(pairs, &set_pair, &key, &err);
 
     if(err == CC_ERROR) {
 	return ZMAP_SET_NOT_FOUND;
@@ -192,14 +191,13 @@ set_numeric_pair(void *pair, void *pkey)
 zmap_set_result_t
 zmap_set_multiple_numeric(void *pkey, uint8_t npkey, struct array *pairs)
 {
-    uint32_t status;
     buf_t key;
     err_t err;
 
     key.buf = pkey;
     key.nbuf = npkey;
 
-    status = array_each(pairs, &set_numeric_pair, &key, &err);
+    array_each(pairs, &set_numeric_pair, &key, &err);
 
     if(err == CC_ERROR) {
 	return ZMAP_SET_NOT_FOUND;

@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-#include <mem/cc_item.h>
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_string.h>
+#include <cc_print.h>
 #include <hash/cc_hash_table.h>
 #include <mem/cc_mem_globals.h>
 #include <mem/cc_slab.h>
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mem/cc_item.h>
 
 struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
@@ -1365,7 +1367,7 @@ _item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta)
         value -= delta;
     }
 
-    res = snprintf(buf, INCR_MAX_STORAGE_LEN, "%llu", value);
+    res = cc_scnprintf(buf, INCR_MAX_STORAGE_LEN, "%"PRIu64, value);
     ASSERT(res < INCR_MAX_STORAGE_LEN);
     if (res > it->nbyte) { /* need to realloc */
         struct item *new_it;

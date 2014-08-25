@@ -14,7 +14,7 @@ AM_CFLAGS =
 AM_CFLAGS += -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
-AM_CFLAGS += -fstrict-aliasing -flat_namespace -std=c99
+AM_CFLAGS += -fstrict-aliasing -std=c99
 AM_CFLAGS += -g
 
 AM_LDFLAGS =
