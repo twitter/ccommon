@@ -18,6 +18,7 @@
 #ifndef _CC_UTIL_H_
 #define _CC_UTIL_H_
 
+#include <inttypes.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -66,6 +67,48 @@
 #define CC_ALIGN(d, n)      ((size_t)(((d) + (n - 1)) & ~(n - 1)))
 #define CC_ALIGN_PTR(p, n)  \
     (void *) (((uintptr_t) (p) + ((uintptr_t) n - 1)) & ~((uintptr_t) n - 1))
+
+/* string */
+#define cc_strlen(_s)                                           \
+    strlen((char *)(_s))
+
+#define cc_strncmp(_s1, _s2, _n)                                \
+    strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
+
+#define cc_strndup(_s, _n)                                      \
+    (uint8_t *)strndup((char *)(_s), (size_t)(_n));
+
+#define cc_strchr(_p, _l, _c)                                   \
+    _cc_strchr((uint8_t *)(_p), (uint8_t *)(_l), (uint8_t)(_c))
+
+#define cc_strrchr(_p, _s, _c)                                  \
+    _cc_strrchr((uint8_t *)(_p),(uint8_t *)(_s), (uint8_t)(_c))
+
+static inline uint8_t *
+_cc_strchr(uint8_t *p, uint8_t *last, uint8_t c)
+{
+    while (p < last) {
+        if (*p == c) {
+            return p;
+        }
+        p++;
+    }
+
+    return NULL;
+}
+
+static inline uint8_t *
+_cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
+{
+    while (p >= start) {
+        if (*p == c) {
+            return p;
+        }
+        p--;
+    }
+
+    return NULL;
+}
 
 /* math */
 #define SQUARE(d)           ((d) * (d))

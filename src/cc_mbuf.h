@@ -34,8 +34,10 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
+#include <cc_mbuf.h>
+
 #include <cc_queue.h>
-#include <cc_string.h>
+#include <cc_bstring.h>
 
 #include <stddef.h>
 #include <stdint.h>

@@ -22,6 +22,7 @@ AM_LDFLAGS += -rdynamic
 
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_array.c							\
+	cc_bstring.c							\
 	cc_debug.c							\
 	cc_log.c							\
 	cc_mbuf.c							\
@@ -31,7 +32,6 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_sds.c							\
 	cc_settings.c							\
 	cc_stream.c							\
-	cc_string.c							\
 	cc_time.c                                           	        \
 	event/cc_epoll.c						\
 	event/cc_kqueue.c						\
@@ -49,6 +49,7 @@ ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
 	$(top_srcdir)/config.h						\
 	cc_array.h							\
+	cc_bstring.h							\
 	cc_debug.h							\
 	cc_define.h							\
 	cc_log.h							\
@@ -60,7 +61,6 @@ ccommon_include_HEADERS =						\
 	cc_sds.h							\
 	cc_settings.h							\
 	cc_stream.h							\
-	cc_string.h							\
 	cc_define.h							\
 	cc_time.h                                                   	\
 	cc_util.h							\

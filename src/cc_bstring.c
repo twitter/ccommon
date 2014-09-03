@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <cc_string.h>
+#include <cc_bstring.h>
 
 #include <cc_debug.h>
 #include <cc_mm.h>

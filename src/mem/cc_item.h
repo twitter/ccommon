@@ -134,7 +134,7 @@ struct item {
     uint16_t           refcount;    /* # concurrent users of item */
     uint8_t            flags;       /* item flags */
     uint8_t            nkey;        /* key length */
-    uint8_t               data[1];      /* item data */
+    uint8_t            data[1];     /* item data */
 };
 
 STAILQ_HEAD(item_stqh, item);

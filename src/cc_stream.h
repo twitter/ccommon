@@ -44,7 +44,9 @@
  * in Plan 9.
  */
 
-#include <cc_string.h>
+#include <cc_define.h>
+
+#include <stdlib.h>
 
 typedef enum channel_type {
     CHANNEL_UNKNOWN,

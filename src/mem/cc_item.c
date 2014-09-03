@@ -20,9 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <cc_bstring.h>
 #include <cc_debug.h>
 #include <cc_log.h>
-#include <cc_string.h>
 #include <cc_print.h>
 #include <hash/cc_hash_table.h>
 #include <mem/cc_mem_globals.h>
@@ -177,7 +177,7 @@ item_reuse(struct item *it)
 
     log_debug(LOG_VERB, "reuse %s item %s at offset %d with id %hhu",
 	    item_expired(it) ? "expired" : "evicted", item_key(it),
-	    it->offset, it->id);
+	    it->offset, item_id(it));
 }
 #endif
 
@@ -578,7 +578,6 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 	    it = current_node;
 	}
 
-	ASSERT(current_node->id == id);
 	ASSERT(!item_is_linked(current_node));
 	ASSERT(!item_is_slabbed(current_node));
 	ASSERT(current_node->offset != 0);
@@ -664,7 +663,6 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 	return NULL;
     }
 
-    ASSERT(it->id == id);
     ASSERT(!item_is_linked(it));
     ASSERT(!item_is_slabbed(it));
     ASSERT(it->offset != 0);
@@ -679,7 +677,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
     item_set_cas(it, 0);
 
     log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
-	    " refcount %hu", it->offset, it->id, it->exptime,
+	    " refcount %hu", it->offset, item_id(it), it->exptime,
 	    it->refcount);
 
     return it;
@@ -1041,7 +1039,7 @@ _item_append(struct item *it, bool contig)
 		    return ANNEX_EOM;
 		}
 
-		ASSERT(nit->next == NULL);
+		ASSERT(nit->next_node == NULL);
 
 		/* Copy over key */
 		cc_memcpy(item_key(nit), item_key(oit_tail), oit_tail->nkey);
@@ -1123,7 +1121,7 @@ _item_append(struct item *it, bool contig)
 	return ANNEX_OVERSIZED;
     }
 
-    if(nid == oit->id && !item_is_raligned(oit)) {
+    if(nid == item_id(oit) && !item_is_raligned(oit)) {
 	item_append_same_id(oit, it, total_nbyte);
     } else {
 	nit = _item_alloc(oit->nkey, oit->exptime, total_nbyte);
@@ -1288,7 +1286,7 @@ _item_prepend(struct item *it)
     total_nbyte = oit->nbyte + it->nbyte;
     nid = item_slabid(oit->nkey, total_nbyte);
 
-    if(nid == oit->id && item_is_raligned(oit)) {
+    if(nid == item_id(oit) && item_is_raligned(oit)) {
 	/* oit head is raligned, and can contain the new data. Simply
 	   prepend the data at the beginning of oit, not needing to
 	   allocate more space */

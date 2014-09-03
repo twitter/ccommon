@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-#ifndef _CC_STRING_H_
-#define _CC_STRING_H_
+#ifndef _CC_BSTRING_H_
+#define _CC_BSTRING_H_
 
 #include <cc_define.h>
+#include <cc_util.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,7 +32,7 @@ struct bstring {
     uint8_t  *data; /* string data */
 };
 
-#define bstring(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
+#define str2bstr(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
 #define null_bstring    { 0, NULL }
 
 #define bstring_set_text(_str, _text) do {       \
@@ -39,6 +40,7 @@ struct bstring {
     (_str)->data = (uint8_t *)(_text);          \
 } while (0);
 
+/* TODO(yao): rename this */
 #define bstring_set_raw(_str, _raw) do {         \
     (_str)->len = (uint32_t)(cc_strlen(_raw));  \
     (_str)->data = (uint8_t *)(_raw);           \
@@ -51,6 +53,7 @@ rstatus_t bstring_duplicate(struct bstring *dst, const struct bstring *src);
 rstatus_t bstring_copy(struct bstring *dst, const uint8_t *src, uint32_t srclen);
 int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 
+/* TODO(yao): is this endian thing really useful? */
 /* efficient implementation of string comparion of short strings */
 #define str3cmp(m, c0, c1, c2)                                                              \
     (m[0] == c0 && m[1] == c1 && m[2] == c2)
@@ -128,13 +131,7 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
  * cc_memmove
  * cc_memchr
  * cc_memset
- *
- * cc_strlen
- * cc_strncmp
- * cc_strndup
- *
- * cc_strchr
- * cc_strrchr
+ * cc_bcmp
  */
 #define cc_memcmp(_p1, _p2, _n)                                 \
     memcmp(_p1, _p2, (size_t)(_n))
@@ -151,49 +148,7 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 #define cc_memset(_p, _v, _n)                                   \
     memset(_p, _v, (size_t)(_n))
 
-#define cc_strlen(_s)                                           \
-    strlen((char *)(_s))
-
 #define cc_bcmp(_s1, _s2, _n)                                   \
     bcmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
-
-#define cc_strncmp(_s1, _s2, _n)                                \
-    strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
-
-#define cc_strndup(_s, _n)                                      \
-    (uint8_t *)strndup((char *)(_s), (size_t)(_n));
-
-#define cc_strchr(_p, _l, _c)                                   \
-    _cc_strchr((uint8_t *)(_p), (uint8_t *)(_l), (uint8_t)(_c))
-
-#define cc_strrchr(_p, _s, _c)                                  \
-    _cc_strrchr((uint8_t *)(_p),(uint8_t *)(_s), (uint8_t)(_c))
-
-
-static inline uint8_t *
-_cc_strchr(uint8_t *p, uint8_t *last, uint8_t c)
-{
-    while (p < last) {
-        if (*p == c) {
-            return p;
-        }
-        p++;
-    }
-
-    return NULL;
-}
-
-static inline uint8_t *
-_cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
-{
-    while (p >= start) {
-        if (*p == c) {
-            return p;
-        }
-        p--;
-    }
-
-    return NULL;
-}
 
 #endif

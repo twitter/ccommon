@@ -21,7 +21,6 @@
 #include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_queue.h>
-#include <cc_string.h>
 
 #include <stdbool.h>
 #include <stddef.h>

@@ -17,10 +17,10 @@
 
 #include <mem/cc_mem_interface.h>
 
+#include <cc_bstring.h>
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_string.h>
 #include <cc_time.h>
 #include <mem/cc_item.h>
 #include <mem/cc_slab.h>
