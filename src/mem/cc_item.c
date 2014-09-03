@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-#include <mem/cc_item.h>
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_string.h>
+#include <cc_print.h>
 #include <hash/cc_hash_table.h>
 #include <mem/cc_mem_globals.h>
 #include <mem/cc_slab.h>
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mem/cc_item.h>
 
 struct hash_table mem_hash_table;
 static uint64_t cas_id;                         /* unique cas id */
@@ -109,7 +111,7 @@ item_data(struct item *it)
 void
 item_hdr_init(struct item *it, uint32_t offset)
 {
-    ASSERT(offset >= SLAB_HDR_SIZE && offset < settings.slab_size.val.uint32_val);
+    ASSERT(offset >= SLAB_HDR_SIZE && offset < mem_settings.slab_size.val.uint32_val);
 
 #if defined HAVE_ASSERT_PANIC && HAVE_ASSERT_PANIC == 1 || defined HAVE_ASSERT_LOG && HAVE_ASSERT_LOG == 1
     it->magic = ITEM_MAGIC;
@@ -182,7 +184,7 @@ item_reuse(struct item *it)
 uint8_t item_slabid(uint8_t nkey, uint32_t nbyte)
 {
     /* Calculate total size of item, get slab id using the size */
-    return slab_id(item_ntotal(nkey, nbyte, settings.use_cas.val.bool_val));
+    return slab_id(item_ntotal(nkey, nbyte, mem_settings.use_cas.val.bool_val));
 }
 
 struct item *
@@ -391,7 +393,7 @@ ichain_remove_item(struct item *it, struct item *node) {
 static uint64_t
 item_next_cas(void)
 {
-    if (settings.use_cas.val.bool_val) {
+    if (mem_settings.use_cas.val.bool_val) {
         return ++cas_id;
     }
 
@@ -549,7 +551,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 	/* Get slab id based on nbyte, and nkey if first node */
 	id = slab_id(item_ntotal(
 			 (it == NULL) ? nkey : 0, nbyte,
-			 (it == NULL) ? settings.use_cas.val.bool_val : false));
+			 (it == NULL) ? mem_settings.use_cas.val.bool_val : false));
 
 	/* If remaining data cannot fit into a single item, allocate the
 	   biggest item possible */
@@ -624,7 +626,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 	it->flags |= ITEM_RALIGN;
     }
 
-    if(settings.use_cas.val.bool_val) {
+    if(mem_settings.use_cas.val.bool_val) {
 	it->flags |= ITEM_CAS;
     }
 
@@ -645,7 +647,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
-    id = slab_id(item_ntotal(nkey, nbyte, settings.use_cas.val.bool_val));
+    id = slab_id(item_ntotal(nkey, nbyte, mem_settings.use_cas.val.bool_val));
 
     if(id == SLABCLASS_CHAIN_ID) {
 	log_debug(LOG_NOTICE, "No id large enough to contain that item!");
@@ -670,7 +672,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     item_acquire_refcount(it);
 
-    it->flags = settings.use_cas.val.bool_val ? ITEM_CAS : 0;
+    it->flags = mem_settings.use_cas.val.bool_val ? ITEM_CAS : 0;
     it->nbyte = nbyte;
     it->exptime = exptime;
     it->nkey = nkey;
@@ -1365,7 +1367,7 @@ _item_delta(uint8_t *key, size_t nkey, bool incr, uint64_t delta)
         value -= delta;
     }
 
-    res = snprintf(buf, INCR_MAX_STORAGE_LEN, "%llu", value);
+    res = cc_scnprintf(buf, INCR_MAX_STORAGE_LEN, "%"PRIu64, value);
     ASSERT(res < INCR_MAX_STORAGE_LEN);
     if (res > it->nbyte) { /* need to realloc */
         struct item *new_it;

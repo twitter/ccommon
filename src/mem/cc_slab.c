@@ -20,8 +20,8 @@
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_settings.h>
 #include <mem/cc_item.h>
+#include <mem/cc_mem_settings.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -80,7 +80,7 @@ size_t
 slab_size(void)
 {
     /* Currently, SLAB_HDR_SIZE == 32 */
-    return settings.slab_size.val.uint32_val - SLAB_HDR_SIZE;
+    return mem_settings.slab_size.val.uint32_val - SLAB_HDR_SIZE;
 }
 
 void
@@ -90,8 +90,8 @@ slab_print(void)
     struct slabclass *p;
 
     loga("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
-	   "total memory: %zu\n\n", settings.slab_size.val.uint32_val, SLAB_HDR_SIZE,
-	   ITEM_HDR_SIZE, settings.maxbytes.val.uint64_val);
+	   "total memory: %zu\n\n", mem_settings.slab_size.val.uint32_val, SLAB_HDR_SIZE,
+	   ITEM_HDR_SIZE, mem_settings.maxbytes.val.uint64_val);
 
     /* Print out details for each slab class */
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
@@ -219,7 +219,7 @@ slab_lruq_touch(struct slab *slab, bool allocated)
      * - request comes from allocating an item & lru slab eviction is specified, or
      * - lra slab eviction is specified
      */
-    if(!(allocated && settings.evict_lru.val.bool_val)) {
+    if(!(allocated && mem_settings.evict_lru.val.bool_val)) {
 	return;
     }
 
@@ -264,7 +264,7 @@ slab_2_item(struct slab *slab, uint32_t idx, size_t size)
     uint32_t offset = idx * size;
 
     ASSERT(slab->magic == SLAB_MAGIC);
-    ASSERT(offset < settings.slab_size.val.uint32_val);
+    ASSERT(offset < mem_settings.slab_size.val.uint32_val);
 
     it = (struct item *)((uint8_t *)slab->data + offset);
 
@@ -276,7 +276,7 @@ slab_2_item(struct slab *slab, uint32_t idx, size_t size)
  *
  * Every slabclass is a collection of slabs of fixed size specified by
  * --slab-size. A single slab is a collection of contiguous, equal sized
- * item chunks of a given size specified by the settings.profile array
+ * item chunks of a given size specified by the mem_settings.profile array
  */
 static void
 slab_slabclass_init(void)
@@ -284,8 +284,8 @@ slab_slabclass_init(void)
     uint8_t id;      /* slabclass id */
     uint32_t *profile; /* slab profile */
 
-    profile = settings.profile.val.uint32ptr_val;
-    slabclass_max_id = settings.profile_last_id.val.uint8_val;
+    profile = mem_settings.profile.val.uint32ptr_val;
+    slabclass_max_id = mem_settings.profile_last_id.val.uint8_val;
 
     ASSERT(slabclass_max_id <= SLABCLASS_MAX_ID);
 
@@ -326,19 +326,19 @@ static rstatus_t
 slab_heapinfo_init(void)
 {
     heapinfo.nslab = 0;
-    heapinfo.max_nslab = settings.maxbytes.val.uint64_val / settings.slab_size.val.uint32_val;
+    heapinfo.max_nslab = mem_settings.maxbytes.val.uint64_val / mem_settings.slab_size.val.uint32_val;
 
     heapinfo.base = NULL;
-    if (settings.prealloc.val.bool_val) {
-        heapinfo.base = cc_alloc(heapinfo.max_nslab * settings.slab_size.val.uint32_val);
+    if (mem_settings.prealloc.val.bool_val) {
+        heapinfo.base = cc_alloc(heapinfo.max_nslab * mem_settings.slab_size.val.uint32_val);
         if (heapinfo.base == NULL) {
 	    log_debug(LOG_CRIT, "pre-alloc %zu bytes for %u slabs failed",
-		    heapinfo.max_nslab * settings.slab_size.val.uint32_val, heapinfo.max_nslab);
+		    heapinfo.max_nslab * mem_settings.slab_size.val.uint32_val, heapinfo.max_nslab);
             return CC_ENOMEM;
         }
 
 	log_debug(LOG_INFO, "pre-allocated %zu bytes for %u slabs",
-		settings.maxbytes.val.uint64_val, heapinfo.max_nslab);
+		mem_settings.maxbytes.val.uint64_val, heapinfo.max_nslab);
     }
     heapinfo.curr = heapinfo.base;
 
@@ -387,11 +387,11 @@ slab_heap_alloc(void)
 {
     struct slab *slab;
 
-    if (settings.prealloc.val.bool_val) {
+    if (mem_settings.prealloc.val.bool_val) {
         slab = (struct slab *)heapinfo.curr;
-        heapinfo.curr += settings.slab_size.val.uint32_val;
+        heapinfo.curr += mem_settings.slab_size.val.uint32_val;
     } else {
-        slab = cc_alloc(settings.slab_size.val.uint32_val);
+        slab = cc_alloc(mem_settings.slab_size.val.uint32_val);
     }
 
     return slab;
@@ -644,7 +644,7 @@ slab_get(uint8_t id)
 
     /* If failed to get a slab from the slab pool, evict */
     if(evict_enabled && slab == NULL) {
-	if(settings.evict_lru.val.bool_val) {
+	if(mem_settings.evict_lru.val.bool_val) {
 	    slab = slab_evict_lru(id);
 	} else {
 	    slab = slab_evict_rand();
@@ -668,7 +668,7 @@ slab_get_item_from_freeq(uint8_t id)
     struct slabclass *p; /* parent slabclass */
     struct item *it;
 
-    if (!settings.use_freeq.val.bool_val) {
+    if (!mem_settings.use_freeq.val.bool_val) {
         return NULL;
     }
 

@@ -1,11 +1,11 @@
 #include <mem/cc_mem_interface.h>
+#include <mem/cc_mem_settings.h>
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_settings.h>
 #include <cc_string.h>
 #include <hash/cc_hash_table.h>
 
@@ -66,6 +66,30 @@
  *
  * ps
  * Print settings descriptions
+ *
+ * qp
+ * Query prealloc setting
+ *
+ * qe
+ * Query evict_lru setting
+ *
+ * qf
+ * Query use_freeq setting
+ *
+ * qc
+ * Query use_cas setting
+ *
+ * qb
+ * Query maxbytes setting
+ *
+ * qs
+ * Query slab_size setting
+ *
+ * qh
+ * Query hash_power setting
+ *
+ * qq
+ * quit
  */
 void init_cache(char *config_file);
 void init_settings(void);
@@ -179,7 +203,7 @@ int main(int argc, char *argv[])
 	case 'p': {
 	    switch(second) {
 	    case 's':
-		settings_desc();
+		mem_settings_desc();
 		break;
 	    default:
 		printf("unknown command entered\n");
@@ -189,10 +213,32 @@ int main(int argc, char *argv[])
 	    break;
 	}
 	case 'q': {
-	    if(second == 'q') {
+	    switch(second) {
+	    case 'p':
+		printf(mem_settings.prealloc.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'e':
+		printf(mem_settings.evict_lru.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'f':
+		printf(mem_settings.use_freeq.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'c':
+		printf(mem_settings.use_cas.val.bool_val ? "true\n" : "false\n");
+		break;
+	    case 'b':
+		printf("%llu\n", mem_settings.maxbytes.val.uint64_val);
+		break;
+	    case 's':
+		printf("%u\n", mem_settings.slab_size.val.uint32_val);
+		break;
+	    case 'h':
+		printf("%hhu\n", mem_settings.hash_power.val.uint8_val);
+		break;
+	    case 'q':
 		printf("done\n");
 		return 0;
-	    } else {
+	    default:
 		printf("unknown command entered\n");
 		while(fgetc(stdin) != '\n');
 		break;
@@ -211,7 +257,7 @@ int main(int argc, char *argv[])
 void
 init_cache(char *config_file)
 {
-    settings_load(config_file);
+    mem_settings_load_from_file(config_file);
     time_init();
 
     if(log_setup(LOG_WARN, "out.txt") == -1) {

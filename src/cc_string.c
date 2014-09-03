@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
+#include <cc_string.h>
+
 #include <cc_debug.h>
 #include <cc_mm.h>
-
-#include <cc_string.h>
 
 /*
  * Byte string (struct bstring) is a sequence of unsigned char

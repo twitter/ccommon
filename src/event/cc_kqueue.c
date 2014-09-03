@@ -19,16 +19,17 @@
 
 #ifdef CC_HAVE_KQUEUE
 
-#include <inttypes.h>
-#include <string.h>
-#include <sys/event.h>
-#include <sys/errno.h>
+#include <cc_event.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 
-#include <cc_event.h>
+#include <inttypes.h>
+#include <string.h>
+#include <sys/event.h>
+#include <sys/errno.h>
+
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)

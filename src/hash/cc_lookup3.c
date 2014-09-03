@@ -3,12 +3,12 @@ Excerpt and modified from lookup3.c (http://burtleburtle.net/bob/c/lookup3.c),
 originally by Bob Jenkins, May 2006, Public Domain.
 */
 
-#include <stdint.h>     /* defines uint32_t etc */
-#include <sys/param.h>  /* attempt to define endianness */
+#include <cc_lookup3.h>
 
 #include <cc_define.h>
 
-#include <cc_lookup3.h>
+#include <stdint.h>     /* defines uint32_t etc */
+#include <sys/param.h>  /* attempt to define endianness */
 
 /*
  * My best guess at if you are big-endian or little-endian.  This may

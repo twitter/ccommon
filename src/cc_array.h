@@ -18,10 +18,10 @@
 #ifndef _CC_ARRAY_H_
 #define _CC_ARRAY_H_
 
+#include <cc_define.h>
+
 #include <stdint.h>
 #include <stddef.h>
-
-#include <cc_define.h>
 
 typedef int (*array_compare_t)(const void *, const void *);
 typedef rstatus_t (*array_each_t)(void *, void *);
@@ -88,4 +88,5 @@ uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
 
 void array_setup(uint32_t nelem);
 void array_teardown(void);
-#endif
+
+#endif /* _CC_ARRAY_H_ */

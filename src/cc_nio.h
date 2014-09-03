@@ -18,11 +18,12 @@
 #ifndef __CC_NIO_H_
 #define __CC_NIO_H_
 
-#include <unistd.h>
-#include <sys/socket.h>
-
 #include <cc_array.h>
 #include <cc_define.h>
+
+#include <stdbool.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 /* Note(yao): the abstraction of the io module is subject to re-design in the
  * near future.

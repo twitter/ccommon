@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stddef.h>
+#include <cc_mbuf.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
@@ -25,7 +23,9 @@
 #include <cc_queue.h>
 #include <cc_string.h>
 
-#include <cc_mbuf.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define MBUF_MODULE_NAME "ccommon::mbuf"
 

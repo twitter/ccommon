@@ -4,10 +4,10 @@ AM_CPPFLAGS += -I $(top_srcdir)/src
 AM_CFLAGS = -Wall
 AM_CFLAGS += -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls
 AM_CFLAGS += -Wunused-function -Wunused-value -Wunused-variable
-AM_CFLAGS += -fstrict-aliasing -flat_namespace
+AM_CFLAGS += -fstrict-aliasing
 AM_CFLAGS += -g
 
-AM_LDFLAGS = -rdynamic -Wl -flat_namespace
+AM_LDFLAGS = -rdynamic
 
 bin_PROGRAMS = membenchmark
 

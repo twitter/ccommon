@@ -19,18 +19,19 @@
 
 #ifdef CC_HAVE_EPOLL
 
-#include <inttypes.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/epoll.h>
-#include <sys/errno.h>
+#include <cc_event.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_nio.h>
 
-#include <cc_event.h>
+#include <inttypes.h>
+#include <string.h>
+#include <sys/epoll.h>
+#include <sys/errno.h>
+#include <unistd.h>
+
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)

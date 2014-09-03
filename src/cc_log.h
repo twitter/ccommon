@@ -125,4 +125,4 @@ void _log(const char *file, int line, int panic, const char *fmt, ...);
 void _log_stderr(const char *fmt, ...);
 void _log_hexdump(char *data, int datalen);
 
-#endif
+#endif /* _CC_LOG_H_ */

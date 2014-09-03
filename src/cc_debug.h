@@ -54,4 +54,4 @@
 void cc_log_assert(const char *cond, const char *file, int line, int panic);
 void cc_log_stacktrace(int skip_count);
 
-#endif
+#endif /* _CC_DEBUG_H_ */
