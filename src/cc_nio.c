@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
+#include <cc_nio.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_util.h>
 
-#include <cc_nio.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
 
 #define NIO_MODULE_NAME "ccommon::nio"
 
@@ -73,7 +74,7 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
             conn->recv_ready = 0;
             conn->state = CONN_EOF;
             log_debug(LOG_INFO, "recv on sd %d eof rb  %zu sb %zu", conn->sd,
-                      conn->recv_bytes, conn->send_bytes);
+                      conn->recv_nbyte, conn->send_nbyte);
             return n;
         }
 
@@ -109,7 +110,7 @@ conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
      */
     ssize_t n;
 
-    ASSERT(array_n(bufv) > 0);
+    ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
     ASSERT(conn->recv_ready);
 
@@ -223,7 +224,7 @@ conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
      */
     ssize_t n;
 
-    ASSERT(array_n(bufv) > 0);
+    ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
     ASSERT(conn->send_ready);
 

@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+#include <cc_log.h>
+
+#include <cc_print.h>
+#include <cc_util.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -24,11 +29,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
-#include <cc_print.h>
-#include <cc_util.h>
-
-#include <cc_log.h>
 
 #define LOG_MODULE_NAME "ccommon::log"
 

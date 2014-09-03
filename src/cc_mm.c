@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
+#include <cc_mm.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 
-#include <cc_mm.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
 
 /* TODO(yao): detect OS in one place and use one variable everywhere */
 #if defined(__APPLE__) && defined(__MACH__)

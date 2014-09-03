@@ -51,7 +51,7 @@ mem_settings_load_from_file(char *config_file)
 	}
     }
 
-    while(fgets(buf, SETTING_LINE_MAX + 1, fp) != NULL) {
+    while(fgets(buf, SETTING_LINE_MAX, fp) != NULL) {
 	sds *argv;
 	int32_t argc;
 	uint32_t i;

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __CC_DEFINE_H__
-#define __CC_DEFINE_H__
+#ifndef _CC_DEFINE_H_
+#define _CC_DEFINE_H_
 
 #include <config.h>
 
@@ -67,4 +67,4 @@
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */
 
-#endif
+#endif /* _CC_DEFINE_H_ */

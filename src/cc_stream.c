@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#include <sys/uio.h>
-#include <limits.h>
+#include <cc_stream.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
@@ -24,7 +23,8 @@
 #include <cc_nio.h>
 #include <cc_util.h>
 
-#include <cc_stream.h>
+#include <limits.h>
+#include <sys/uio.h>
 
 #if (IOV_MAX > 128)
 #define CC_IOV_MAX 128

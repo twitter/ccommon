@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cc_array.h>
 
 #include <cc_debug.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 
-#include <cc_array.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #define MAX_NELEM_DELTA 16
 

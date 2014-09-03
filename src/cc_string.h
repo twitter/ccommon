@@ -18,12 +18,12 @@
 #ifndef _CC_STRING_H_
 #define _CC_STRING_H_
 
+#include <cc_define.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <cc_define.h>
 
 /* TODO(yao): separate byte string related functionalities into cc_bstring */
 struct bstring {

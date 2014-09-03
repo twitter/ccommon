@@ -19,7 +19,7 @@
 
 #include <cc_log.h>
 
-#include <stdio.h>
+#include <time.h>
 
 /*
  * From memcache protocol specification:

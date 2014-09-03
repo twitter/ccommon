@@ -34,11 +34,11 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
-#include <stdint.h>
-#include <stddef.h>
-
 #include <cc_queue.h>
 #include <cc_string.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 /* TODO(yao): create a non-pooled/chained version of mbuf */
 struct mbuf {
@@ -87,4 +87,4 @@ void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
 void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
 struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
-#endif
+#endif /* _CC_MBUF_H_ */
