@@ -32,7 +32,7 @@ struct bstring {
 };
 
 #define bstring(_str)   { sizeof(_str) - 1, (uint8_t *)(_str) }
-#define null_string    { 0, NULL }
+#define null_bstring    { 0, NULL }
 
 #define bstring_set_text(_str, _text) do {       \
     (_str)->len = (uint32_t)(sizeof(_text) - 1);\
