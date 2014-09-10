@@ -18,7 +18,7 @@
 #include <cc_print.h>
 
 
-int
+size_t
 _vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
     int i;
@@ -46,7 +46,7 @@ _vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
     return size - 1;
 }
 
-int
+size_t
 _scnprintf(char *buf, size_t size, const char *fmt, ...)
 {
     va_list args;
@@ -58,3 +58,4 @@ _scnprintf(char *buf, size_t size, const char *fmt, ...)
 
     return i;
 }
+

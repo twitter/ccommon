@@ -9,6 +9,7 @@ AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 AM_CPPFLAGS += -I $(top_srcdir)/src
 AM_CPPFLAGS += -I $(top_srcdir)/src/event
 AM_CPPFLAGS += -I $(top_srcdir)/src/hash
+AM_CPPFLAGS += -I $(top_srcdir)/src/mem
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -61,7 +62,6 @@ ccommon_include_HEADERS =						\
 	cc_sds.h							\
 	cc_settings.h							\
 	cc_stream.h							\
-	cc_define.h							\
 	cc_time.h                                                   	\
 	cc_util.h							\
 	event/cc_event.h						\

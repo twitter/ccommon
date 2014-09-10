@@ -1,5 +1,6 @@
 #include <check.h>
 
+#include "../src/cc_bstring.h"
 #include "../src/mem/cc_mem_interface.h"
 #include "../src/cc_settings.h"
 #include "../src/mem/cc_slab.h"
@@ -8,7 +9,6 @@
 #include "../src/hash/cc_hash_table.h"
 #include "../src/data_structure/cc_zipmap.h"
 #include "../src/cc_mm.h"
-#include "../src/cc_string.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -385,7 +385,7 @@ START_TEST(check_mem_evict)
     uint32_t i, n;
     char *val, *key;
 
-    settings_load("test/check.config");
+    mem_settings_load_from_file("test/check.config");
     time_init();
 
     return_status = item_init();

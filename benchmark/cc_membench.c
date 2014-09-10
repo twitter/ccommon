@@ -3,10 +3,10 @@
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
 #include <data_structure/cc_zipmap.h>
+#include <cc_bstring.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_string.h>
 #include <hash/cc_hash_table.h>
 
 #include <stdio.h>

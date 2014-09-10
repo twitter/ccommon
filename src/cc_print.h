@@ -18,8 +18,11 @@
 #ifndef _CC_PRINT_H_
 #define _CC_PRINT_H_
 
+#include <cc_util.h>
+
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /*
  * cc_snprintf
@@ -27,16 +30,19 @@
  * cc_vscnprintf
  */
 
-#define cc_snprintf(_s, _n, ...)                                \
+#define cc_snprintf(_s, _n, ...)                                        \
     snprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
 
-#define cc_scnprintf(_s, _n, ...)                               \
+#define cc_scnprintf(_s, _n, ...)                                       \
     _scnprintf((char *)(_s), (size_t)(_n), __VA_ARGS__)
 
-#define cc_vscnprintf(_s, _n, _f, _a)                           \
+#define cc_vscnprintf(_s, _n, _f, _a)                                   \
     _vscnprintf((char *)(_s), (size_t)(_n), _f, _a)
 
-int _scnprintf(char *buf, size_t size, const char *fmt, ...);
-int _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
+#define cc_print_uint64(_s, _u)                                         \
+    (size_t)_scnprintf((char *)(_s), CC_UINT64_MAXLEN, "%"PRIu64, (_u))
+
+size_t _scnprintf(char *buf, size_t size, const char *fmt, ...);
+size_t _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 #endif

@@ -78,7 +78,7 @@ void array_data_destroy(struct array *arr);
 rstatus_t array_create(struct array **arr, uint32_t nalloc, size_t size);
 void array_destroy(struct array **arr);
 
-uint32_t array_idx(struct array *arr, void *elem);
+uint32_t array_locate(struct array *arr, void *elem);
 void *array_push(struct array *arr);
 void *array_get_idx(struct array *arr, uint32_t idx);
 void *array_last(struct array *arr);

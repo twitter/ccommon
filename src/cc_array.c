@@ -101,7 +101,7 @@ array_destroy(struct array **arr)
 
 /* index of the given element address in the array */
 uint32_t
-array_idx(struct array *arr, void *elem)
+array_locate(struct array *arr, void *elem)
 {
     uint32_t offset, idx;
 

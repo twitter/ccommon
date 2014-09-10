@@ -2,11 +2,11 @@
 #include <mem/cc_mem_settings.h>
 #include <mem/cc_slab.h>
 #include <mem/cc_item.h>
-#include <data_structure/cc_zipmap.h>
+#include <cc_bstring.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_string.h>
+#include <data_structure/cc_zipmap.h>
 #include <hash/cc_hash_table.h>
 
 #include <ctype.h>
@@ -631,7 +631,7 @@ demo_get_secondary(void)
 
     if(zmap_get(pkey, npkey, skey, nskey, &val, &nval) == ZMAP_GET_OK) {
 	val_cpy = malloc(nval + 1);
-	memcpy(val_cpy, val, nval);
+	cc_memcpy(val_cpy, val, nval);
 	val_cpy[nval] = '\0';
 	printf("val: %s\n", val_cpy);
     } else {
