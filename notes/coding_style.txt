@@ -1,0 +1,3 @@
+include order:
+Rule of thumb- local to global: header of the same name first, headers in the same project, headers from other projects/system.
+Organize system inclusions in a separate block. And, if applicable, organize inclusions from each project in a separate block.
