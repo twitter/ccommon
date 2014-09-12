@@ -151,4 +151,8 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 #define cc_bcmp(_s1, _s2, _n)                                   \
     bcmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
 
+
+/* bstring to uint conversion */
+rstatus_t bstring_atou64(uint64_t *u64, struct bstring *str);
+
 #endif

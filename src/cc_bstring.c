@@ -112,3 +112,27 @@ bstring_compare(const struct bstring *s1, const struct bstring *s2)
 
     return cc_bcmp(s1->data, s2->data, s1->len);
 }
+
+rstatus_t
+bstring_atou64(uint64_t *u64, struct bstring *str)
+{
+    uint32_t offset;
+    uint8_t c;
+
+    *u64 = 0ULL;
+
+    if (str->len == 0 || str->len >= CC_UINT64_MAXLEN) {
+        return CC_ERROR;
+    }
+
+    for (offset = 0; offset < str->len; offset++) {
+        c = *(str->data + offset);
+        if (c < '0' || c > '9') {
+            return CC_ERROR;
+        }
+
+        *u64 = *u64 * 10ULL + (uint64_t)(c - '0');
+    }
+
+    return CC_OK;
+}
