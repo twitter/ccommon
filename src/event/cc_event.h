@@ -60,10 +60,16 @@ struct event_base {
 # error missing scalable I/O event notification mechanism
 #endif
 
+/* event base */
 struct event_base *event_base_create(int size, event_cb_t cb);
 void event_base_destroy(struct event_base *evb);
 
-/* timed event APIs */
-int event_time_wait(struct event_base *evb, int timeout);
+/* event control */
+int event_add_read(struct event_base *evb, int fd, void *data);
+int event_add_write(struct event_base *evb, int fd, void *data);
+int event_del(struct event_base *evb, int fd);
+
+/* event wait */
+int event_wait(struct event_base *evb, int timeout);
 
 #endif /* _CC_EVENT_H */

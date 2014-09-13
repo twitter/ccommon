@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
-#include <cc_define.h>
-
 #ifdef CC_HAVE_EPOLL
+
+#define _GNU_SOURCE
+
+#include <cc_define.h>
 
 #include <cc_event.h>
 
@@ -99,37 +101,106 @@ event_base_destroy(struct event_base *evb)
     cc_free(evb);
 }
 
+int event_add_read(struct event_base *evb, int fd, void *data)
+{
+    int status;
+    struct epoll_event event;
+    int ep = evb->ep;
+
+    ASSERT(ep > 0);
+    ASSERT (fd > 0);
+
+    event.events = (EPOLLIN | EPOLLET);
+    event.data.ptr = data;
+
+    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
+    if (status < 0) {
+        log_error("ctl (add read) w/ epoll fd %d on fd %d failed: %s", ep, fd,
+                strerror(errno));
+    }
+
+    return status;
+}
+
+int
+event_add_write(struct event_base *evb, int fd, void *data)
+{
+    int status;
+    struct epoll_event event;
+    int ep = evb->ep;
+
+    ASSERT(ep > 0);
+    ASSERT(fd > 0);
+
+    event.events = (EPOLLOUT | EPOLLET);
+    event.data.ptr = data;
+
+    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
+    if (status < 0) {
+        log_error("ctl (add write) w/ epoll fd %d on fd %d failed: %s", ep, fd,
+                strerror(errno));
+    }
+
+    return status;
+}
+
+int
+event_del(struct event_base *evb, int fd)
+{
+    int status;
+    struct epoll_event event;
+    int ep = evb->ep;
+
+    ASSERT(ep > 0);
+    ASSERT(fd > 0);
+
+    /* event can be NULL in kernel >=2.6.9, here we keep it for compatibility */
+    status = epoll_ctl(ep, EPOLL_CTL_DEL, fd, &event);
+    if (status < 0) {
+        log_error("ctl (del) w/ epoll fd %d on fd %d failed: %s", ep, fd,
+                strerror(errno));
+    }
+
+    return status;
+}
+
+
 /*
  * create a timed event with event base function and timeout (in millisecond)
  */
 int
-event_time_wait(struct event_base *evb, int timeout)
+event_wait(struct event_base *evb, int timeout)
 {
     int ep = evb->ep;
-    struct epoll_event *event = evb->event;
-    int nevent = evb->nevent;
+    struct epoll_event *ev_arr;
+    int nevent;
 
     ASSERT(ep > 0);
-    ASSERT(event != NULL);
+    ASSERT(evb != NULL);
+
+    ev_arr = evb->event;
+    nevent = evb->nevent;
+
+    ASSERT(ev_arr != NULL);
     ASSERT(nevent > 0);
 
     for (;;) {
-        int i, nsd;
+        int i, nfd;
 
-        nsd = epoll_wait(ep, event, nevent, timeout);
-        if (nsd > 0) {
-            for (i = 0; i < nsd; i++) {
-                struct epoll_event *ev = &evb->event[i];
+        nev = epoll_wait(ep, ev_arr, nevent, timeout);
+        if (nev > 0) {
+            for (i = 0; i < nev; i++) {
+                struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
 
-                log_debug(LOG_VVERB, "epoll %04"PRIX32" triggered on conn %p",
+                log_debug(LOG_VVERB, "epoll %04"PRIX32" against data %p",
                           ev->events, ev->data.ptr);
 
-                if (ev->events & EPOLLERR) {
+                if (ev->events & (EPOLLERR | EPOLLHUP | EPOLLNVAL)) {
                     events |= EVENT_ERR;
                 }
 
-                if (ev->events & (EPOLLIN | EPOLLHUP)) {
+                if (ev->events & (EPOLLIN | EPOLLRDHUP)) {
                     events |= EVENT_READ;
                 }
 
@@ -141,12 +212,13 @@ event_time_wait(struct event_base *evb, int timeout)
                     evb->cb(ev->data.ptr, events);
                 }
             }
-            return nsd;
+
+            return nev;
         }
 
-        if (nsd == 0) {
+        if (nev == 0) {
             if (timeout == -1) {
-               log_error("epoll wait on e %d with %d events and %d timeout "
+               log_error("wait on epoll fd %d with %d events and %d timeout "
                          "returned no events", ep, nevent, timeout);
                 return -1;
             }
@@ -158,8 +230,8 @@ event_time_wait(struct event_base *evb, int timeout)
             continue;
         }
 
-        log_error("epoll wait on e %d with %d events failed: %s", ep, nevent,
-                  strerror(errno));
+        log_error("wait on epoll fd %d with %d events and %d timeout failed: "
+                "%s", ep, nevent, strerror(errno));
         return -1;
     }
 
