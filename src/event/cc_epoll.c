@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
+#include <cc_define.h>
+
 #ifdef CC_HAVE_EPOLL
 
+/* need the following to use EPOLLRDHUP */
 #define _GNU_SOURCE
-
-#include <cc_define.h>
 
 #include <cc_event.h>
 
@@ -46,7 +47,7 @@ event_base_create(int nevent, event_cb_t cb)
 
     ep = epoll_create(nevent);
     if (ep < 0) {
-        log_error("epoll create of size %d failed: %s", nevent, strerror(errno));
+        log_error("epoll create size %d failed: %s", nevent, strerror(errno));
         return NULL;
     }
 
@@ -54,7 +55,7 @@ event_base_create(int nevent, event_cb_t cb)
     if (event == NULL) {
         status = close(ep);
         if (status < 0) {
-            log_error("close e %d failed, ignored: %s", ep, strerror(errno));
+            log_warn("close e %d failed, ignored: %s", ep, strerror(errno));
         }
         return NULL;
     }
@@ -64,7 +65,7 @@ event_base_create(int nevent, event_cb_t cb)
         cc_free(event);
         status = close(ep);
         if (status < 0) {
-            log_error("close e %d failed, ignored: %s", ep, strerror(errno));
+            log_warn("close e %d failed, ignored: %s", ep, strerror(errno));
         }
         return NULL;
     }
@@ -74,7 +75,7 @@ event_base_create(int nevent, event_cb_t cb)
     evb->nevent = nevent;
     evb->cb = cb;
 
-    log_debug(LOG_INFO, "e %d with nevent %d", evb->ep, evb->nevent);
+    log_debug(LOG_INFO, "epoll fd %d with nevent %d", evb->ep, evb->nevent);
 
     return evb;
 }
@@ -94,7 +95,7 @@ event_base_destroy(struct event_base *evb)
 
     status = close(evb->ep);
     if (status < 0) {
-        log_error("close e %d failed, ignored: %s", evb->ep, strerror(errno));
+        log_warn("close e %d failed, ignored: %s", evb->ep, strerror(errno));
     }
     evb->ep = -1;
 
@@ -105,7 +106,11 @@ int event_add_read(struct event_base *evb, int fd, void *data)
 {
     int status;
     struct epoll_event event;
-    int ep = evb->ep;
+    int ep;
+
+    ASSERT(evb != NULL);
+
+    ep = evb->ep;
 
     ASSERT(ep > 0);
     ASSERT (fd > 0);
@@ -119,6 +124,8 @@ int event_add_read(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
+    log_debug(LOG_VERB, "add read event to epoll fd %d on fd %d", ep, fd);
+
     return status;
 }
 
@@ -127,7 +134,11 @@ event_add_write(struct event_base *evb, int fd, void *data)
 {
     int status;
     struct epoll_event event;
-    int ep = evb->ep;
+    int ep;
+
+    ASSERT(evb != NULL);
+
+    ep = evb->ep;
 
     ASSERT(ep > 0);
     ASSERT(fd > 0);
@@ -141,6 +152,8 @@ event_add_write(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
+    log_debug(LOG_VERB, "add write event to epoll fd %d on fd %d", ep, fd);
+
     return status;
 }
 
@@ -149,7 +162,11 @@ event_del(struct event_base *evb, int fd)
 {
     int status;
     struct epoll_event event;
-    int ep = evb->ep;
+    int ep;
+
+    ASSERT(evb != NULL);
+
+    ep = evb->ep;
 
     ASSERT(ep > 0);
     ASSERT(fd > 0);
@@ -161,6 +178,8 @@ event_del(struct event_base *evb, int fd)
                 strerror(errno));
     }
 
+    log_debug(LOG_VERB, "delete events from epoll fd %d on fd %d", ep, fd);
+
     return status;
 }
 
@@ -171,24 +190,25 @@ event_del(struct event_base *evb, int fd)
 int
 event_wait(struct event_base *evb, int timeout)
 {
-    int ep = evb->ep;
     struct epoll_event *ev_arr;
     int nevent;
+    int ep;
 
-    ASSERT(ep > 0);
     ASSERT(evb != NULL);
 
+    ep = evb->ep;
     ev_arr = evb->event;
     nevent = evb->nevent;
 
+    ASSERT(ep > 0);
     ASSERT(ev_arr != NULL);
     ASSERT(nevent > 0);
 
     for (;;) {
-        int i, nfd;
+        int i, nreturned;
 
-        nev = epoll_wait(ep, ev_arr, nevent, timeout);
-        if (nev > 0) {
+        nreturned = epoll_wait(ep, ev_arr, nevent, timeout);
+        if (nreturned > 0) {
             for (i = 0; i < nev; i++) {
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
@@ -213,16 +233,21 @@ event_wait(struct event_base *evb, int timeout)
                 }
             }
 
-            return nev;
+            log_debug(LOG_VERB, "returned %d events from epoll fd %d",
+                    nreturned, ep);
+
+            return nreturned;
         }
 
-        if (nev == 0) {
+        if (nreturned == 0) {
             if (timeout == -1) {
-               log_error("wait on epoll fd %d with %d events and %d timeout "
-                         "returned no events", ep, nevent, timeout);
+               log_error("indefinite wait on epoll fd %d with %d events "
+                         "returned no events", ep, nevent);
                 return -1;
             }
 
+            log_debug(LOG_VVERB, "wait on epoll fd %d with nevent %d timeout %d"
+                         "returned no events", ep, nevent, timeout);
             return 0;
         }
 
@@ -230,8 +255,9 @@ event_wait(struct event_base *evb, int timeout)
             continue;
         }
 
-        log_error("wait on epoll fd %d with %d events and %d timeout failed: "
+        log_error("wait on epoll fd %d with nevent %d and timeout %d failed: "
                 "%s", ep, nevent, strerror(errno));
+
         return -1;
     }
 

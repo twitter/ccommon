@@ -29,7 +29,7 @@
 #include <string.h>
 #include <sys/event.h>
 #include <sys/errno.h>
-
+#include <unistd.h>
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
@@ -50,7 +50,8 @@ event_base_create(int nevent, event_cb_t cb)
     if (change == NULL) {
         status = close(kq);
         if (status < 0) {
-            log_error("close kq %d failed, ignored: %s", kq, strerror(errno));
+            log_warn("close kqueue fd %d failed, ignored: %s", kq,
+                    strerror(errno));
         }
         return NULL;
     }
@@ -60,7 +61,8 @@ event_base_create(int nevent, event_cb_t cb)
         cc_free(change);
         status = close(kq);
         if (status < 0) {
-            log_error("close kq %d failed, ignored: %s", kq, strerror(errno));
+            log_warn("close kqueue fd %d failed, ignored: %s", kq,
+                    strerror(errno));
         }
         return NULL;
     }
@@ -71,7 +73,8 @@ event_base_create(int nevent, event_cb_t cb)
         cc_free(event);
         status = close(kq);
         if (status < 0) {
-            log_error("close kq %d failed, ignored: %s", kq, strerror(errno));
+            log_warn("close kqueue fd %d failed, ignored: %s", kq,
+                    strerror(errno));
         }
         return NULL;
     }
@@ -85,7 +88,7 @@ event_base_create(int nevent, event_cb_t cb)
     evb->nprocessed = 0;
     evb->cb = cb;
 
-    log_debug(LOG_INFO, "kq %d with nevent %d", evb->kq, evb->nevent);
+    log_debug(LOG_INFO, "kqueue fd %d with nevent %d", evb->kq, evb->nevent);
 
     return evb;
 }
@@ -106,19 +109,56 @@ event_base_destroy(struct event_base *evb)
 
     status = close(evb->kq);
     if (status < 0) {
-        log_error("close kq %d failed, ignored: %s", evb->kq, strerror(errno));
+        log_warn("close kq %d failed, ignored: %s", evb->kq,
+                strerror(errno));
     }
     evb->kq = -1;
 
     cc_free(evb);
 }
 
+int
+event_add_read(struct event_base *evb, int fd, void *data)
+{
+    struct kevent *event;
+
+    ASSERT(evb != NULL);
+    ASSERT(evb->kq > 0);
+    ASSERT(evb->nchange < evb->nevent);
+    ASSERT(fd > 0);
+
+    event = &evb->change[evb->nchange++];
+    EV_SET(event, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, data);
+
+    return 0;
+}
 
 int
-event_time_wait(struct event_base *evb, int timeout)
+event_add_write(struct event_base *evb, int fd, void *data)
 {
-    int kq = evb->kq;
+    struct kevent *event;
+
+    ASSERT(evb != NULL);
+    ASSERT(evb->kq > 0);
+    ASSERT(evb->nchange < evb->nevent);
+    ASSERT(fd > 0);
+
+    event = &evb->change[evb->nchange++];
+    EV_SET(event, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, data);
+
+    return 0;
+}
+
+
+int
+event_wait(struct event_base *evb, int timeout)
+{
+    int kq;
     struct timespec ts, *tsp;
+
+    ASSERT(evb != NULL);
+
+    kq = evb->kq;
 
     ASSERT(kq > 0);
 
@@ -155,7 +195,7 @@ event_time_wait(struct event_base *evb, int timeout)
                 uint32_t events = 0;
 
                 log_debug(LOG_VVERB, "kevent %04"PRIX32" with filter %d "
-                          "triggered on sd %d", ev->flags, ev->filter,
+                          "triggered on ident %d", ev->flags, ev->filter,
                           ev->ident);
 
                 /*
@@ -176,8 +216,9 @@ event_time_wait(struct event_base *evb, int timeout)
                     * event we are still processing. In that case the data
                     * field is set to ENOENT.
                     */
-                    if (ev->data == EBADF || ev->data == EINVAL ||
-                        ev->data == ENOENT || ev->data == EINTR) {
+
+                    if (ev->data != ENOMEM && ev->data != EFAULT &&
+                            ev->data != EACCES && ev->data != EINVAL) {
                         continue;
                     }
                     events |= EVENT_ERR;
@@ -195,15 +236,23 @@ event_time_wait(struct event_base *evb, int timeout)
                     evb->cb(ev->udata, events);
                 }
             }
+
+            log_debug(LOG_VERB, "returned %d events from kqueue fd %d",
+                    evb->nreturned, kq);
+
             return evb->nreturned;
         }
 
         if (evb->nreturned == 0) {
             if (timeout == -1) {
-               log_error("kevent on kq %d with %d events and %d timeout "
-                         "returned no events", kq, evb->nevent, timeout);
+               log_error("indefinite wait on kqueue fd %d with %d events "
+                         "returned no events", kq, evb->nevent);
+
                 return -1;
             }
+
+            log_debug(LOG_VVERB, "wait on kqueue fd %d with nevent %d timeout "
+                         "%d returned no events", kq, evb->nevent, timeout);
 
             return 0;
         }
@@ -212,8 +261,9 @@ event_time_wait(struct event_base *evb, int timeout)
             continue;
         }
 
-        log_error("kevent on kq %d with %d events failed: %s", kq, evb->nevent,
-                  strerror(errno));
+        log_error("wait on kqueue fd %d with nevent %d and tiemout %d failed: "
+                "%s", kq, evb->nevent, strerror(errno));
+
         return -1;
     }
 
