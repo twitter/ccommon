@@ -19,8 +19,8 @@
 
 #ifdef CC_HAVE_EPOLL
 
-/* need the following to use EPOLLRDHUP */
-#define _GNU_SOURCE
+/* need the following to use EPOLLRDHUP
+ * #define _GNU_SOURCE */
 
 #include <cc_event.h>
 
@@ -209,14 +209,14 @@ event_wait(struct event_base *evb, int timeout)
 
         nreturned = epoll_wait(ep, ev_arr, nevent, timeout);
         if (nreturned > 0) {
-            for (i = 0; i < nev; i++) {
+            for (i = 0; i < nreturned; i++) {
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
 
                 log_debug(LOG_VVERB, "epoll %04"PRIX32" against data %p",
                           ev->events, ev->data.ptr);
 
-                if (ev->events & (EPOLLERR | EPOLLHUP | EPOLLNVAL)) {
+                if (ev->events & (EPOLLERR | EPOLLHUP)) {
                     events |= EVENT_ERR;
                 }
 
