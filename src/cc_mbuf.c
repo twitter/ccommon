@@ -20,7 +20,6 @@
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_queue.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -202,6 +201,34 @@ mbuf_remove(struct mq *mq, struct mbuf *mbuf)
 }
 
 /*
+ * move all pointers and any content to the left
+ */
+void
+mbuf_lshift(struct mbuf *mbuf)
+{
+    uint32_t sz;
+
+    sz = mbuf_rsize(mbuf);
+    cc_memmove(mbuf->start, mbuf->rpos, sz);
+    mbuf->rpos = mbuf->start;
+    mbuf->wpos = mbuf->start + sz;
+}
+
+/*
+ * move all pointers and any content to the right
+ */
+void
+mbuf_rshift(struct mbuf *mbuf)
+{
+    uint32_t sz;
+
+    sz = mbuf_rsize(mbuf);
+    cc_memmove(mbuf->end - sz, mbuf->rpos, sz);
+    mbuf->rpos = mbuf->end - sz;
+    mbuf->wpos = mbuf->end;
+}
+
+/*
  * copy n bytes from memory area addr to mbuf.
  *
  * The memory areas should not overlap and the mbuf should have
@@ -239,7 +266,7 @@ struct mbuf *
 mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
 {
     struct mbuf *nbuf;
-    uint32_t size;
+    uint32_t sz;
 
     nbuf = mbuf_get();
     if (nbuf == NULL) {
@@ -252,15 +279,15 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     }
 
     /* copy data from mbuf to nbuf */
-    size = mbuf->wpos - addr;
-    mbuf_copy(nbuf, addr, size);
+    sz = mbuf->wpos - addr;
+    mbuf_copy(nbuf, addr, sz);
 
     /* adjust mbuf */
     mbuf->wpos = addr;
 
     log_debug(LOG_VVERB, "split into mbuf %p len %"PRIu32" and nbuf %p len "
               "%"PRIu32" copied %zu bytes", mbuf, mbuf_length(mbuf), nbuf,
-              mbuf_length(nbuf), size);
+              mbuf_length(nbuf), sz);
 
     return nbuf;
 }

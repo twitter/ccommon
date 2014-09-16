@@ -57,13 +57,13 @@ typedef void * channel_t;
 
 struct stream;
 
-typedef void (*msg_handler_t)(struct stream *stream, size_t nbyte);
+typedef void (*data_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
-    msg_handler_t pre_recv;  /* callback before msg received */
-    msg_handler_t post_recv; /* callback after msg received */
-    msg_handler_t pre_send;  /* callback before msg sent */
-    msg_handler_t post_send; /* callback after msg sent */
+    data_handler_t pre_read;   /* callback before msg received */
+    data_handler_t post_read;  /* callback after msg received */
+    data_handler_t pre_write;  /* callback before msg sent */
+    data_handler_t post_write; /* callback after msg sent */
 } stream_handler_t;
 
 /* Note(yao): should we use function pointers for the underlying actions and
@@ -73,7 +73,7 @@ typedef struct stream_handler {
  * we can also support using vector read and write, especially write, but that
  * doesn't necessarily require a vector-ed write buffer (only the iov needs to
  * know where each block of memory starts and ends). For write, the assmebly
- * of that arry should happen outside of the stream module.
+ * of that array should happen outside of the stream module.
  */
 struct stream {
     void               *owner;     /* owner of the stream */
@@ -99,7 +99,7 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte);
 /* NOTE(yao): we choose not to implement receiving and sending from raw bufs
  * for now, so everything has to be copied into stream's message buffer first,
  * the saving from doing zero-copy can be significant for large payloads, so
- * it will needs to be supported before we use unified backend for those cases.
+ * it will need to be supported before we use unified backend for those cases.
  * Another set of useful APIs are those that read past a certain delimiter
  * before returning, but that can wait, too.
  * We may want to add the scatter-gather style write, i.e. sendmsg() alike,

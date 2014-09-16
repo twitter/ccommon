@@ -34,8 +34,6 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
-#include <cc_mbuf.h>
-
 #include <cc_queue.h>
 #include <cc_bstring.h>
 
@@ -85,6 +83,8 @@ uint32_t mbuf_wsize(struct mbuf *mbuf);
 uint32_t mbuf_capacity(void);
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
+void mbuf_lshift(struct mbuf *mbuf);
+void mbuf_rshift(struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
 void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
 struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);

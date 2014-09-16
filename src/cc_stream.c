@@ -34,11 +34,11 @@
 
 /* recv nbyte at most and store it in rbuf associated with the stream.
  * Stream buffer must provide enough capacity, otherwise CC_NOMEM is returned.
- * callback pre_recv, if not NULL, is called before receiving data
- * callback pos_recv, if not NULL, is called after receiving data
+ * callback pre_read, if not NULL, is called before receiving data
+ * callback post_read, if not NULL, is called after receiving data
  *
- * the role of pre_recv is some sort of check- back pressure? buffer readiness?
- * post_recv is the callback that is suppose to deal with the received data,
+ * the role of pre_read is some sort of check- back pressure? buffer readiness?
+ * post_read is the callback that is suppose to deal with the received data,
  * and that's why we won't call it if no data is received
  */
 rstatus_t
@@ -59,8 +59,8 @@ msg_recv(struct stream *stream, size_t nbyte)
     handler = stream->handler;
 
     /* rbuf shouldn't be deallocated after this, do we need an assert below? */
-    if (handler->pre_recv != NULL) {
-        handler->pre_recv(stream, nbyte);
+    if (handler->pre_read != NULL) {
+        handler->pre_read(stream, nbyte);
     }
 
     capacity = mbuf_wsize(stream->rbuf);
@@ -117,8 +117,8 @@ msg_recv(struct stream *stream, size_t nbyte)
     log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
             stream->type);
 
-    if (n > 0 && handler->post_recv != NULL) {
-        handler->post_recv(stream, (size_t)n);
+    if (n > 0 && handler->post_read != NULL) {
+        handler->post_read(stream, (size_t)n);
     }
 
     return status;
@@ -126,11 +126,11 @@ msg_recv(struct stream *stream, size_t nbyte)
 
 
 /* send nbyte at most from data stored in wbuf associated with the stream.
- * callback pre_send, if not NULL, is called before sending data
- * callback pos_send, if not NULL, is called after sending data
+ * callback pre_write, if not NULL, is called before sending data
+ * callback post_write, if not NULL, is called after sending data
  *
- * the role of pre_send is some sort of check- buffer readiness? bookkeeping?
- * post_send is the callback that is suppose to clean up the buffer after data
+ * the role of pre_write is some sort of check- buffer readiness? bookkeeping?
+ * post_write is the callback that is suppose to clean up the buffer after data
  * is sent, and that's why we won't call it if no data is actually sent
 */
 rstatus_t msg_send(struct stream *stream, size_t nbyte)
@@ -149,8 +149,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
 
     handler = stream->handler;
 
-    if (handler->pre_send != NULL) {
-        handler->pre_send(stream, nbyte);
+    if (handler->pre_write != NULL) {
+        handler->pre_write(stream, nbyte);
     }
 
     content = mbuf_rsize(stream->wbuf);
@@ -201,8 +201,8 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
     log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
             stream->type);
 
-    if (n > 0 && handler->post_send != NULL) {
-        handler->post_send(stream, (size_t)n);
+    if (n > 0 && handler->post_write != NULL) {
+        handler->post_write(stream, (size_t)n);
     }
 
     return status;
