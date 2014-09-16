@@ -89,8 +89,8 @@ struct stream {
 };
 
 /* channel/medium agnostic data IO */
-rstatus_t msg_recv(struct stream *stream, size_t nbyte);
-rstatus_t msg_send(struct stream *stream, size_t nbyte);
+rstatus_t stream_read(struct stream *stream, size_t nbyte);
+rstatus_t stream_write(struct stream *stream, size_t nbyte);
 
 /* NOTE(yao): a yield mechanism for the caller to postpone I/O to the future,
  * especially recv. This can be used to avoid starvation and improve fairness.

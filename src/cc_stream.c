@@ -42,7 +42,7 @@
  * and that's why we won't call it if no data is received
  */
 rstatus_t
-msg_recv(struct stream *stream, size_t nbyte)
+stream_read(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
     struct conn *c = NULL;
@@ -133,7 +133,8 @@ msg_recv(struct stream *stream, size_t nbyte)
  * post_write is the callback that is suppose to clean up the buffer after data
  * is sent, and that's why we won't call it if no data is actually sent
 */
-rstatus_t msg_send(struct stream *stream, size_t nbyte)
+rstatus_t
+stream_write(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
     struct conn *c = NULL;
@@ -198,7 +199,7 @@ rstatus_t msg_send(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
+    log_debug(LOG_VERB, "recv %zd bytes on stream %p of type %d", n, stream,
             stream->type);
 
     if (n > 0 && handler->post_write != NULL) {
