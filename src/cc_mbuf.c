@@ -20,6 +20,7 @@
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mm.h>
+#include <cc_pool.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -27,80 +28,47 @@
 
 #define MBUF_MODULE_NAME "ccommon::mbuf"
 
-static uint32_t nfree_mq;   /* # free mbuf */
-static struct mq free_mq; /* free mbuf q */
+
+/*
+ * mbuf header is at the tail end of the mbuf. This enables us to catch
+ * buffer overrun early by asserting on the magic value during get or
+ * put operations
+ *
+ *   <------------- mbuf_chunk_size ------------->
+ *   +-------------------------------------------+
+ *   |       mbuf body          |  mbuf header   |
+ *   |     (mbuf_offset)        | (struct mbuf)  |
+ *   +-------------------------------------------+
+ *   ^           ^        ^     ^^
+ *   |           |        |     ||
+ *   \           |        |     |\
+ *   mbuf->start \        |     | mbuf->end (one byte past valid bound)
+ *                mbuf->rpos    \
+ *                        \      mbuf
+ *                        mbuf->wpos (one byte past valid byte)
+ *
+ */
+
+FREEPOOL(mbuf_pool, mbufq, mbuf);
+struct mbuf_pool mbufp;
 
 static uint32_t mbuf_chunk_size = MBUF_SIZE; /* chunk size (all inclusive) */
 static uint32_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
-static struct mbuf *
-_mbuf_get(void)
+struct mbuf *
+mbuf_create(void)
 {
     struct mbuf *mbuf;
     uint8_t *buf;
-
-    if (!STAILQ_EMPTY(&free_mq)) {
-        ASSERT(nfree_mq > 0);
-
-        mbuf = STAILQ_FIRST(&free_mq);
-        nfree_mq--;
-        STAILQ_REMOVE_HEAD(&free_mq, next);
-
-        ASSERT(mbuf->magic == MBUF_MAGIC);
-        goto done;
-    }
 
     buf = cc_alloc(mbuf_chunk_size);
     if (buf == NULL) {
         return NULL;
     }
-
-    /*
-     * mbuf header is at the tail end of the mbuf. This enables us to catch
-     * buffer overrun early by asserting on the magic value during get or
-     * put operations
-     *
-     *   <------------- mbuf_chunk_size ------------->
-     *   +-------------------------------------------+
-     *   |       mbuf body          |  mbuf header   |
-     *   |     (mbuf_offset)        | (struct mbuf)  |
-     *   +-------------------------------------------+
-     *   ^           ^        ^     ^^
-     *   |           |        |     ||
-     *   \           |        |     |\
-     *   mbuf->start \        |     | mbuf->end (one byte past valid bound)
-     *                mbuf->rpos    \
-     *                        \      mbuf
-     *                        mbuf->wpos (one byte past valid byte)
-     *
-     */
     mbuf = (struct mbuf *)(buf + mbuf_offset);
     mbuf->magic = MBUF_MAGIC;
-
-done:
-    STAILQ_NEXT(mbuf, next) = NULL;
-    return mbuf;
-}
-
-/*
- * get a fully initialized mbuf
- */
-struct mbuf *
-mbuf_get(void)
-{
-    struct mbuf *mbuf;
-
-    mbuf = _mbuf_get();
-    if (mbuf == NULL) {
-        return NULL;
-    }
-
     mbuf->end = (uint8_t *)mbuf;
-    mbuf->start = mbuf->end - mbuf_offset;
-    mbuf->rpos = mbuf->start;
-    mbuf->wpos = mbuf->start;
-
-    log_debug(LOG_VVERB, "get mbuf %p", mbuf);
+    mbuf->start = buf;
 
     return mbuf;
 }
@@ -120,21 +88,6 @@ mbuf_destroy(struct mbuf *mbuf)
 
     buf = (uint8_t *)mbuf - mbuf_offset;
     cc_free(buf);
-}
-
-/*
- * put an mbuf back in the free mbuf queue
- */
-void
-mbuf_put(struct mbuf *mbuf)
-{
-    log_debug(LOG_VVERB, "put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
-
-    ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
-    ASSERT(mbuf->magic == MBUF_MAGIC);
-
-    nfree_mq++;
-    STAILQ_INSERT_HEAD(&free_mq, mbuf, next);
 }
 
 /*
@@ -268,7 +221,7 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     struct mbuf *nbuf;
     uint32_t sz;
 
-    nbuf = mbuf_get();
+    nbuf = mbuf_borrow();
     if (nbuf == NULL) {
         return NULL;
     }
@@ -292,6 +245,60 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     return nbuf;
 }
 
+void
+mbuf_pool_create(uint32_t max)
+{
+    log_debug(LOG_INFO, "creating mbuf pool: max %"PRIu32, max);
+
+    FREEPOOL_CREATE(&mbufp, max);
+}
+
+void
+mbuf_pool_destroy(void)
+{
+    struct mbuf *mbuf, *nbuf;
+
+    log_debug(LOG_INFO, "destroying mbuf pool: free %"PRIu32, mbufp.nfree);
+
+    FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
+}
+
+/*
+ * borrow a fully initialized mbuf
+ */
+struct mbuf *
+mbuf_borrow(void)
+{
+    struct mbuf *mbuf;
+
+    FREEPOOL_BORROW(mbuf, &mbufp, next, mbuf_create);
+
+    if (mbuf == NULL) {
+        log_debug(LOG_DEBUG, "borrow mbuf failed: OOM");
+        return NULL;
+    }
+
+    mbuf_reset(mbuf);
+
+    log_debug(LOG_VVERB, "borrow mbuf %p", mbuf);
+
+    return mbuf;
+}
+
+/*
+ * return an mbuf to the pool
+ */
+void
+mbuf_return(struct mbuf *mbuf)
+{
+    ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
+    ASSERT(mbuf->magic == MBUF_MAGIC);
+
+    log_debug(LOG_VVERB, "return mbuf %p", mbuf);
+
+    FREEPOOL_RETURN(&mbufp, mbuf, next);
+}
+
 /*
  * initialize the mbuf module by setting the module-local constants
  */
@@ -299,9 +306,6 @@ void
 mbuf_setup(uint32_t chunk_size)
 {
     log_debug(LOG_INFO, "set up the %s module", MBUF_MODULE_NAME);
-
-    nfree_mq = 0;
-    STAILQ_INIT(&free_mq);
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
@@ -318,12 +322,4 @@ void
 mbuf_teardown(void)
 {
     log_debug(LOG_INFO, "tear down the %s module", MBUF_MODULE_NAME);
-
-    while (!STAILQ_EMPTY(&free_mq)) {
-        struct mbuf *mbuf = STAILQ_FIRST(&free_mq);
-        mbuf_remove(&free_mq, mbuf);
-        mbuf_destroy(mbuf);
-        nfree_mq--;
-    }
-    ASSERT(nfree_mq == 0);
 }

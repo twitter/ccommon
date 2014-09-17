@@ -45,6 +45,7 @@
  */
 
 #include <cc_define.h>
+#include <cc_queue.h>
 
 #include <stdlib.h>
 
@@ -57,9 +58,15 @@ typedef void * channel_t;
 
 struct stream;
 
+typedef channel_t (*channel_create_t)(void);
+typedef void (*channel_destroy_t)(channel_t channel);
+typedef void (*channel_reset_t)(channel_t channel);
 typedef void (*data_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
+    channel_create_t create;   /* callback to create a channel */
+    channel_destroy_t destroy; /* callback to destroy a channel */
+    channel_reset_t reset;     /* callback to reset a channel */
     data_handler_t pre_read;   /* callback before msg received */
     data_handler_t post_read;  /* callback after msg received */
     data_handler_t pre_write;  /* callback before msg sent */
@@ -76,23 +83,35 @@ typedef struct stream_handler {
  * of that array should happen outside of the stream module.
  */
 struct stream {
-    void               *owner;     /* owner of the stream */
+    STAILQ_ENTRY(stream) next;
 
-    channel_type_t     type;       /* type of the communication channels */
-    channel_t          channel;    /* underlying bi-directional channels */
+    void                 *owner;     /* owner of the stream */
 
-    struct mbuf        *rbuf;      /* read buffer */
-    struct mbuf        *wbuf;      /* write buffer */
-    stream_handler_t   *handler;   /* stream handlers */
+    channel_type_t       type;       /* type of the communication channels */
+    channel_t            channel;    /* underlying bi-directional channels */
 
-    void               *data;      /* stream data: e.g. request queue */
+    struct mbuf          *rbuf;      /* read buffer */
+    struct mbuf          *wbuf;      /* write buffer */
+    stream_handler_t     *handler;   /* stream handlers */
 
-    err_t              err;        /* error */
+    void                 *data;      /* stream data: e.g. request queue */
+
+    err_t                err;        /* error */
 };
 
 /* channel/medium agnostic data IO */
 rstatus_t stream_read(struct stream *stream, size_t nbyte);
 rstatus_t stream_write(struct stream *stream, size_t nbyte);
+
+struct stream *stream_create(void);
+void stream_destroy(struct stream *stream);
+void stream_reset(struct stream *stream);
+
+void stream_pool_create(uint32_t max);
+void stream_pool_destroy(void);
+struct stream *stream_borrow(void);
+void stream_return(struct stream *stream);
+
 
 /* NOTE(yao): a yield mechanism for the caller to postpone I/O to the future,
  * especially recv. This can be used to avoid starvation and improve fairness.

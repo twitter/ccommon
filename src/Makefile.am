@@ -57,6 +57,7 @@ ccommon_include_HEADERS =						\
 	cc_mbuf.h							\
 	cc_mm.h								\
 	cc_nio.h							\
+	cc_pool.h							\
 	cc_print.h							\
 	cc_queue.h							\
 	cc_sds.h							\

@@ -62,6 +62,8 @@
 #define CC_ENOMEM   -4
 #define CC_EEMPTY   -5 /* no data */
 
+#define CC_ERDHUP   -6 /* EOF/peer closed */
+
 #define CC_UNFIN    1  /* unfinished, more data expected */
 
 typedef int rstatus_t;  /* generic function return value type */

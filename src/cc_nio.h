@@ -20,7 +20,9 @@
 
 #include <cc_array.h>
 #include <cc_define.h>
+#include <cc_stream.h>
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -53,45 +55,44 @@
 #define CONN_EOF        2
 #define CONN_CLOSE      3
 
-struct conn;
-
-typedef void (*conn_connect_t)(struct conn *);
-typedef void (*conn_close_t)(struct conn *);
-
-typedef struct conn_handler {
-    conn_connect_t  connect;        /* connect handler */
-    conn_close_t    close;          /* close handler */
-} conn_handler_t;
-
 struct conn {
-    int             sd;             /* socket descriptor */
-    int             family;         /* socket address family */
-    socklen_t       addrlen;        /* socket length */
-    struct sockaddr *addr;          /* socket address */
+    STAILQ_ENTRY(conn)  next;           /* for conn pool */
 
-    size_t          recv_nbyte;     /* received (read) bytes */
-    size_t          send_nbyte;     /* sent (written) bytes */
+    int                 sd;             /* socket descriptor */
+    int                 family;         /* socket address family */
+    socklen_t           addrlen;        /* socket length */
+    struct sockaddr     *addr;          /* socket address */
 
-    bool            recv_active:1;  /* recv active? */
-    bool            send_active:1;  /* send active? */
-    bool            recv_ready:1;   /* recv ready? */
-    bool            send_ready:1;   /* send ready? */
+    size_t              recv_nbyte;     /* received (read) bytes */
+    size_t              send_nbyte;     /* sent (written) bytes */
 
-    unsigned        mode:2;         /* client|server|proxy */
-    unsigned        state:2;        /* connect|connected|eof|close */
-    unsigned        flags:12;       /* annotation fields */
+    bool                recv_active:1;  /* recv active? */
+    bool                send_active:1;  /* send active? */
+    bool                recv_ready:1;   /* recv ready? */
+    bool                send_ready:1;   /* send ready? */
 
-    conn_handler_t  *handler;       /* setup and teardown of connections */
+    unsigned            mode:2;         /* client|server|proxy */
+    unsigned            state:2;        /* connect|connected|eof|close */
+    unsigned            flags:12;       /* annotation fields */
 
-    err_t           err;            /* errno */
+    err_t               err;            /* errno */
 };
 
 void conn_setup(void);
 void conn_teardown(void);
 
+void conn_reset(struct conn *conn);
+struct conn *conn_create(void);
+void conn_destroy(struct conn *conn);
+
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte);
 ssize_t conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte);
+
+void conn_pool_create(uint32_t max);
+void conn_pool_destroy(void);
+struct conn *conn_borrow(void);
+void conn_return(struct conn *conn);
 
 #endif

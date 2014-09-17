@@ -19,6 +19,8 @@
 
 #include <cc_debug.h>
 #include <cc_log.h>
+#include <cc_mm.h>
+#include <cc_pool.h>
 #include <cc_util.h>
 
 #include <errno.h>
@@ -27,6 +29,9 @@
 #include <string.h>
 
 #define NIO_MODULE_NAME "ccommon::nio"
+
+FREEPOOL(conn_pool, connq, conn);
+struct conn_pool connp;
 
 void
 conn_setup(void)
@@ -39,6 +44,42 @@ void
 conn_teardown(void)
 {
     log_debug(LOG_INFO, "tear down the %s module", NIO_MODULE_NAME);
+}
+
+void
+conn_reset(struct conn *conn)
+{
+    conn->sd = 0;
+    conn->family = 0;
+    conn->addrlen = 0;
+    conn->addr = NULL;
+
+    conn->recv_nbyte = 0;
+    conn->send_nbyte = 0;
+
+    conn->recv_active = false;
+    conn->send_active = false;
+    conn->recv_ready = false;
+    conn->send_ready = false;
+
+    conn->mode = 0;
+    conn->state = 0;
+    conn->flags = 0;
+
+    conn->err = 0;
+}
+
+struct conn *
+conn_create(void)
+{
+    return cc_alloc(sizeof(struct conn));
+}
+
+void
+conn_destroy(struct conn *conn)
+{
+    cc_free(conn->addr);
+    cc_free(conn);
 }
 
 /*
@@ -268,4 +309,49 @@ conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
     NOT_REACHED();
 
     return CC_ERROR;
+}
+
+void
+conn_pool_create(uint32_t max)
+{
+    log_debug(LOG_INFO, "creating conn pool: max %"PRIu32, max);
+
+    FREEPOOL_CREATE(&connp, max);
+}
+
+void
+conn_pool_destroy(void)
+{
+    struct conn *conn, *tconn;
+
+    log_debug(LOG_INFO, "destroying conn pool: free %"PRIu32, connp.nfree);
+
+    FREEPOOL_DESTROY(conn, tconn, &connp, next, conn_destroy);
+}
+
+struct conn *
+conn_borrow(void)
+{
+    struct conn *conn;
+
+    FREEPOOL_BORROW(conn, &connp, next, conn_create);
+
+    if (conn == NULL) {
+        log_debug(LOG_DEBUG, "borrow conn failed: OOM");
+        return NULL;
+    }
+
+    conn_reset(conn);
+
+    log_debug(LOG_VVERB, "borrow conn %p", conn);
+
+    return conn;
+}
+
+void
+conn_return(struct conn *conn)
+{
+    log_debug(LOG_VVERB, "return conn *p", conn);
+
+    FREEPOOL_RETURN(&connp, conn, next);
 }

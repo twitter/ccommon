@@ -20,17 +20,25 @@
 #include <cc_debug.h>
 #include <cc_log.h>
 #include <cc_mbuf.h>
+#include <cc_mm.h>
 #include <cc_nio.h>
+#include <cc_pool.h>
 #include <cc_util.h>
 
 #include <limits.h>
 #include <sys/uio.h>
 
+/*
 #if (IOV_MAX > 128)
 #define CC_IOV_MAX 128
 #else
 #define CC_IOV_MAX IOV_MAX
 #endif
+*/
+
+#define STREAM_MODULE_NAME "ccommon::stream"
+FREEPOOL(stream_pool, streamq, stream);
+struct stream_pool streamp;
 
 /* recv nbyte at most and store it in rbuf associated with the stream.
  * Stream buffer must provide enough capacity, otherwise CC_NOMEM is returned.
@@ -84,8 +92,6 @@ stream_read(struct stream *stream, size_t nbyte)
 
                 status = CC_OK;
             } else {
-                c->handler->close(c);
-
                 log_debug(LOG_VERB, "recv on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
                 log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
@@ -94,13 +100,10 @@ stream_read(struct stream *stream, size_t nbyte)
                 status = CC_ERROR;
             }
         } else if (n == 0) {
-            /* temp solution, it doesn't work if we yield or in proxy mode */
-            c->handler->close(c);
-
             log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
 
-            status = CC_OK;
+            status = CC_ERDHUP;
         } else if (n == nbyte) {
             status = CC_ERETRY;
         } else {
@@ -175,8 +178,6 @@ stream_write(struct stream *stream, size_t nbyte)
                         "rescuable error: EAGAIN", stream, stream->type);
                 return CC_EAGAIN;
             } else {
-                c->handler->close(c);
-
                 log_debug(LOG_VERB, "send on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
                 log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
@@ -207,4 +208,105 @@ stream_write(struct stream *stream, size_t nbyte)
     }
 
     return status;
+}
+
+void
+stream_reset(struct stream *stream)
+{
+    ASSERT(stream != NULL);
+    ASSERT(stream->handler != NULL);
+    ASSERT(stream->data == NULL);
+
+    stream->owner = NULL;
+
+    stream->handler->reset(stream->channel);
+
+    mbuf_reset(stream->rbuf);
+    mbuf_reset(stream->wbuf);
+}
+
+struct stream *
+stream_create(void)
+{
+    struct stream *stream;
+
+    stream = cc_alloc(sizeof(struct stream));
+    if (stream == NULL) {
+        return NULL;
+    }
+
+    stream->rbuf = mbuf_borrow();
+    if (stream->rbuf == NULL) {
+        cc_free(stream);
+
+        return NULL;
+    }
+
+    stream->wbuf = mbuf_borrow();
+    if (stream->wbuf == NULL) {
+        mbuf_return(stream->rbuf);
+        cc_free(stream);
+
+        return NULL;
+    }
+
+    return stream;
+}
+
+void
+stream_destroy(struct stream *stream)
+{
+    ASSERT (stream != NULL);
+    ASSERT(stream->handler != NULL);
+    ASSERT(stream->data == NULL);
+
+    stream->handler->destroy(stream->channel);
+
+    mbuf_return(stream->rbuf);
+    mbuf_return(stream->wbuf);
+
+    cc_free(stream);
+}
+
+void
+stream_pool_create(uint32_t max)
+{
+    log_debug(LOG_INFO, "creating stream pool: max %"PRIu32, max);
+
+    FREEPOOL_CREATE(&streamp, max);
+}
+
+void
+stream_pool_destroy(void)
+{
+    struct stream *stream, *tstream;
+
+    log_debug(LOG_INFO, "destroying stream pool: free %"PRIu32, streamp.nfree);
+
+    FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
+}
+
+struct stream *
+stream_borrow(void)
+{
+    struct stream *stream;
+
+    FREEPOOL_BORROW(stream, &streamp, next, stream_create);
+
+    if (stream == NULL) {
+        log_debug(LOG_DEBUG, "borrow stream failed: OOM");
+        return NULL;
+    }
+
+    log_debug(LOG_VVERB, "borrow stream %p", stream);
+
+    return stream;
+}
+
+void
+stream_return(struct stream *stream)
+{
+    log_debug(LOG_VVERB, "return stream *p", stream);
+
+    FREEPOOL_RETURN(&streamp, stream, next);
 }
