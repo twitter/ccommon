@@ -149,6 +149,21 @@ event_add_write(struct event_base *evb, int fd, void *data)
     return 0;
 }
 
+int
+event_del(struct event_base *evb, int fd)
+{
+    struct kevent *event;
+
+    ASSERT(evb->kq > 0);
+    ASSERT(fd > 0);
+    ASSERT(evb->nchange < evb->nevent);
+
+    event = &evb->change[evb->nchange++];
+    EV_SET(event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
+    EV_SET(event, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
+
+    return 0;
+}
 
 int
 event_wait(struct event_base *evb, int timeout)

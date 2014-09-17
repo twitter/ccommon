@@ -21,6 +21,7 @@
 #include <cc_array.h>
 #include <cc_define.h>
 #include <cc_stream.h>
+#include <event/cc_event.h>
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -78,12 +79,15 @@ struct conn {
     err_t               err;            /* errno */
 };
 
-void conn_setup(void);
+void conn_setup(int backlog);
 void conn_teardown(void);
 
 void conn_reset(struct conn *conn);
 struct conn *conn_create(void);
 void conn_destroy(struct conn *conn);
+
+rstatus_t conn_accept(struct conn *sconn, struct event_base *evb);
+rstatus_t conn_listen(struct sockaddr *addr);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);
@@ -95,7 +99,7 @@ void conn_pool_destroy(void);
 struct conn *conn_borrow(void);
 void conn_return(struct conn *conn);
 
-inline int conn_fd(struct conn *conn)
+static inline int conn_fd(struct conn *conn)
 {
     return conn->sd;
 }

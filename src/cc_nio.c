@@ -22,22 +22,31 @@
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>
+#include <event/cc_event.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define NIO_MODULE_NAME "ccommon::nio"
 
 FREEPOOL(conn_pool, connq, conn);
 struct conn_pool connp;
 
+static int max_backlog = 1024;
+
 void
-conn_setup(void)
+conn_setup(int backlog)
 {
     log_debug(LOG_INFO, "set up the %s module", NIO_MODULE_NAME);
     log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
+
+    max_backlog = backlog;
 }
 
 void
@@ -45,6 +54,202 @@ conn_teardown(void)
 {
     log_debug(LOG_INFO, "tear down the %s module", NIO_MODULE_NAME);
 }
+
+static int
+conn_set_blocking(int sd)
+{
+    int flags;
+
+    flags = fcntl(sd, F_GETFL, 0);
+    if (flags < 0) {
+        return flags;
+    }
+
+    return fcntl(sd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
+static int
+conn_set_nonblocking(int sd)
+{
+    int flags;
+
+    flags = fcntl(sd, F_GETFL, 0);
+    if (flags < 0) {
+        return flags;
+    }
+
+    return fcntl(sd, F_SETFL, flags | O_NONBLOCK);
+}
+
+static int
+conn_set_reuseaddr(int sd)
+{
+    int reuse;
+    socklen_t len;
+
+    reuse = 1;
+    len = sizeof(reuse);
+
+    return setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse, len);
+}
+
+/*
+ * Disable Nagle algorithm on TCP socket.
+ *
+ * This option helps to minimize transmit latency by disabling coalescing
+ * of data to fill up a TCP segment inside the kernel. Sockets with this
+ * option must use readv() or writev() to do data transfer in bulk and
+ * hence avoid the overhead of small packets.
+ */
+static int
+conn_set_tcpnodelay(int sd)
+{
+    int nodelay;
+    socklen_t len;
+
+    nodelay = 1;
+    len = sizeof(nodelay);
+
+    return setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &nodelay, len);
+}
+
+static int
+conn_set_keepalive(int sd)
+{
+    int keepalive;
+    socklen_t len;
+
+    keepalive = 1;
+    len = sizeof(keepalive);
+
+    return setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, len);
+}
+
+static int
+conn_set_linger(int sd, int timeout)
+{
+    struct linger linger;
+    socklen_t len;
+
+    linger.l_onoff = 1;
+    linger.l_linger = timeout;
+
+    len = sizeof(linger);
+
+    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
+}
+
+static int
+conn_unset_linger(int sd)
+{
+    struct linger linger;
+    socklen_t len;
+
+    linger.l_onoff = 0;
+    linger.l_linger = 0;
+
+    len = sizeof(linger);
+
+    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
+}
+
+static int
+conn_set_sndbuf(int sd, int size)
+{
+    socklen_t len;
+
+    len = sizeof(size);
+
+    return setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, len);
+}
+
+static int
+conn_set_rcvbuf(int sd, int size)
+{
+    socklen_t len;
+
+    len = sizeof(size);
+
+    return setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, len);
+}
+
+static int
+conn_get_soerror(int sd)
+{
+    int status, err;
+    socklen_t len;
+
+    err = 0;
+    len = sizeof(err);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_ERROR, &err, &len);
+    if (status == 0) {
+        errno = err;
+    }
+
+    return status;
+}
+
+static int
+conn_get_sndbuf(int sd)
+{
+    int status, size;
+    socklen_t len;
+
+    size = 0;
+    len = sizeof(size);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, &len);
+    if (status < 0) {
+        return status;
+    }
+
+    return size;
+}
+
+static int
+conn_get_rcvbuf(int sd)
+{
+    int status, size;
+    socklen_t len;
+
+    size = 0;
+    len = sizeof(size);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, &len);
+    if (status < 0) {
+        return status;
+    }
+
+    return size;
+}
+
+static void
+conn_maximize_sndbuf(int sd)
+{
+    int status, min, max, avg;
+
+    /* start with the default size */
+    min = conn_get_sndbuf(sd);
+    if (min < 0) {
+        return;
+    }
+
+    /* binary-search for the real maximum */
+    max = 256 * MiB;
+
+    while (min <= max) {
+        avg = (min + max) / 2;
+        status = conn_set_sndbuf(sd, avg);
+        if (status != 0) {
+            max = avg - 1;
+        } else {
+            min = avg + 1;
+        }
+    }
+}
+
+
 
 void
 conn_reset(struct conn *conn)
@@ -80,6 +285,117 @@ conn_destroy(struct conn *conn)
 {
     cc_free(conn->addr);
     cc_free(conn);
+}
+
+rstatus_t
+conn_accept(struct conn *sconn, struct event_base *evb)
+{
+    rstatus_t status;
+    struct conn *c;
+    int sd;
+
+    ASSERT(sconn->sd > 0);
+
+    for (;;) {
+        sd = accept(sconn->sd, NULL, NULL);
+        if (sd < 0) {
+            if (errno == EINTR) {
+                log_debug(LOG_VERB, "accept on sd %d not ready: eintr",
+                        sconn->sd);
+                continue;
+            }
+
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                log_debug(LOG_VERB, "accept on s %d not ready - eagain",
+                        sconn->sd);
+                return CC_OK;
+            }
+
+            log_error("accept on s %d failed: %s", sconn->sd, strerror(errno));
+            return CC_ERROR;
+        }
+
+        break;
+    }
+
+    c = conn_borrow();
+    c->sd = sd;
+    if (c == NULL) {
+        log_error("accept failed: cannot get connection struct");
+        status = close(sd);
+        if (status < 0) {
+            log_error("close c %d failed, ignored: %s", sd, strerror(errno));
+        }
+        return CC_ENOMEM;
+    }
+
+    status = conn_set_nonblocking(sd);
+    if (status < 0) {
+        log_error("set nonblock on c %d failed: %s", sd, strerror(errno));
+        return CC_ERROR;
+    }
+
+    status = conn_set_tcpnodelay(c->sd);
+    if (status < 0) {
+        log_warn("set tcp nodely on c %d failed, ignored: %s", sd,
+                 strerror(errno));
+    }
+
+    log_debug(LOG_INFO, "accepted c %d on sd %d", c->sd, sconn->sd);
+
+    return CC_OK;
+}
+
+rstatus_t
+conn_listen(struct sockaddr *addr)
+{
+    rstatus_t status;
+    struct conn *s;
+    int sd;
+
+    sd = socket(addr->sa_family, SOCK_STREAM, 0);
+    if (sd < 0) {
+        log_error("socket failed: %s", strerror(errno));
+        return CC_ERROR;
+    }
+
+    status = conn_set_reuseaddr(sd);
+    if (status != CC_OK) {
+        log_error("reuse of sd %d failed: %s", sd, strerror(errno));
+        return CC_ERROR;
+    }
+
+    status = bind(sd, addr, addr->sa_len);
+    if (status < 0) {
+        log_error("bind on sd %d failed: %s", sd, strerror(errno));
+        return CC_ERROR;
+    }
+
+    status = listen(sd, max_backlog);
+    if (status < 0) {
+        log_error("listen on sd %d failed: %s", sd, strerror(errno));
+        return CC_ERROR;
+    }
+
+    status = conn_set_nonblocking(sd);
+    if (status != CC_OK) {
+        log_error("set nonblock on sd %d failed: %s", sd, strerror(errno));
+        return CC_ERROR;
+    }
+
+    s = conn_borrow();
+    if (s == NULL) {
+        log_error("borrow conn for s %d failed: %s", sd, strerror(errno));
+        status = close(sd);
+        if (status < 0) {
+            log_error("close s %d failed, ignored: %s", sd, strerror(errno));
+        }
+        return CC_ENOMEM;
+    }
+
+    log_debug(LOG_NOTICE, "server listen setup on s %d", s->sd);
+
+    return CC_OK;
 }
 
 /*

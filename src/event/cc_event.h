@@ -28,7 +28,7 @@
 #define EVENT_WRITE 0x00ff00
 #define EVENT_ERR   0xff0000
 
-typedef int (*event_cb_t)(void *, uint32_t);  /* event callback */
+typedef void (*event_cb_t)(void *, uint32_t);  /* event callback */
 
 #ifdef CC_HAVE_EPOLL
 
