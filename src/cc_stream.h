@@ -86,6 +86,8 @@ struct stream {
     stream_handler_t   *handler;   /* stream handlers */
 
     void               *data;      /* stream data: e.g. request queue */
+
+    err_t              err;        /* error */
 };
 
 /* channel/medium agnostic data IO */

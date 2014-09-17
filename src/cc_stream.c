@@ -173,7 +173,7 @@ stream_write(struct stream *stream, size_t nbyte)
             if (n == CC_EAGAIN) {
                 log_debug(LOG_VERB, "send on stream %p of type %d returns "
                         "rescuable error: EAGAIN", stream, stream->type);
-                return CC_ERETRY;
+                return CC_EAGAIN;
             } else {
                 c->handler->close(c);
 
