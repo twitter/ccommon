@@ -95,4 +95,9 @@ void conn_pool_destroy(void);
 struct conn *conn_borrow(void);
 void conn_return(struct conn *conn);
 
+inline int conn_fd(struct conn *conn)
+{
+    return conn->sd;
+}
+
 #endif

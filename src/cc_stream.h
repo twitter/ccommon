@@ -61,16 +61,18 @@ struct stream;
 typedef channel_t (*channel_create_t)(void);
 typedef void (*channel_destroy_t)(channel_t channel);
 typedef void (*channel_reset_t)(channel_t channel);
+typedef int (*channel_fd_t)(channel_t channel);
 typedef void (*data_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
-    channel_create_t create;   /* callback to create a channel */
-    channel_destroy_t destroy; /* callback to destroy a channel */
-    channel_reset_t reset;     /* callback to reset a channel */
-    data_handler_t pre_read;   /* callback before msg received */
-    data_handler_t post_read;  /* callback after msg received */
-    data_handler_t pre_write;  /* callback before msg sent */
-    data_handler_t post_write; /* callback after msg sent */
+    channel_create_t    create;     /* callback to create a channel */
+    channel_destroy_t   destroy;    /* callback to destroy a channel */
+    channel_reset_t     reset;      /* callback to reset a channel */
+    channel_fd_t        fd;         /* callback to get channel fd*/
+    data_handler_t      pre_read;   /* callback before msg received */
+    data_handler_t      post_read;  /* callback after msg received */
+    data_handler_t      pre_write;  /* callback before msg sent */
+    data_handler_t      post_write; /* callback after msg sent */
 } stream_handler_t;
 
 /* Note(yao): should we use function pointers for the underlying actions and
