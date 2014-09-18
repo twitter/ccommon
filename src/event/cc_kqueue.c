@@ -150,17 +150,27 @@ event_add_write(struct event_base *evb, int fd, void *data)
 }
 
 int
-event_del(struct event_base *evb, int fd)
+event_register(struct event_base *evb, int fd, void *data)
+{
+    event_add_read(evb, fd, data);
+    event_add_write(evb, fd, data);
+
+    return 0;
+}
+
+int
+event_deregister(struct event_base *evb, int fd)
 {
     struct kevent *event;
 
+    ASSERT(evb != NULL);
     ASSERT(evb->kq > 0);
-    ASSERT(fd > 0);
     ASSERT(evb->nchange < evb->nevent);
+    ASSERT(fd > 0);
 
     event = &evb->change[evb->nchange++];
-    EV_SET(event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
     EV_SET(event, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
+    EV_SET(event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
 
     return 0;
 }

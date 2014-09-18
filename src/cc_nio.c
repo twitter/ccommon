@@ -255,17 +255,9 @@ void
 conn_reset(struct conn *conn)
 {
     conn->sd = 0;
-    conn->family = 0;
-    conn->addrlen = 0;
-    conn->addr = NULL;
 
     conn->recv_nbyte = 0;
     conn->send_nbyte = 0;
-
-    conn->recv_active = false;
-    conn->send_active = false;
-    conn->recv_ready = false;
-    conn->send_ready = false;
 
     conn->mode = 0;
     conn->state = 0;
@@ -283,12 +275,20 @@ conn_create(void)
 void
 conn_destroy(struct conn *conn)
 {
-    cc_free(conn->addr);
     cc_free(conn);
 }
 
-rstatus_t
-conn_accept(struct conn *sconn, struct event_base *evb)
+void
+server_close(struct conn *conn)
+{
+    log_debug(LOG_INFO, "returning conn %p sd %d", conn, conn->sd);
+
+    close(conn->sd);
+    conn_return(conn);
+}
+
+struct conn *
+server_accept(struct conn *sconn)
 {
     rstatus_t status;
     struct conn *c;
@@ -308,11 +308,11 @@ conn_accept(struct conn *sconn, struct event_base *evb)
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 log_debug(LOG_VERB, "accept on s %d not ready - eagain",
                         sconn->sd);
-                return CC_OK;
+                return NULL;
             }
 
             log_error("accept on s %d failed: %s", sconn->sd, strerror(errno));
-            return CC_ERROR;
+            return NULL;
         }
 
         break;
@@ -326,16 +326,17 @@ conn_accept(struct conn *sconn, struct event_base *evb)
         if (status < 0) {
             log_error("close c %d failed, ignored: %s", sd, strerror(errno));
         }
-        return CC_ENOMEM;
+        return NULL;
     }
 
     status = conn_set_nonblocking(sd);
     if (status < 0) {
-        log_error("set nonblock on c %d failed: %s", sd, strerror(errno));
-        return CC_ERROR;
+        log_error("set nonblock on c %d failed, ignored: %s", sd,
+                strerror(errno));
+        return c;
     }
 
-    status = conn_set_tcpnodelay(c->sd);
+    status = conn_set_tcpnodelay(sd);
     if (status < 0) {
         log_warn("set tcp nodely on c %d failed, ignored: %s", sd,
                  strerror(errno));
@@ -343,11 +344,11 @@ conn_accept(struct conn *sconn, struct event_base *evb)
 
     log_debug(LOG_INFO, "accepted c %d on sd %d", c->sd, sconn->sd);
 
-    return CC_OK;
+    return c;
 }
 
-rstatus_t
-conn_listen(struct sockaddr *addr)
+struct conn *
+server_listen(struct sockaddr *addr)
 {
     rstatus_t status;
     struct conn *s;
@@ -356,31 +357,31 @@ conn_listen(struct sockaddr *addr)
     sd = socket(addr->sa_family, SOCK_STREAM, 0);
     if (sd < 0) {
         log_error("socket failed: %s", strerror(errno));
-        return CC_ERROR;
+        return NULL;
     }
 
     status = conn_set_reuseaddr(sd);
     if (status != CC_OK) {
         log_error("reuse of sd %d failed: %s", sd, strerror(errno));
-        return CC_ERROR;
+        return NULL;
     }
 
     status = bind(sd, addr, addr->sa_len);
     if (status < 0) {
         log_error("bind on sd %d failed: %s", sd, strerror(errno));
-        return CC_ERROR;
+        return NULL;
     }
 
     status = listen(sd, max_backlog);
     if (status < 0) {
         log_error("listen on sd %d failed: %s", sd, strerror(errno));
-        return CC_ERROR;
+        return NULL;
     }
 
     status = conn_set_nonblocking(sd);
     if (status != CC_OK) {
         log_error("set nonblock on sd %d failed: %s", sd, strerror(errno));
-        return CC_ERROR;
+        return NULL;
     }
 
     s = conn_borrow();
@@ -390,12 +391,12 @@ conn_listen(struct sockaddr *addr)
         if (status < 0) {
             log_error("close s %d failed, ignored: %s", sd, strerror(errno));
         }
-        return CC_ENOMEM;
+        return NULL;
     }
 
     log_debug(LOG_NOTICE, "server listen setup on s %d", s->sd);
 
-    return CC_OK;
+    return s;
 }
 
 /*
@@ -410,7 +411,6 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
 
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
-    ASSERT(conn->recv_ready);
 
     log_debug(LOG_VERB, "recv on sd %d, total %zu bytes", conn->sd, nbyte);
 
@@ -420,15 +420,11 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
         log_debug(LOG_VERB, "read on sd %d %zd of %zu", conn->sd, n, nbyte);
 
         if (n > 0) {
-            if (n < (ssize_t) nbyte) {
-                conn->recv_ready = 0;
-            }
             conn->recv_nbyte += (size_t)n;
             return n;
         }
 
         if (n == 0) {
-            conn->recv_ready = 0;
             conn->state = CONN_EOF;
             log_debug(LOG_INFO, "recv on sd %d eof rb  %zu sb %zu", conn->sd,
                       conn->recv_nbyte, conn->send_nbyte);
@@ -440,11 +436,9 @@ conn_recv(struct conn *conn, void *buf, size_t nbyte)
             log_debug(LOG_VERB, "recv on sd %d not ready - EINTR", conn->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            conn->recv_ready = 0;
             log_debug(LOG_VERB, "recv on sd %d not ready - EAGAIN", conn->sd);
             return CC_EAGAIN;
         } else {
-            conn->recv_ready = 0;
             conn->err = errno;
             log_error("recv on sd %d failed: %s", conn->sd, strerror(errno));
             return CC_ERROR;
@@ -469,7 +463,6 @@ conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
 
     ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
-    ASSERT(conn->recv_ready);
 
     log_debug(LOG_VERB, "recvv on sd %d, total %zu bytes", conn->sd, nbyte);
 
@@ -480,16 +473,14 @@ conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
                   conn->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
-            if (n < (ssize_t) nbyte) {
-                conn->recv_ready = 0;
-            }
             conn->recv_nbyte += (size_t)n;
+
             return n;
         }
 
         if (n == 0) {
             log_warn("recvv on sd %d returned zero", conn->sd);
-            conn->recv_ready = 0;
+
             return 0;
         }
 
@@ -497,11 +488,11 @@ conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte)
             log_debug(LOG_VERB, "recvv on sd %d not ready - eintr", conn->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            conn->recv_ready = 0;
+
             log_debug(LOG_VERB, "recvv on sd %d not ready - eagain", conn->sd);
             return CC_EAGAIN;
         } else {
-            conn->recv_ready = 0;
+
             conn->err = errno;
             log_error("recvv on sd %d failed: %s", conn->sd, strerror(errno));
             return CC_ERROR;
@@ -525,7 +516,6 @@ conn_send(struct conn *conn, void *buf, size_t nbyte)
 
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
-    ASSERT(conn->send_ready);
 
     log_debug(LOG_VERB, "send on sd %d, total %zu bytes", conn->sd, nbyte);
 
@@ -535,16 +525,12 @@ conn_send(struct conn *conn, void *buf, size_t nbyte)
         log_debug(LOG_VERB, "write on sd %d %zd of %zu", conn->sd, n, nbyte);
 
         if (n > 0) {
-            if (n < (ssize_t) nbyte) {
-                conn->send_ready = 0;
-            }
             conn->send_nbyte += (size_t)n;
             return n;
         }
 
         if (n == 0) {
             log_warn("sendv on sd %d returned zero", conn->sd);
-            conn->send_ready = 0;
             return 0;
         }
 
@@ -553,11 +539,9 @@ conn_send(struct conn *conn, void *buf, size_t nbyte)
             log_debug(LOG_VERB, "send on sd %d not ready - EINTR", conn->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            conn->send_ready = 0;
             log_debug(LOG_VERB, "send on sd %d not ready - EAGAIN", conn->sd);
             return CC_EAGAIN;
         } else {
-            conn->send_ready = 0;
             conn->err = errno;
             log_error("sendv on sd %d failed: %s", conn->sd, strerror(errno));
             return CC_ERROR;
@@ -583,7 +567,6 @@ conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
 
     ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
-    ASSERT(conn->send_ready);
 
     log_debug(LOG_VERB, "sendv on sd %d, total %zu bytes", conn->sd, nbyte);
 
@@ -594,16 +577,12 @@ conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
                   conn->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
-            if (n < (ssize_t) nbyte) {
-                conn->send_ready = 0;
-            }
             conn->send_nbyte += (size_t)n;
             return n;
         }
 
         if (n == 0) {
             log_warn("sendv on sd %d returned zero", conn->sd);
-            conn->send_ready = 0;
             return 0;
         }
 
@@ -611,11 +590,9 @@ conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte)
             log_debug(LOG_VERB, "sendv on sd %d not ready - eintr", conn->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            conn->send_ready = 0;
             log_debug(LOG_VERB, "sendv on sd %d not ready - eagain", conn->sd);
             return CC_EAGAIN;
         } else {
-            conn->send_ready = 0;
             conn->err = errno;
             log_error("sendv on sd %d failed: %s", conn->sd, strerror(errno));
             return CC_ERROR;

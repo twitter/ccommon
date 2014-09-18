@@ -68,7 +68,8 @@ void event_base_destroy(struct event_base *evb);
 /* event control */
 int event_add_read(struct event_base *evb, int fd, void *data);
 int event_add_write(struct event_base *evb, int fd, void *data);
-int event_del(struct event_base *evb, int fd);
+int event_register(struct event_base *evb, int fd, void *data);
+int event_deregister(struct event_base *evb, int fd);
 
 /* event wait */
 int event_wait(struct event_base *evb, int timeout);

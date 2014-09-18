@@ -118,7 +118,7 @@ int event_add_read(struct event_base *evb, int fd, void *data)
     event.events = (EPOLLIN | EPOLLET);
     event.data.ptr = data;
 
-    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
+    status = epoll_ctl(ep, EPOLL_CTL_MOD, fd, &event);
     if (status < 0) {
         log_error("ctl (add read) w/ epoll fd %d on fd %d failed: %s", ep, fd,
                 strerror(errno));
@@ -146,7 +146,7 @@ event_add_write(struct event_base *evb, int fd, void *data)
     event.events = (EPOLLOUT | EPOLLET);
     event.data.ptr = data;
 
-    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
+    status = epoll_ctl(ep, EPOLL_CTL_MOD, fd, &event);
     if (status < 0) {
         log_error("ctl (add write) w/ epoll fd %d on fd %d failed: %s", ep, fd,
                 strerror(errno));
@@ -158,7 +158,35 @@ event_add_write(struct event_base *evb, int fd, void *data)
 }
 
 int
-event_del(struct event_base *evb, int fd)
+event_register(struct event_base *evb, int fd, void *data)
+{
+    int status;
+    struct epoll_event event;
+    int ep;
+
+    ASSERT(evb != NULL);
+
+    ep = evb->ep;
+
+    ASSERT(ep > 0);
+    ASSERT(fd > 0);
+
+    event.events = (EPOLLOUT | EPOLLIN | EPOLLET);
+    event.data.ptr = data;
+
+    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
+    if (status < 0) {
+        log_error("ctl (reg) of fd %d to epoll fd %d failed: %s", fd, ep,
+                strerror(errno));
+    }
+
+    log_debug(LOG_VERB, "register fd %d to epoll fd %d", fd, ep);
+
+    return status;
+}
+
+int
+event_deregister(struct event_base *evb, int fd)
 {
     int status;
     struct epoll_event event;
@@ -174,11 +202,11 @@ event_del(struct event_base *evb, int fd)
     /* event can be NULL in kernel >=2.6.9, here we keep it for compatibility */
     status = epoll_ctl(ep, EPOLL_CTL_DEL, fd, &event);
     if (status < 0) {
-        log_error("ctl (del) w/ epoll fd %d on fd %d failed: %s", ep, fd,
+        log_error("ctl (dereg) of fd %d from epoll fd %d failed: %s", fd, ep,
                 strerror(errno));
     }
 
-    log_debug(LOG_VERB, "delete events from epoll fd %d on fd %d", ep, fd);
+    log_debug(LOG_VERB, "deregister fd %d from epoll fd %d", fd, ep);
 
     return status;
 }

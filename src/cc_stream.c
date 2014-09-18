@@ -210,21 +210,6 @@ stream_write(struct stream *stream, size_t nbyte)
     return status;
 }
 
-void
-stream_reset(struct stream *stream)
-{
-    ASSERT(stream != NULL);
-    ASSERT(stream->handler != NULL);
-    ASSERT(stream->data == NULL);
-
-    stream->owner = NULL;
-
-    stream->handler->reset(stream->channel);
-
-    mbuf_reset(stream->rbuf);
-    mbuf_reset(stream->wbuf);
-}
-
 struct stream *
 stream_create(void)
 {
@@ -306,6 +291,7 @@ stream_borrow(void)
 void
 stream_return(struct stream *stream)
 {
+    /* NOTE: mbufs are not returned, still affiliated with stream */
     log_debug(LOG_VVERB, "return stream *p", stream);
 
     FREEPOOL_RETURN(&streamp, stream, next);

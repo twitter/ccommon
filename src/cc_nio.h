@@ -21,7 +21,7 @@
 #include <cc_array.h>
 #include <cc_define.h>
 #include <cc_stream.h>
-#include <event/cc_event.h>
+#include <cc_event.h>
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -60,17 +60,9 @@ struct conn {
     STAILQ_ENTRY(conn)  next;           /* for conn pool */
 
     int                 sd;             /* socket descriptor */
-    int                 family;         /* socket address family */
-    socklen_t           addrlen;        /* socket length */
-    struct sockaddr     *addr;          /* socket address */
 
     size_t              recv_nbyte;     /* received (read) bytes */
     size_t              send_nbyte;     /* sent (written) bytes */
-
-    bool                recv_active:1;  /* recv active? */
-    bool                send_active:1;  /* send active? */
-    bool                recv_ready:1;   /* recv ready? */
-    bool                send_ready:1;   /* send ready? */
 
     unsigned            mode:2;         /* client|server|proxy */
     unsigned            state:2;        /* connect|connected|eof|close */
@@ -86,8 +78,9 @@ void conn_reset(struct conn *conn);
 struct conn *conn_create(void);
 void conn_destroy(struct conn *conn);
 
-rstatus_t conn_accept(struct conn *sconn, struct event_base *evb);
-rstatus_t conn_listen(struct sockaddr *addr);
+struct conn *server_accept(struct conn *sconn);
+void server_close(struct conn *conn);
+struct conn *server_listen(struct sockaddr *addr);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);

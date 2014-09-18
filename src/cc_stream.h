@@ -44,6 +44,8 @@
  * in Plan 9.
  */
 
+/* TODO: take buffers out of stream */
+
 #include <cc_define.h>
 #include <cc_queue.h>
 
@@ -51,7 +53,8 @@
 
 typedef enum channel_type {
     CHANNEL_UNKNOWN,
-    CHANNEL_TCP
+    CHANNEL_TCP,
+    CHANNEL_TCPLISTEN
 } channel_type_t;
 
 typedef void * channel_t;
