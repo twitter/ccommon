@@ -80,7 +80,7 @@ void conn_destroy(struct conn *conn);
 
 struct conn *server_accept(struct conn *sconn);
 void server_close(struct conn *conn);
-struct conn *server_listen(struct sockaddr *addr);
+struct conn *server_listen(struct sockaddr *addr, size_t sa_len);
 
 ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);

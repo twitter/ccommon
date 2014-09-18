@@ -49,6 +49,7 @@
 #include <cc_define.h>
 #include <cc_queue.h>
 
+#include <inttypes.h>
 #include <stdlib.h>
 
 typedef enum channel_type {

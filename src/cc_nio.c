@@ -348,7 +348,7 @@ server_accept(struct conn *sconn)
 }
 
 struct conn *
-server_listen(struct sockaddr *addr)
+server_listen(struct sockaddr *addr, size_t sa_len)
 {
     rstatus_t status;
     struct conn *s;
@@ -366,7 +366,7 @@ server_listen(struct sockaddr *addr)
         return NULL;
     }
 
-    status = bind(sd, addr, addr->sa_len);
+    status = bind(sd, addr, sa_len);
     if (status < 0) {
         log_error("bind on sd %d failed: %s", sd, strerror(errno));
         return NULL;
