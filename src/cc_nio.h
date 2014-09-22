@@ -74,27 +74,30 @@ struct conn {
 void conn_setup(int backlog);
 void conn_teardown(void);
 
-void conn_reset(struct conn *conn);
+void conn_reset(struct conn *c);
 struct conn *conn_create(void);
-void conn_destroy(struct conn *conn);
+void conn_destroy(struct conn *c);
+void conn_close(struct conn *c);
 
-struct conn *server_accept(struct conn *sconn);
-void server_close(struct conn *conn);
+struct conn *server_accept(struct conn *sc);
+void server_close(struct conn *c);
 struct conn *server_listen(struct sockaddr *addr, size_t sa_len);
 
-ssize_t conn_recv(struct conn *conn, void *buf, size_t nbyte);
-ssize_t conn_send(struct conn *conn, void *buf, size_t nbyte);
-ssize_t conn_recvv(struct conn *conn, struct array *bufv, size_t nbyte);
-ssize_t conn_sendv(struct conn *conn, struct array *bufv, size_t nbyte);
+/* add functions setting connection attribute */
+
+ssize_t conn_recv(struct conn *c, void *buf, size_t nbyte);
+ssize_t conn_send(struct conn *c, void *buf, size_t nbyte);
+ssize_t conn_recvv(struct conn *c, struct array *bufv, size_t nbyte);
+ssize_t conn_sendv(struct conn *c, struct array *bufv, size_t nbyte);
 
 void conn_pool_create(uint32_t max);
 void conn_pool_destroy(void);
 struct conn *conn_borrow(void);
-void conn_return(struct conn *conn);
+void conn_return(struct conn *c);
 
-static inline int conn_fd(struct conn *conn)
+static inline int conn_fd(struct conn *c)
 {
-    return conn->sd;
+    return c->sd;
 }
 
 #endif

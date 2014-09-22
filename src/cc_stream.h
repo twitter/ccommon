@@ -62,26 +62,28 @@ typedef void * channel_t;
 
 struct stream;
 
-typedef channel_t (*channel_create_t)(void);
-typedef void (*channel_destroy_t)(channel_t channel);
-typedef void (*channel_reset_t)(channel_t channel);
+typedef channel_t (*channel_open_t)(void);
+typedef void (*channel_close_t)(channel_t channel);
 typedef int (*channel_fd_t)(channel_t channel);
 typedef void (*data_handler_t)(struct stream *stream, size_t nbyte);
 
 typedef struct stream_handler {
-    channel_create_t    create;     /* callback to create a channel */
-    channel_destroy_t   destroy;    /* callback to destroy a channel */
-    channel_reset_t     reset;      /* callback to reset a channel */
-    channel_fd_t        fd;         /* callback to get channel fd*/
-    data_handler_t      pre_read;   /* callback before msg received */
-    data_handler_t      post_read;  /* callback after msg received */
-    data_handler_t      pre_write;  /* callback before msg sent */
-    data_handler_t      post_write; /* callback after msg sent */
+    channel_open_t  open;       /* callback to open a channel */
+    channel_close_t close;      /* callback to close a channel */
+    channel_fd_t    fd;         /* callback to get channel fd*/
+    data_handler_t  pre_read;   /* callback before msg received */
+    data_handler_t  post_read;  /* callback after msg received */
+    data_handler_t  pre_write;  /* callback before msg sent */
+    data_handler_t  post_write; /* callback after msg sent */
 } stream_handler_t;
 
 /* Note(yao): should we use function pointers for the underlying actions and
  * initialized them with the proper channel-specific version when we create the
  * stream? (FYI: This style is used by nanomsg.)
+ *
+ * Note(yao): I'm now much more inclined to use function pointers and keep the
+ * stream module to a minimum, so stream really reflects what is an interface
+ * in Java or Go, in that it defines to operations but has no 'meat'.
  *
  * we can also support using vector read and write, especially write, but that
  * doesn't necessarily require a vector-ed write buffer (only the iov needs to

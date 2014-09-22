@@ -245,7 +245,7 @@ stream_destroy(struct stream *stream)
     ASSERT(stream->handler != NULL);
     ASSERT(stream->data == NULL);
 
-    stream->handler->destroy(stream->channel);
+    stream->handler->close(stream->channel);
 
     mbuf_return(stream->rbuf);
     mbuf_return(stream->wbuf);
