@@ -357,13 +357,13 @@ server_accept(struct conn *sc)
 }
 
 struct conn *
-server_listen(struct sockaddr *addr, size_t sa_len)
+server_listen(struct addrinfo *ai)
 {
     rstatus_t status;
     struct conn *s;
     int sd;
 
-    sd = socket(addr->sa_family, SOCK_STREAM, 0);
+    sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (sd < 0) {
         log_error("socket failed: %s", strerror(errno));
         return NULL;
@@ -375,7 +375,7 @@ server_listen(struct sockaddr *addr, size_t sa_len)
         return NULL;
     }
 
-    status = bind(sd, addr, sa_len);
+    status = bind(sd, ai->ai_addr, ai->ai_addrlen);
     if (status < 0) {
         log_error("bind on sd %d failed: %s", sd, strerror(errno));
         return NULL;

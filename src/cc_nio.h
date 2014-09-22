@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <unistd.h>
 
 /* Note(yao): the abstraction of the io module is subject to re-design in the
@@ -81,7 +82,7 @@ void conn_close(struct conn *c);
 
 struct conn *server_accept(struct conn *sc);
 void server_close(struct conn *c);
-struct conn *server_listen(struct sockaddr *addr, size_t sa_len);
+struct conn *server_listen(struct addrinfo *ai);
 
 /* add functions setting connection attribute */
 

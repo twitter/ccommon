@@ -62,7 +62,7 @@ typedef void * channel_t;
 
 struct stream;
 
-typedef channel_t (*channel_open_t)(void);
+typedef channel_t (*channel_open_t)(void *data);
 typedef void (*channel_close_t)(channel_t channel);
 typedef int (*channel_fd_t)(channel_t channel);
 typedef void (*data_handler_t)(struct stream *stream, size_t nbyte);
