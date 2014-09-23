@@ -360,7 +360,7 @@ struct conn *
 server_listen(struct addrinfo *ai)
 {
     rstatus_t status;
-    struct conn *s;
+    struct conn *sc;
     int sd;
 
     sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
@@ -393,8 +393,8 @@ server_listen(struct addrinfo *ai)
         return NULL;
     }
 
-    s = conn_borrow();
-    if (s == NULL) {
+    sc = conn_borrow();
+    if (sc == NULL) {
         log_error("borrow conn for s %d failed: %s", sd, strerror(errno));
         status = close(sd);
         if (status < 0) {
@@ -402,10 +402,11 @@ server_listen(struct addrinfo *ai)
         }
         return NULL;
     }
+    sc->sd = sd;
 
-    log_debug(LOG_NOTICE, "server listen setup on s %d", s->sd);
+    log_debug(LOG_NOTICE, "server listen setup on s %d", sc->sd);
 
-    return s;
+    return sc;
 }
 
 /*
