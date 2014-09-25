@@ -62,7 +62,7 @@ stream_read(struct stream *stream, size_t nbyte)
     ASSERT(stream->type != CHANNEL_UNKNOWN);
     ASSERT(stream->rbuf != NULL);
     ASSERT(stream->handler != NULL);
-    ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
+    ASSERT(nbyte <= SSIZE_MAX);
 
     handler = stream->handler;
 
@@ -149,7 +149,7 @@ stream_write(struct stream *stream, size_t nbyte)
     ASSERT(stream->type != CHANNEL_UNKNOWN);
     ASSERT(stream->wbuf != NULL);
     ASSERT(stream->handler != NULL);
-    ASSERT(nbyte != 0 && nbyte <= SSIZE_MAX);
+    ASSERT(nbyte <= SSIZE_MAX);
 
     handler = stream->handler;
 
