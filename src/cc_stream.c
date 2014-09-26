@@ -117,9 +117,10 @@ stream_read(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream stream type %d", n,
+    log_debug(LOG_VERB, "recv %zd bytes on stream %p of type %d", n, stream,
             stream->type);
 
+    stream->rbuf->wpos += (n > 0) ? n : 0;
     if (n > 0 && handler->post_read != NULL) {
         handler->post_read(stream, (size_t)n);
     }
@@ -200,9 +201,10 @@ stream_write(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream %p of type %d", n, stream,
+    log_debug(LOG_VERB, "send %zd bytes on stream %p of type %d", n, stream,
             stream->type);
 
+    stream->wbuf->rpos += (n > 0) ? n : 0;
     if (n > 0 && handler->post_write != NULL) {
         handler->post_write(stream, (size_t)n);
     }
