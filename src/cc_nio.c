@@ -646,7 +646,7 @@ conn_borrow(void)
 
     conn_reset(c);
 
-    log_debug(LOG_VVERB, "borrow conn %p", c);
+    log_debug(LOG_VERB, "borrow conn %p", c);
 
     return c;
 }
@@ -654,7 +654,7 @@ conn_borrow(void)
 void
 conn_return(struct conn *c)
 {
-    log_debug(LOG_VVERB, "return conn %p", c);
+    log_debug(LOG_VERB, "return conn %p", c);
 
     FREEPOOL_RETURN(&cp, c, next);
 }

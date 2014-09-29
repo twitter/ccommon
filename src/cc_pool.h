@@ -19,7 +19,7 @@ struct pool {                                                       \
 
 #define FREEPOOL_CREATE(pool, max) do {                             \
     STAILQ_INIT(&(pool)->freeq);                                    \
-    (pool)->nmax = (max);                                           \
+    (pool)->nmax = (max) > 0 ? (max) : UINT32_MAX;                  \
     (pool)->nfree = 0;                                              \
     (pool)->nused = 0;                                              \
     (pool)->initialized = true;                                     \
@@ -43,8 +43,7 @@ struct pool {                                                       \
         (var) = STAILQ_FIRST(&(pool)->freeq);                       \
         STAILQ_REMOVE_HEAD(&(pool)->freeq, field);                  \
         (pool)->nfree--;                                            \
-    } else if ((pool)->nfree + (pool)->nused < (pool)->nmax ||      \
-            (pool)->nmax == 0) {                                    \
+    } else if ((pool)->nfree + (pool)->nused < (pool)->nmax) {      \
         (var) = create();                                           \
     } else {                                                        \
         (var) = NULL;                                               \

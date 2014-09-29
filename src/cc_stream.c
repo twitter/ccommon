@@ -285,7 +285,7 @@ stream_borrow(void)
         return NULL;
     }
 
-    log_debug(LOG_VVERB, "borrow stream %p", stream);
+    log_debug(LOG_VERB, "borrow stream %p", stream);
 
     return stream;
 }
@@ -294,7 +294,7 @@ void
 stream_return(struct stream *stream)
 {
     /* NOTE: mbufs are not returned, still affiliated with stream */
-    log_debug(LOG_VVERB, "return stream *p", stream);
+    log_debug(LOG_VERB, "return stream %p", stream);
 
     FREEPOOL_RETURN(&streamp, stream, next);
 }
