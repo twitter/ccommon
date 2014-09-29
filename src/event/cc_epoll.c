@@ -241,7 +241,7 @@ event_wait(struct event_base *evb, int timeout)
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
 
-                log_debug(LOG_VVERB, "epoll %04"PRIX32" against data %p",
+                log_debug(LOG_VERB, "epoll %04"PRIX32" against data %p",
                           ev->events, ev->data.ptr);
 
                 if (ev->events & (EPOLLERR | EPOLLHUP)) {
