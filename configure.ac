@@ -96,28 +96,40 @@ AC_C_BIGENDIAN(
   [AC_MSG_ERROR([universial endianess not supported])]
 )
 
-# Check whether to enable debug logs and asserts
-AC_MSG_CHECKING([whether to enable debug logs and asserts])
-AC_ARG_ENABLE([debug],
+# Check whether to enable asserts
+AC_MSG_CHECKING([whether to enable assert log and panic])
+AC_ARG_ENABLE([assert],
   [AS_HELP_STRING(
-    [--enable-debug=@<:@panic|assert|log|no@:>@],
-    [enable debug logs and asserts @<:@default=no@:>@])
+    [--enable-debug=@<:@panic|log|no@:>@],
+    [enable assert and assert panic @<:@default=log@:>@])
   ],
   [],
-  [enable_debug=no])
+  [enable_assert=log])
 AS_CASE([x$enable_debug],
   [xpanic], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
                       [Define to 1 if panic on an assert is enabled])
-            AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
+            AC_DEFINE([HAVE_LOGGING], [1], [Define to 1 if logging is enabled])
            ],
-  [xassert], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
+  [xlog], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
                      [Define to 1 if log on an assert is enabled])
-           AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
+           AC_DEFINE([HAVE_LOGGING], [1], [Define to 1 if logging is enabled])
           ],
-  [xlog], [AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])],
   [xno], [],
-  [AC_MSG_FAILURE([invalid value ${enable_debug} for --enable-debug])])
-AC_MSG_RESULT([$enable_debug])
+  [AC_MSG_FAILURE([invalid value ${enable_assert} for --enable-assert])])
+AC_MSG_RESULT([$enable_assert])
+
+AC_MSG_CHECKING([whether to disable logging])
+AC_ARG_ENABLE([logging],
+  [AS_HELP_STRING(
+    [--disable-logging],
+    [disable logging])
+  ],
+  [disable_logging=yes],
+  [disable_logging=no])
+AS_IF([test "x$disable_logging" = xyes],
+      [],
+      [AC_DEFINE([HAVE_LOGGING], [1], [Define to 1 if logging is not disabled])])
+AC_MSG_RESULT([$disable_logging])
 
 AC_MSG_CHECKING([whether to disable stats])
 AC_ARG_ENABLE([stats],

@@ -18,8 +18,6 @@
 #ifndef _CC_LOG_H_
 #define _CC_LOG_H_
 
-#include <stdbool.h>
-
 #define LOG_MAX_LEN 256 /* max length of log message */
 
 /*
@@ -66,10 +64,10 @@
     abort();                                                                \
 } while (0)
 
-#if defined CC_LOG && CC_LOG == 1
+#if defined CC_LOGGING && CC_LOGGING == 1
 
 #define log_crit(...)   _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__)
-#define log_error(...)  _log(__FILE__, __LINE__, LOG_ERR, __VA_ARGS__)
+#define log_error(...)  _log(__FILE__, __LINE__, LOG_ERROR, __VA_ARGS__)
 #define log_warn(...)   _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__)
 #define log_notice(...) _log(__FILE__, __LINE__, LOG_NOTICE, __VA_ARGS__)
 #define log_info(...)   _log(__FILE__, __LINE__, LOG_INFO, __VA_ARGS__)

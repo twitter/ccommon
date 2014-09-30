@@ -26,8 +26,8 @@
 # define CC_BIG_ENDIAN 1
 #endif
 
-#ifdef HAVE_DEBUG_LOG
-# define CC_DEBUG_LOG 1
+#ifdef HAVE_LOGGING
+# define CC_LOGGING 1
 #endif
 
 #ifdef HAVE_ASSERT_PANIC
