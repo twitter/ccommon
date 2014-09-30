@@ -29,7 +29,8 @@
 void
 cc_log_assert(const char *cond, const char *file, int line, int panic)
 {
-    log_error("assert '%s' failed @ (%s, %d)", cond, file, line);
+
+    loga("assert '%s' failed @ (%s, %d)", cond, file, line);
     if (panic) {
         cc_log_stacktrace(1);
         abort();
@@ -44,7 +45,7 @@ cc_log_stacktrace(int skip_count)
     char **symbols;
     int size, i, j;
 
-    log_info("printing stracktrace (depth limit: %d)", BACKTRACE_DEPTH);
+    loga("printing stracktrace (depth limit: %d)", BACKTRACE_DEPTH);
     size = backtrace(stack, BACKTRACE_DEPTH);
     symbols = backtrace_symbols(stack, size);
     if (symbols == NULL) {

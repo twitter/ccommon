@@ -18,6 +18,8 @@
 #ifndef _CC_DEBUG_H_
 #define _CC_DEBUG_H_
 
+#include <cc_define.h>
+
 /*
  * Wrappers for defining custom assert based on whether macro
  * CC_ASSERT_PANIC or CC_ASSERT_LOG was defined at the moment
