@@ -94,13 +94,13 @@ stream_read(struct stream *stream, size_t nbyte)
             } else {
                 log_debug(LOG_VERB, "recv on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
-                log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+                log_info("channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
 
                 status = CC_ERROR;
             }
         } else if (n == 0) {
-            log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+            log_info("channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
 
             status = CC_ERDHUP;
@@ -181,7 +181,7 @@ stream_write(struct stream *stream, size_t nbyte)
             } else {
                 log_debug(LOG_VERB, "send on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
-                log_debug(LOG_INFO, "channel %p of stream %p of type %d closed", c,
+                log_info("channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
 
                 return CC_ERROR;
@@ -258,7 +258,7 @@ stream_destroy(struct stream *stream)
 void
 stream_pool_create(uint32_t max)
 {
-    log_debug(LOG_INFO, "creating stream pool: max %"PRIu32, max);
+    log_info("creating stream pool: max %"PRIu32, max);
 
     FREEPOOL_CREATE(&streamp, max);
 }
@@ -268,7 +268,7 @@ stream_pool_destroy(void)
 {
     struct stream *stream, *tstream;
 
-    log_debug(LOG_INFO, "destroying stream pool: free %"PRIu32, streamp.nfree);
+    log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
 
     FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
 }

@@ -337,7 +337,7 @@ slab_heapinfo_init(void)
             return CC_ENOMEM;
         }
 
-	log_debug(LOG_INFO, "pre-allocated %zu bytes for %u slabs",
+	log_info("pre-allocated %zu bytes for %u slabs",
 		mem_settings.maxbytes.val.uint64_val, heapinfo.max_nslab);
     }
     heapinfo.curr = heapinfo.base;
@@ -350,7 +350,7 @@ slab_heapinfo_init(void)
     }
     TAILQ_INIT(&heapinfo.slab_lruq);
 
-    log_debug(LOG_INFO, "created slab table with %u entries", heapinfo.max_nslab);
+    log_info("created slab table with %u entries", heapinfo.max_nslab);
 
     return CC_OK;
 }

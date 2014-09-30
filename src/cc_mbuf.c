@@ -248,7 +248,7 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
 void
 mbuf_pool_create(uint32_t max)
 {
-    log_debug(LOG_INFO, "creating mbuf pool: max %"PRIu32, max);
+    log_info("creating mbuf pool: max %"PRIu32, max);
 
     FREEPOOL_CREATE(&mbufp, max);
 }
@@ -258,7 +258,7 @@ mbuf_pool_destroy(void)
 {
     struct mbuf *mbuf, *nbuf;
 
-    log_debug(LOG_INFO, "destroying mbuf pool: free %"PRIu32, mbufp.nfree);
+    log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
 
     FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
 }
@@ -305,7 +305,7 @@ mbuf_return(struct mbuf *mbuf)
 void
 mbuf_setup(uint32_t chunk_size)
 {
-    log_debug(LOG_INFO, "set up the %s module", MBUF_MODULE_NAME);
+    log_info("set up the %s module", MBUF_MODULE_NAME);
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
@@ -321,5 +321,5 @@ mbuf_setup(uint32_t chunk_size)
 void
 mbuf_teardown(void)
 {
-    log_debug(LOG_INFO, "tear down the %s module", MBUF_MODULE_NAME);
+    log_info("tear down the %s module", MBUF_MODULE_NAME);
 }

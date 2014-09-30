@@ -242,12 +242,12 @@ array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
 /* set the maximum number of elements allocated every time array expands */
 void array_setup(uint32_t nelem)
 {
-    log_debug(LOG_INFO, "set up the %s module", ARRAY_MODULE_NAME);
+    log_info("set up the %s module", ARRAY_MODULE_NAME);
 
     max_nelem_delta = nelem;
 }
 
 void array_teardown(void)
 {
-    log_debug(LOG_INFO, "tear down the %s module", ARRAY_MODULE_NAME);
+    log_info("tear down the %s module", ARRAY_MODULE_NAME);
 }

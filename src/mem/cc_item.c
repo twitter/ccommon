@@ -71,7 +71,7 @@ static bool item_is_contained(struct item *it, struct item *candidate);
 rstatus_t
 item_init(void)
 {
-    log_debug(LOG_INFO, "item header size: %zu\n", ITEM_HDR_SIZE);
+    log_info("item header size: %zu\n", ITEM_HDR_SIZE);
 
     /*pthread_mutex_init(&cache_lock, NULL);*/
 

@@ -80,7 +80,7 @@ log_teardown(void)
 {
     struct logger *l = &logger;
 
-    log_debug(LOG_INFO, "tear down the %s module", LOG_MODULE_NAME);
+    log_info("tear down the %s module", LOG_MODULE_NAME);
 
     if (l->fd != STDERR_FILENO) {
         close(l->fd);

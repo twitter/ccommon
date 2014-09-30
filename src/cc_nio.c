@@ -43,7 +43,7 @@ static int max_backlog = 1024;
 void
 conn_setup(int backlog)
 {
-    log_debug(LOG_INFO, "set up the %s module", NIO_MODULE_NAME);
+    log_info("set up the %s module", NIO_MODULE_NAME);
     log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
@@ -52,7 +52,7 @@ conn_setup(int backlog)
 void
 conn_teardown(void)
 {
-    log_debug(LOG_INFO, "tear down the %s module", NIO_MODULE_NAME);
+    log_info("tear down the %s module", NIO_MODULE_NAME);
 }
 
 static int
@@ -290,7 +290,7 @@ conn_close(struct conn *c)
 void
 server_close(struct conn *c)
 {
-    log_debug(LOG_INFO, "returning conn %p sd %d", c, c->sd);
+    log_info("returning conn %p sd %d", c, c->sd);
 
     close(c->sd);
     conn_return(c);
@@ -351,7 +351,7 @@ server_accept(struct conn *sc)
                  strerror(errno));
     }
 
-    log_debug(LOG_INFO, "accepted c %d on sd %d", c->sd, sc->sd);
+    log_info("accepted c %d on sd %d", c->sd, sc->sd);
 
     return c;
 }
@@ -436,7 +436,7 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
 
         if (n == 0) {
             c->state = CONN_EOF;
-            log_debug(LOG_INFO, "recv on sd %d eof rb  %zu sb %zu", c->sd,
+            log_info("recv on sd %d eof rb  %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;
         }
@@ -617,7 +617,7 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 void
 conn_pool_create(uint32_t max)
 {
-    log_debug(LOG_INFO, "creating conn pool: max %"PRIu32, max);
+    log_info("creating conn pool: max %"PRIu32, max);
 
     FREEPOOL_CREATE(&cp, max);
 }
@@ -627,7 +627,7 @@ conn_pool_destroy(void)
 {
     struct conn *c, *tc;
 
-    log_debug(LOG_INFO, "destroying conn pool: free %"PRIu32, cp.nfree);
+    log_info("destroying conn pool: free %"PRIu32, cp.nfree);
 
     FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
 }

@@ -75,7 +75,7 @@ event_base_create(int nevent, event_cb_t cb)
     evb->nevent = nevent;
     evb->cb = cb;
 
-    log_debug(LOG_INFO, "epoll fd %d with nevent %d", evb->ep, evb->nevent);
+    log_info("epoll fd %d with nevent %d", evb->ep, evb->nevent);
 
     return evb;
 }
