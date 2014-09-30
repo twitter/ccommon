@@ -33,6 +33,18 @@
 
 #define LOG_MODULE_NAME "ccommon::log"
 
+static char * level_str[] = {
+    "ALWAYS",
+    "CRIT",
+    "ERROR",
+    "WARN",
+    "NOTICE",
+    "INFO",
+    "DEBUG",
+    "VERB",
+    "VVERB"
+};
+
 static struct logger {
     char *name;  /* log file name */
     int  level;  /* log level */
@@ -161,8 +173,8 @@ _log(const char *file, int line, int level, const char *fmt, ...)
     local = localtime(&t);
     timestr = asctime(local);
 
-    len += cc_scnprintf(buf + len, size - len, "[%.*s] %s:%d ",
-                        strlen(timestr) - 1, timestr, file, line);
+    len += cc_scnprintf(buf + len, size - len, "[%.*s][%s] %s:%d ",
+                        strlen(timestr) - 1, timestr, level_str[level], file, line);
 
     va_start(args, fmt);
     len += cc_vscnprintf(buf + len, size - len, fmt, args);

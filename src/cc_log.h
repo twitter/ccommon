@@ -23,14 +23,15 @@
 /*
  * TODO(yao): a reasonable guideline for using these different levels.
  */
-#define LOG_CRIT    0   /* critical conditions */
-#define LOG_ERROR   1   /* error conditions */
-#define LOG_WARN    2   /* warning conditions */
-#define LOG_NOTICE  3   /* normal but significant condition (default) */
-#define LOG_INFO    4   /* informational */
-#define LOG_DEBUG   5   /* debug messages */
-#define LOG_VERB    6   /* verbose messages */
-#define LOG_VVERB   7   /* verbose messages on crack */
+#define LOG_ALWAYS  0   /* always log, special value  */
+#define LOG_CRIT    1   /* critical conditions */
+#define LOG_ERROR   2   /* error conditions */
+#define LOG_WARN    3   /* warning conditions */
+#define LOG_NOTICE  4   /* normal but significant condition (default) */
+#define LOG_INFO    5   /* informational */
+#define LOG_DEBUG   6   /* debug messages */
+#define LOG_VERB    7   /* verbose messages */
+#define LOG_VVERB   8   /* verbose messages on crack */
 
 /* NOTE(yao): it may be useful to have a sampled log func for bursty events */
 /* TODO(yao): add a config option to completely disable logging above a certain
@@ -52,10 +53,10 @@
  * log_hexdump  - hexadump -C of a log buffer (subject to config)
  */
 
-#define loga(...) _log(__FILE__, __LINE__, -1, __VA_ARGS__)
+#define loga(...) _log(__FILE__, __LINE__, LOG_ALWAYS, __VA_ARGS__)
 
 #define loga_hexdump(_data, _datalen, ...) do {                             \
-    _log(__FILE__,__LINE__, -1, __VA_ARGS__);                               \
+    _log(__FILE__,__LINE__, LOG_ALWAYS, __VA_ARGS__);                               \
     _log_hexdump(-1, (char *)(_data), (int)(_datalen));                     \
 } while (0)                                                                 \
 
