@@ -58,7 +58,7 @@ log_setup(int level, char *name)
 
     log_info("set up the %s module", LOG_MODULE_NAME);
 
-    l->level = MAX(LOG_EMERG, MIN(level, LOG_VVERB));
+    l->level = MAX(LOG_CRIT, MIN(level, LOG_VVERB));
     l->name = name;
     if (name == NULL || !strlen(name)) {
         l->fd = STDERR_FILENO;
@@ -118,7 +118,7 @@ log_level_down(void)
 {
     struct logger *l = &logger;
 
-    if (l->level > LOG_EMERG) {
+    if (l->level > LOG_CRIT) {
         l->level--;
         loga("down log level to %d", l->level);
     }
@@ -129,7 +129,7 @@ log_level_set(int level)
 {
     struct logger *l = &logger;
 
-    l->level = MAX(LOG_EMERG, MIN(level, LOG_VVERB));
+    l->level = MAX(LOG_CRIT, MIN(level, LOG_VVERB));
     loga("set log level to %d", l->level);
 }
 

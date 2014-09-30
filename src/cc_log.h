@@ -23,26 +23,16 @@
 #define LOG_MAX_LEN 256 /* max length of log message */
 
 /*
- * The first 8 levels are the same as log levels in syslog(),
- * and we added a few levels of verbose logging because we are chatty.
- *
- * TODO(yao): a reasonable guideline for using these different levels. In fact
- * this many levels is most certainly an overkill for most cases, come back to
- * that later... but I'm inclined to ban the use of LOG_ALERT and LOG_CRIT,
- * merge LOG_NOTICE and LOG_INFO, LOG_DEBUG and LOG_VERB. That'll give us 6
- * levels which is probably enough for any sane person. If only someone can
- * explain to me how syslog() explains these levels.
+ * TODO(yao): a reasonable guideline for using these different levels.
  */
-#define LOG_EMERG   0   /* system in unusable */
-#define LOG_ALERT   1   /* action must be taken immediately */
-#define LOG_CRIT    2   /* critical conditions */
-#define LOG_ERR     3   /* error conditions */
-#define LOG_WARN    4   /* warning conditions */
-#define LOG_NOTICE  5   /* normal but significant condition (default) */
-#define LOG_INFO    6   /* informational */
-#define LOG_DEBUG   7   /* debug messages */
-#define LOG_VERB    8   /* verbose messages */
-#define LOG_VVERB   9   /* verbose messages on crack */
+#define LOG_CRIT    0   /* critical conditions */
+#define LOG_ERROR   1   /* error conditions */
+#define LOG_WARN    2   /* warning conditions */
+#define LOG_NOTICE  3   /* normal but significant condition (default) */
+#define LOG_INFO    4   /* informational */
+#define LOG_DEBUG   5   /* debug messages */
+#define LOG_VERB    6   /* verbose messages */
+#define LOG_VVERB   7   /* verbose messages on crack */
 
 /* NOTE(yao): it may be useful to have a sampled log func for bursty events */
 /* TODO(yao): add a config option to completely disable logging above a certain
@@ -55,7 +45,7 @@
  * loga         - log always
  * loga_hexdump - log hexdump always
  *
- * log_panic    - log messages followed by a panic, when LOG_EMERG is met
+ * log_panic    - log messages followed by a panic, when LOG_CRIT is met
  * log_error    - error log messages
  * log_warn     - warning log messages
  * ...
@@ -72,14 +62,12 @@
 } while (0)                                                                 \
 
 #define log_panic(...) do {                                                 \
-    _log(__FILE__, __LINE__, LOG_EMERG, __VA_ARGS__);                       \
+    _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__);                        \
     abort();                                                                \
 } while (0)
 
 #if defined CC_LOG && CC_LOG == 1
 
-#define log_emerg(...)  _log(__FILE__, __LINE__, LOG_EMERG, __VA_ARGS__)
-#define log_alert(...)  _log(__FILE__, __LINE__, LOG_ALERT, __VA_ARGS__)
 #define log_crit(...)   _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__)
 #define log_error(...)  _log(__FILE__, __LINE__, LOG_ERR, __VA_ARGS__)
 #define log_warn(...)   _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__)
@@ -98,8 +86,6 @@
 
 #else
 
-#define log_emerg(...)
-#define log_alert(...)
 #define log_crit(...)
 #define log_error(...)
 #define log_warn(...)
