@@ -59,7 +59,7 @@ settings_set(struct setting *setting, struct setting_val *val)
 	break;
     }
     default:
-	log_debug(LOG_CRIT, "fatal: unrecognized setting type");
+	log_crit("fatal: unrecognized setting type");
 	return CC_ERROR;
     }
 
@@ -103,7 +103,7 @@ settings_str_to_val(settings_type_t type, int32_t argc, sds *argv)
 	break;
     }
     default:
-	log_debug(LOG_CRIT, "unknown setting type");
+	log_crit("unknown setting type");
 	ret = NULL;
 	break;
     }

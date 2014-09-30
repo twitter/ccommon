@@ -332,7 +332,7 @@ slab_heapinfo_init(void)
     if (mem_settings.prealloc.val.bool_val) {
         heapinfo.base = cc_alloc(heapinfo.max_nslab * mem_settings.slab_size.val.uint32_val);
         if (heapinfo.base == NULL) {
-	    log_debug(LOG_CRIT, "pre-alloc %zu bytes for %u slabs failed",
+	    log_crit("pre-alloc %zu bytes for %u slabs failed",
 		    heapinfo.max_nslab * mem_settings.slab_size.val.uint32_val, heapinfo.max_nslab);
             return CC_ENOMEM;
         }
@@ -344,7 +344,7 @@ slab_heapinfo_init(void)
 
     heapinfo.slab_table = cc_alloc(sizeof(*heapinfo.slab_table) * heapinfo.max_nslab);
     if (heapinfo.slab_table == NULL) {
-	log_debug(LOG_CRIT, "creation of slab table with %u entries failed",
+	log_crit("creation of slab table with %u entries failed",
 		heapinfo.max_nslab);
         return CC_ENOMEM;
     }

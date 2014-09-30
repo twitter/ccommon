@@ -46,7 +46,7 @@ mem_settings_load_from_file(char *config_file)
 	fp = stdin;
     } else {
 	if((fp = fopen(config_file, "r")) == NULL) {
-	    log_debug(LOG_CRIT, "Could not open config file %s!", config_file);
+	    log_crit("Could not open config file %s!", config_file);
 	    return CC_ERROR;
 	}
     }
@@ -73,8 +73,8 @@ mem_settings_load_from_file(char *config_file)
 	/* execute config file directives */
 	SETTINGS_MEM(SETTINGS_LOAD_FILE)
 	{
-	    log_debug(LOG_CRIT, "Error in config file: incorrect number or type of elements at line %u", linenum);
-	    log_debug(LOG_CRIT, ">>> '%s'", line);
+	    log_crit("Error in config file: incorrect number or type of elements at line %u", linenum);
+	    log_crit(">>> '%s'", line);
 
 	    for(i = 0; i < argc; ++i) {
 		sdsfree(argv[i]);
@@ -99,7 +99,7 @@ mem_settings_load_from_file(char *config_file)
     if(!settings_initialized) {
 	if(!(SETTINGS_MEM(SETTINGS_REQUIRED)1)) {
 	    /* Not all required settings were initialized */
-	    log_debug(LOG_CRIT, "Error in config file: some required options were not initialized");
+	    log_crit("Error in config file: some required options were not initialized");
 	    return CC_ERROR;
 	}
 	settings_initialized = true;
