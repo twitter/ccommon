@@ -44,7 +44,7 @@ void
 conn_setup(int backlog)
 {
     log_info("set up the %s module", NIO_MODULE_NAME);
-    log_debug(LOG_DEBUG, "conn size %zu", sizeof(struct conn));
+    log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
 }
@@ -640,7 +640,7 @@ conn_borrow(void)
     FREEPOOL_BORROW(c, &cp, next, conn_create);
 
     if (c == NULL) {
-        log_debug(LOG_DEBUG, "borrow conn failed: OOM");
+        log_debug("borrow conn failed: OOM");
         return NULL;
     }
 

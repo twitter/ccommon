@@ -281,7 +281,7 @@ stream_borrow(void)
     FREEPOOL_BORROW(stream, &streamp, next, stream_create);
 
     if (stream == NULL) {
-        log_debug(LOG_DEBUG, "borrow stream failed: OOM");
+        log_debug("borrow stream failed: OOM");
         return NULL;
     }
 

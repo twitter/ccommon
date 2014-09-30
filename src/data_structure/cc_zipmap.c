@@ -737,13 +737,13 @@ zmap_item_hexdump(struct item *it)
     uint32_t i;
 
     for(i = 1; it != NULL; ++i, it = it->next_node) {
-	log_debug(LOG_DEBUG, "node %u addr %p", i, it);
+	log_debug("node %u addr %p", i, it);
 	log_hexdump(LOG_DEBUG, it, 400, "");
 	log_hexdump(LOG_DEBUG, (uint8_t *)it + 400, 400, "");
 	log_hexdump(LOG_DEBUG, (uint8_t *)it + 800, 400, "");
     }
 #else
-    log_debug(LOG_DEBUG, "addr %p", it);
+    log_debug("addr %p", it);
     log_hexdump(LOG_DEBUG, it, 400, "");
     log_hexdump(LOG_DEBUG, (uint8_t *)it + 400, 400, "");
     log_hexdump(LOG_DEBUG, (uint8_t *)it + 800, 400, "");

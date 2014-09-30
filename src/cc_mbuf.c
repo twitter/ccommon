@@ -274,7 +274,7 @@ mbuf_borrow(void)
     FREEPOOL_BORROW(mbuf, &mbufp, next, mbuf_create);
 
     if (mbuf == NULL) {
-        log_debug(LOG_DEBUG, "borrow mbuf failed: OOM");
+        log_debug("borrow mbuf failed: OOM");
         return NULL;
     }
 
@@ -311,7 +311,7 @@ mbuf_setup(uint32_t chunk_size)
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
 
-    log_debug(LOG_DEBUG, "mbuf: chunk size %zu, hdr size %d, offset %zu",
+    log_debug("mbuf: chunk size %zu, hdr size %d, offset %zu",
               mbuf_chunk_size, MBUF_HDR_SIZE, mbuf_offset);
 }
 
