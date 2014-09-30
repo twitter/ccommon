@@ -279,7 +279,7 @@ event_wait(struct event_base *evb, int timeout)
                 return -1;
             }
 
-            log_debug(LOG_VVERB, "wait on epoll fd %d with nevent %d timeout %d"
+            log_vverb("wait on epoll fd %d with nevent %d timeout %d"
                          "returned no events", ep, nevent, timeout);
             return 0;
         }

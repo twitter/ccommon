@@ -106,26 +106,26 @@ slab_print(void)
 void
 slab_acquire_refcount(struct slab *slab)
 {
-    log_debug(LOG_VVERB, "acquiring refcount on slab with id %hhu refcount %hu",
+    log_vverb("acquiring refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
 
     ASSERT(slab->magic == SLAB_MAGIC);
 
     slab->refcount++;
-    log_debug(LOG_VVERB, "refcount now %hu", slab->refcount);
+    log_vverb("refcount now %hu", slab->refcount);
 }
 
 void
 slab_release_refcount(struct slab *slab)
 {
-    log_debug(LOG_VVERB, "releasing refcount on slab with id %hhu refcount %hu",
+    log_vverb("releasing refcount on slab with id %hhu refcount %hu",
 	       slab->id, slab->refcount);
     /*ASSERT(pthread_mutex_trylock(&cache_lock) != 0);*/
     ASSERT(slab->magic == SLAB_MAGIC);
     ASSERT(slab->refcount > 0);
     slab->refcount--;
-    log_debug(LOG_VVERB, "refcount now %hu", slab->refcount);
+    log_vverb("refcount now %hu", slab->refcount);
 }
 
 size_t
@@ -228,7 +228,7 @@ slab_lruq_touch(struct slab *slab, bool allocated)
         return;
     }
 
-    log_debug(LOG_VVERB, "update slab with id %hhu in the slab lruq", slab->id);
+    log_vverb("update slab with id %hhu in the slab lruq", slab->id);
 
     /*pthread_mutex_lock(&slab_lock);*/
     _slab_unlink_lruq(slab);
@@ -430,7 +430,7 @@ slab_lruq_head()
 static void
 slab_lruq_append(struct slab *slab)
 {
-    log_debug(LOG_VVERB, "append slab with id %hhu to lruq", slab->id);
+    log_vverb("append slab with id %hhu to lruq", slab->id);
     TAILQ_INSERT_TAIL(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -438,7 +438,7 @@ slab_lruq_append(struct slab *slab)
 static void
 slab_lruq_remove(struct slab *slab)
 {
-    log_debug(LOG_VVERB, "remove slab with id %hhu from lruq", slab->id);
+    log_vverb("remove slab with id %hhu from lruq", slab->id);
     TAILQ_REMOVE(&heapinfo.slab_lruq, slab, s_tqe);
 }
 
@@ -691,7 +691,7 @@ slab_get_item_from_freeq(uint8_t id)
     p->nfree_itemq--;
     STAILQ_REMOVE(&p->free_itemq, it, item, stqe);
 
-    log_debug(LOG_VVERB, "get free q item with key %s at offset %u with id %hhu",
+    log_vverb("get free q item with key %s at offset %u with id %hhu",
 	      item_key(it), it->offset, item_id(it));
 
     return it;
@@ -758,7 +758,7 @@ slab_put_item_into_freeq(struct item *it)
     ASSERT(it->refcount == 0);
     ASSERT(it->offset != 0);
 
-    log_debug(LOG_VVERB, "put free queue item with key %s at offset %u with id %hhu",
+    log_vverb("put free queue item with key %s at offset %u with id %hhu",
 	      item_key(it), it->offset, item_id(it));
 
     it->flags |= ITEM_SLABBED;

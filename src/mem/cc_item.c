@@ -802,7 +802,7 @@ _item_get(const uint8_t *key, size_t nkey)
 
     item_acquire_refcount(it);
 
-    log_debug(LOG_VVERB, "get item %s found at offset %u with flags %hhu id %hhu",
+    log_vverb("get item %s found at offset %u with flags %hhu id %hhu",
 	      item_key(it), it->offset, it->flags, item_id(it));
 
     return it;
@@ -831,7 +831,7 @@ _item_set(struct item *it)
         _item_remove(oit);
     }
 
-    log_debug(LOG_VVERB, "store item %s at offset %u with flags %hhu id %hhu",
+    log_vverb("store item %s at offset %u with flags %hhu id %hhu",
     	      item_key(it), it->offset, it->flags, item_id(it));
 }
 
@@ -855,14 +855,14 @@ _item_cas(struct item *it)
 
     /* oit is not NULL, some item was found */
     if (item_get_cas(it) != item_get_cas(oit)) {
-	log_debug(LOG_VVERB, "cas mismatch %llu != %llu on item %s",
+	log_vverb("cas mismatch %llu != %llu on item %s",
 		item_get_cas(oit), item_get_cas(it), item_key(it));
 	_item_remove(oit);
 	return CAS_EXISTS;
     }
 
     _item_relink(oit, it);
-    log_debug(LOG_VVERB, "cas item %s at offset %u with flags %hhu id %hhu",
+    log_vverb("cas item %s at offset %u with flags %hhu id %hhu",
 	      item_key(it), it->offset, it->flags, item_id(it));
     _item_remove(oit);
     return CAS_OK;
@@ -892,7 +892,7 @@ _item_add(struct item *it)
 
         ret = ADD_OK;
 
-	log_debug(LOG_VVERB, "add item %s at offset %u with flags %hhu id %hhu",
+	log_vverb("add item %s at offset %u with flags %hhu id %hhu",
 		  item_key(it), it->offset, it->flags, item_id(it));
     }
 
@@ -916,7 +916,7 @@ _item_replace(struct item *it)
     if (oit == NULL) {
         ret = REPLACE_NOT_FOUND;
     } else {
-	log_debug(LOG_VVERB, "replace oit %s at offset %u with flags %hhu id %hhu",
+	log_vverb("replace oit %s at offset %u with flags %hhu id %hhu",
 		  item_key(oit), oit->offset, oit->flags, item_id(oit));
 
         _item_relink(oit, it);

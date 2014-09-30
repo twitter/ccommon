@@ -219,7 +219,7 @@ event_wait(struct event_base *evb, int timeout)
                 struct kevent *ev = &evb->event[evb->nprocessed];
                 uint32_t events = 0;
 
-                log_debug(LOG_VVERB, "kevent %04"PRIX32" with filter %d "
+                log_vverb("kevent %04"PRIX32" with filter %d "
                           "triggered on ident %d", ev->flags, ev->filter,
                           ev->ident);
 
@@ -276,7 +276,7 @@ event_wait(struct event_base *evb, int timeout)
                 return -1;
             }
 
-            log_debug(LOG_VVERB, "wait on kqueue fd %d with nevent %d timeout "
+            log_vverb("wait on kqueue fd %d with nevent %d timeout "
                          "%d returned no events", kq, evb->nevent, timeout);
 
             return 0;
