@@ -243,7 +243,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     ret = item_alloc(nkey, time_now() + 6000, nval);
 
     if(ret == NULL) {
-	log_debug(LOG_WARN, "Not enough memory to allocate item");
+	log_warn("Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -275,7 +275,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     ret = item_alloc(nkey, time_now() + 6000, nval);
 
     if(ret == NULL) {
-	log_debug(LOG_WARN, "Not enough memory to allocate item");
+	log_warn("Not enough memory to allocate item");
 	return NULL;
     }
 
@@ -301,7 +301,7 @@ check_annex_status(item_annex_result_t ret)
 	log_debug(LOG_NOTICE, "Cannot annex: no item with that key found");
 	break;
     case ANNEX_EOM:
-	log_debug(LOG_WARN, "Cannot annex: not enough memory");
+	log_warn("Cannot annex: not enough memory");
 	break;
     default:
 	break;
@@ -322,7 +322,7 @@ check_delta_status(item_delta_result_t ret)
 	log_debug(LOG_NOTICE, "Cannot perform delta operation: value is not numeric.");
 	break;
     case DELTA_EOM:
-	log_debug(LOG_WARN, "Cannot perform delta operation: not enough memory.");
+	log_warn("Cannot perform delta operation: not enough memory.");
 	break;
     case DELTA_CHAINED:
 	log_debug(LOG_NOTICE, "Cannot perform delta operation: target is chained.");

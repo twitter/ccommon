@@ -564,7 +564,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
 	    if(current_node == NULL) {
 		/* Could not successfully allocate item(s) */
-		log_debug(LOG_WARN, "server error on allocating item in slab %hhu",
+		log_warn("server error on allocating item in slab %hhu",
 			   id);
 		return NULL;
 	    }
@@ -659,7 +659,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     if(it == NULL) {
 	/* Could not successfully allocate item */
-	log_debug(LOG_WARN, "server error on allocating item in slab %hhu", id);
+	log_warn("server error on allocating item in slab %hhu", id);
 	return NULL;
     }
 

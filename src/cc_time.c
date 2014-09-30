@@ -65,7 +65,7 @@ time_update(void)
 
     status = gettimeofday(&timer, NULL);
     if (status < 0) {
-	log_debug(LOG_WARN, "gettimeofday failed!");
+	log_warn("gettimeofday failed!");
     }
     now = (rel_time_t) (timer.tv_sec - process_started);
 
