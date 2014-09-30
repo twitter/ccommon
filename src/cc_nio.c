@@ -309,13 +309,13 @@ server_accept(struct conn *sc)
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
             if (errno == EINTR) {
-                log_debug(LOG_VERB, "accept on sd %d not ready: eintr",
+                log_verb("accept on sd %d not ready: eintr",
                         sc->sd);
                 continue;
             }
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                log_debug(LOG_VERB, "accept on s %d not ready - eagain",
+                log_verb("accept on s %d not ready - eagain",
                         sc->sd);
                 return NULL;
             }
@@ -422,12 +422,12 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
 
-    log_debug(LOG_VERB, "recv on sd %d, total %zu bytes", c->sd, nbyte);
+    log_verb("recv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
         n = cc_read(c->sd, buf, nbyte);
 
-        log_debug(LOG_VERB, "read on sd %d %zd of %zu", c->sd, n, nbyte);
+        log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
             c->recv_nbyte += (size_t)n;
@@ -443,10 +443,10 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
 
         /* n < 0 */
         if (errno == EINTR) {
-            log_debug(LOG_VERB, "recv on sd %d not ready - EINTR", c->sd);
+            log_verb("recv on sd %d not ready - EINTR", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_debug(LOG_VERB, "recv on sd %d not ready - EAGAIN", c->sd);
+            log_verb("recv on sd %d not ready - EAGAIN", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;
@@ -474,12 +474,12 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
     ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
 
-    log_debug(LOG_VERB, "recvv on sd %d, total %zu bytes", c->sd, nbyte);
+    log_verb("recvv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
         n = cc_readv(c->sd, bufv->data, bufv->nelem);
 
-        log_debug(LOG_VERB, "recvv on sd %d %zd of %zu in %"PRIu32" buffers",
+        log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
@@ -495,11 +495,11 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
         }
 
         if (errno == EINTR) {
-            log_debug(LOG_VERB, "recvv on sd %d not ready - eintr", c->sd);
+            log_verb("recvv on sd %d not ready - eintr", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 
-            log_debug(LOG_VERB, "recvv on sd %d not ready - eagain", c->sd);
+            log_verb("recvv on sd %d not ready - eagain", c->sd);
             return CC_EAGAIN;
         } else {
 
@@ -527,12 +527,12 @@ conn_send(struct conn *c, void *buf, size_t nbyte)
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
 
-    log_debug(LOG_VERB, "send on sd %d, total %zu bytes", c->sd, nbyte);
+    log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
         n = cc_write(c->sd, buf, nbyte);
 
-        log_debug(LOG_VERB, "write on sd %d %zd of %zu", c->sd, n, nbyte);
+        log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
             c->send_nbyte += (size_t)n;
@@ -546,10 +546,10 @@ conn_send(struct conn *c, void *buf, size_t nbyte)
 
         /* n < 0 */
         if (errno == EINTR) {
-            log_debug(LOG_VERB, "send on sd %d not ready - EINTR", c->sd);
+            log_verb("send on sd %d not ready - EINTR", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_debug(LOG_VERB, "send on sd %d not ready - EAGAIN", c->sd);
+            log_verb("send on sd %d not ready - EAGAIN", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;
@@ -578,12 +578,12 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
     ASSERT(array_nelem(bufv) > 0);
     ASSERT(nbyte != 0);
 
-    log_debug(LOG_VERB, "sendv on sd %d, total %zu bytes", c->sd, nbyte);
+    log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
         n = cc_writev(c->sd, bufv->data, bufv->nelem);
 
-        log_debug(LOG_VERB, "sendv on sd %d %zd of %zu in %"PRIu32" buffers",
+        log_verb("sendv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
@@ -597,10 +597,10 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
         }
 
         if (errno == EINTR) {
-            log_debug(LOG_VERB, "sendv on sd %d not ready - eintr", c->sd);
+            log_verb("sendv on sd %d not ready - eintr", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_debug(LOG_VERB, "sendv on sd %d not ready - eagain", c->sd);
+            log_verb("sendv on sd %d not ready - eagain", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;
@@ -646,7 +646,7 @@ conn_borrow(void)
 
     conn_reset(c);
 
-    log_debug(LOG_VERB, "borrow conn %p", c);
+    log_verb("borrow conn %p", c);
 
     return c;
 }
@@ -654,7 +654,7 @@ conn_borrow(void)
 void
 conn_return(struct conn *c)
 {
-    log_debug(LOG_VERB, "return conn %p", c);
+    log_verb("return conn %p", c);
 
     FREEPOOL_RETURN(&cp, c, next);
 }

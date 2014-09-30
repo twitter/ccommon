@@ -73,7 +73,7 @@ stream_read(struct stream *stream, size_t nbyte)
 
     capacity = mbuf_wsize(stream->rbuf);
     if (capacity < nbyte) {
-        log_debug(LOG_VERB, "not enough capacity in rbuf at %p of stream at %p:"
+        log_verb("not enough capacity in rbuf at %p of stream at %p:"
                 "nbyte %zu, write capacity %zu", stream->rbuf, stream, nbyte,
                 capacity);
 
@@ -87,12 +87,12 @@ stream_read(struct stream *stream, size_t nbyte)
         n = conn_recv(c, stream->rbuf->wpos, nbyte);
         if (n < 0) {
             if (n == CC_EAGAIN) {
-                log_debug(LOG_VERB, "recv on stream %p of type %d returns "
+                log_verb("recv on stream %p of type %d returns "
                         "rescuable error: EAGAIN", stream, stream->type);
 
                 status = CC_OK;
             } else {
-                log_debug(LOG_VERB, "recv on stream %p of type %d returns "
+                log_verb("recv on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
                 log_info("channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
@@ -117,7 +117,7 @@ stream_read(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "recv %zd bytes on stream %p of type %d", n, stream,
+    log_verb("recv %zd bytes on stream %p of type %d", n, stream,
             stream->type);
 
     stream->rbuf->wpos += (n > 0) ? n : 0;
@@ -161,7 +161,7 @@ stream_write(struct stream *stream, size_t nbyte)
     content = mbuf_rsize(stream->wbuf);
 
     if (content == 0) {
-        log_debug(LOG_VERB, "no data to send in wbuf at %p of stream %p",
+        log_verb("no data to send in wbuf at %p of stream %p",
                 stream->wbuf, stream);
 
         return CC_EEMPTY;
@@ -175,11 +175,11 @@ stream_write(struct stream *stream, size_t nbyte)
 
         if (n < 0) {
             if (n == CC_EAGAIN) {
-                log_debug(LOG_VERB, "send on stream %p of type %d returns "
+                log_verb("send on stream %p of type %d returns "
                         "rescuable error: EAGAIN", stream, stream->type);
                 return CC_EAGAIN;
             } else {
-                log_debug(LOG_VERB, "send on stream %p of type %d returns "
+                log_verb("send on stream %p of type %d returns "
                         "other error: %d", stream, stream->type, n);
                 log_info("channel %p of stream %p of type %d closed", c,
                     stream, stream->type);
@@ -201,7 +201,7 @@ stream_write(struct stream *stream, size_t nbyte)
         status = CC_ERROR;
     }
 
-    log_debug(LOG_VERB, "send %zd bytes on stream %p of type %d", n, stream,
+    log_verb("send %zd bytes on stream %p of type %d", n, stream,
             stream->type);
 
     stream->wbuf->rpos += (n > 0) ? n : 0;
@@ -285,7 +285,7 @@ stream_borrow(void)
         return NULL;
     }
 
-    log_debug(LOG_VERB, "borrow stream %p", stream);
+    log_verb("borrow stream %p", stream);
 
     return stream;
 }
@@ -294,7 +294,7 @@ void
 stream_return(struct stream *stream)
 {
     /* NOTE: mbufs are not returned, still affiliated with stream */
-    log_debug(LOG_VERB, "return stream %p", stream);
+    log_verb("return stream %p", stream);
 
     FREEPOOL_RETURN(&streamp, stream, next);
 }

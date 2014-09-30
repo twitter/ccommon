@@ -72,7 +72,7 @@ zmap_init(void *primary_key, uint8_t nkey)
     struct zmap header;
     header.len = 0;
 
-    log_debug(LOG_VERB, "zmap header size: %d zmap entry header size: %d",
+    log_verb("zmap header size: %d zmap entry header size: %d",
 	       ZMAP_HDR_SIZE, ZMAP_ENTRY_HDR_SIZE);
 
     store_key(primary_key, nkey, &header, ZMAP_HDR_SIZE);

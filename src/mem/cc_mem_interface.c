@@ -228,7 +228,7 @@ remove_key(void *key, uint8_t nkey)
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
 	log_notice("key %s does not exist", key);
     } else {
-	log_debug(LOG_VERB, "Item %s deleted", key);
+	log_verb("Item %s deleted", key);
     }
 }
 

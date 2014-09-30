@@ -262,7 +262,7 @@ event_wait(struct event_base *evb, int timeout)
                 }
             }
 
-            log_debug(LOG_VERB, "returned %d events from kqueue fd %d",
+            log_verb("returned %d events from kqueue fd %d",
                     evb->nreturned, kq);
 
             return evb->nreturned;

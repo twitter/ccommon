@@ -81,7 +81,7 @@ mbuf_destroy(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
-    log_debug(LOG_VERB, "put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
+    log_verb("put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);
@@ -138,7 +138,7 @@ void
 mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 {
     STAILQ_INSERT_TAIL(mq, mbuf, next);
-    log_debug(LOG_VERB, "insert mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
+    log_verb("insert mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 }
 
 /*
@@ -147,7 +147,7 @@ mbuf_insert(struct mq *mq, struct mbuf *mbuf)
 void
 mbuf_remove(struct mq *mq, struct mbuf *mbuf)
 {
-    log_debug(LOG_VERB, "remove mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
+    log_verb("remove mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
 
     STAILQ_REMOVE(mq, mbuf, mbuf, next);
     STAILQ_NEXT(mbuf, next) = NULL;
@@ -238,7 +238,7 @@ mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
     /* adjust mbuf */
     mbuf->wpos = addr;
 
-    log_debug(LOG_VERB, "split into mbuf %p len %"PRIu32" and nbuf %p len "
+    log_verb("split into mbuf %p len %"PRIu32" and nbuf %p len "
               "%"PRIu32" copied %zu bytes", mbuf, mbuf_length(mbuf), nbuf,
               mbuf_length(nbuf), sz);
 
@@ -280,7 +280,7 @@ mbuf_borrow(void)
 
     mbuf_reset(mbuf);
 
-    log_debug(LOG_VERB, "borrow mbuf %p", mbuf);
+    log_verb("borrow mbuf %p", mbuf);
 
     return mbuf;
 }
@@ -294,7 +294,7 @@ mbuf_return(struct mbuf *mbuf)
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);
 
-    log_debug(LOG_VERB, "return mbuf %p", mbuf);
+    log_verb("return mbuf %p", mbuf);
 
     FREEPOOL_RETURN(&mbufp, mbuf, next);
 }

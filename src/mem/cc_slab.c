@@ -406,7 +406,7 @@ slab_table_update(struct slab *slab)
     heapinfo.slab_table[heapinfo.nslab] = slab;
     heapinfo.nslab++;
 
-    log_debug(LOG_VERB, "new slab allocated at position %u", heapinfo.nslab - 1);
+    log_verb("new slab allocated at position %u", heapinfo.nslab - 1);
 }
 
 /* Get random slab from slab table */
@@ -560,7 +560,7 @@ slab_evict_rand(void)
         return NULL;
     }
 
-    log_debug(LOG_VERB, "random-evicting slab with id %hhu", slab->id);
+    log_verb("random-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 
@@ -589,7 +589,7 @@ slab_evict_lru(int id)
         return NULL;
     }
 
-    log_debug(LOG_VERB, "lru-evicting slab with id %hhu", slab->id);
+    log_verb("lru-evicting slab with id %hhu", slab->id);
 
     slab_evict_one(slab);
 

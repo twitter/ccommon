@@ -175,7 +175,7 @@ item_reuse(struct item *it)
 
     hash_table_remove(item_key(it), it->nkey, &mem_hash_table);
 
-    log_debug(LOG_VERB, "reuse %s item %s at offset %d with id %hhu",
+    log_verb("reuse %s item %s at offset %d with id %hhu",
 	    item_expired(it) ? "expired" : "evicted", item_key(it),
 	    it->offset, item_id(it));
 }
@@ -631,7 +631,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
 
     item_set_cas(it, 0);
 
-    log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
+    log_verb("alloc item at offset %u with id %hhu expiry %u "
 	      " refcount %hu", it->offset, item_id(it), it->exptime,
 	      it->refcount);
 
@@ -676,7 +676,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
     it->nkey = nkey;
     item_set_cas(it, 0);
 
-    log_debug(LOG_VERB, "alloc item at offset %u with id %hhu expiry %u "
+    log_verb("alloc item at offset %u with id %hhu expiry %u "
 	    " refcount %hu", it->offset, item_id(it), it->exptime,
 	    it->refcount);
 
@@ -697,7 +697,7 @@ _item_link(struct item *it)
     ASSERT(!item_is_slabbed(it));
     ASSERT(it->nkey != 0);
 
-    log_debug(LOG_VERB, "link item %s at offset %u with flags %hhu id %hhu",
+    log_verb("link item %s at offset %u with flags %hhu id %hhu",
 	      item_key(it), it->offset, it->flags, item_id(it));
 
     it->flags |= ITEM_LINKED;
@@ -717,7 +717,7 @@ _item_unlink(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(it->head == it);
 
-    log_debug(LOG_VERB, "unlink item %s at offset %u with flags %hhu id %hhu",
+    log_verb("unlink item %s at offset %u with flags %hhu id %hhu",
 	      item_key(it), it->offset, it->flags, item_id(it));
 
     if (item_is_linked(it)) {
@@ -742,7 +742,7 @@ _item_remove(struct item *it)
     ASSERT(it->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(it));
 
-    log_debug(LOG_VERB, "remove item %s at offset %u with flags %hhu id %hhu "
+    log_verb("remove item %s at offset %u with flags %hhu id %hhu "
 	      "refcount %hu", item_key(it), it->offset, it->flags, item_id(it),
 	    it->refcount);
 
@@ -768,7 +768,7 @@ _item_relink(struct item *it, struct item *nit)
     ASSERT(nit->magic == ITEM_MAGIC);
     ASSERT(!item_is_slabbed(nit));
 
-    log_debug(LOG_VERB, "relink item %s at offset %u id %hhu with one at offset "
+    log_verb("relink item %s at offset %u id %hhu with one at offset "
 	      "%u id %hhu", item_key(it), it->offset, item_id(it), nit->offset,
 	      item_id(nit));
 

@@ -128,7 +128,7 @@ int event_add_read(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
-    log_debug(LOG_VERB, "add read event to epoll fd %d on fd %d", ep, fd);
+    log_verb("add read event to epoll fd %d on fd %d", ep, fd);
 
     return status;
 }
@@ -157,7 +157,7 @@ event_add_write(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
-    log_debug(LOG_VERB, "add write event to epoll fd %d on fd %d", ep, fd);
+    log_verb("add write event to epoll fd %d on fd %d", ep, fd);
 
     return status;
 }
@@ -185,7 +185,7 @@ event_register(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
-    log_debug(LOG_VERB, "register fd %d to epoll fd %d", fd, ep);
+    log_verb("register fd %d to epoll fd %d", fd, ep);
 
     return status;
 }
@@ -211,7 +211,7 @@ event_deregister(struct event_base *evb, int fd)
                 strerror(errno));
     }
 
-    log_debug(LOG_VERB, "deregister fd %d from epoll fd %d", fd, ep);
+    log_verb("deregister fd %d from epoll fd %d", fd, ep);
 
     return status;
 }
@@ -246,7 +246,7 @@ event_wait(struct event_base *evb, int timeout)
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
 
-                log_debug(LOG_VERB, "epoll %04"PRIX32" against data %p",
+                log_verb("epoll %04"PRIX32" against data %p",
                           ev->events, ev->data.ptr);
 
                 if (ev->events & (EPOLLERR | EPOLLHUP)) {
@@ -266,7 +266,7 @@ event_wait(struct event_base *evb, int timeout)
                 }
             }
 
-            log_debug(LOG_VERB, "returned %d events from epoll fd %d",
+            log_verb("returned %d events from epoll fd %d",
                     nreturned, ep);
 
             return nreturned;

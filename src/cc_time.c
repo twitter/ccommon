@@ -69,7 +69,7 @@ time_update(void)
     }
     now = (rel_time_t) (timer.tv_sec - process_started);
 
-    log_debug(LOG_VERB, "time updated to %u\n", now);
+    log_verb("time updated to %u\n", now);
 }
 
 rel_time_t
