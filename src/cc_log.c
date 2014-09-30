@@ -32,16 +32,33 @@
 
 #define LOG_MODULE_NAME "ccommon::log"
 
-static struct logger logger;
+static struct logger {
+    char *name;  /* log file name */
+    int  level;  /* log level */
+    int  fd;     /* log file descriptor */
+    int  nerror; /* # log error */
+} logger;
+
+static inline bool
+log_loggable(int level)
+{
+    struct logger *l = &logger;
+
+    if (level > l->level) {
+        return false;
+    }
+
+    return true;
+}
 
 int
 log_setup(int level, char *name)
 {
     struct logger *l = &logger;
 
-    log_debug(LOG_INFO, "set up the %s module", LOG_MODULE_NAME);
+    log_info("set up the %s module", LOG_MODULE_NAME);
 
-    l->level = MAX(LOG_EMERG, MIN(level, LOG_PVERB));
+    l->level = MAX(LOG_EMERG, MIN(level, LOG_VVERB));
     l->name = name;
     if (name == NULL || !strlen(name)) {
         l->fd = STDERR_FILENO;
@@ -90,7 +107,7 @@ log_level_up(void)
 {
     struct logger *l = &logger;
 
-    if (l->level < LOG_PVERB) {
+    if (l->level < LOG_VVERB) {
         l->level++;
         loga("up log level to %d", l->level);
     }
@@ -112,24 +129,12 @@ log_level_set(int level)
 {
     struct logger *l = &logger;
 
-    l->level = MAX(LOG_EMERG, MIN(level, LOG_PVERB));
+    l->level = MAX(LOG_EMERG, MIN(level, LOG_VVERB));
     loga("set log level to %d", l->level);
 }
 
-bool
-log_loggable(int level)
-{
-    struct logger *l = &logger;
-
-    if (level > l->level) {
-        return false;
-    }
-
-    return true;
-}
-
 void
-_log(const char *file, int line, int panic, const char *fmt, ...)
+_log(const char *file, int line, int level, const char *fmt, ...)
 {
     struct logger *l = &logger;
     int len, size, errno_save;
@@ -138,6 +143,10 @@ _log(const char *file, int line, int panic, const char *fmt, ...)
     struct tm *local;
     time_t t;
     ssize_t n;
+
+    if (!log_loggable(level)) {
+        return;
+    }
 
     if (l->fd < 0) {
         return;
@@ -166,14 +175,10 @@ _log(const char *file, int line, int panic, const char *fmt, ...)
     }
 
     errno = errno_save;
-
-    if (panic) {
-        abort();
-    }
 }
 
 void
-_log_stderr(const char *fmt, ...)
+log_stderr(const char *fmt, ...)
 {
     struct logger *l = &logger;
     int len, size, errno_save;
@@ -204,12 +209,16 @@ _log_stderr(const char *fmt, ...)
  * See -C option in man hexdump
  */
 void
-_log_hexdump(char *data, int datalen)
+_log_hexdump(int level, char *data, int datalen)
 {
     struct logger *l = &logger;
     char buf[8 * LOG_MAX_LEN];
     int i, off, len, size, errno_save;
     ssize_t n;
+
+    if (!log_loggable(level)) {
+        return;
+    }
 
     if (l->fd < 0) {
         return;
