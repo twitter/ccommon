@@ -71,8 +71,6 @@ AC_CHECK_HEADERS([inttypes.h stdint.h limits.h])
 AC_CHECK_HEADERS([ctype.h errno.h execinfo.h time.h])
 AC_CHECK_HEADERS([fcntl.h string.h unistd.h])
 AC_CHECK_HEADERS([sys/mman.h sys/stat.h sys/socket.h sys/types.h sys/uio.h])
-#AC_CHECK_HEADERS([sys/ioctl.h sys/time.h])
-#AC_CHECK_HEADERS([sys/un.h netinet/in.h arpa/inet.h netdb.h])
 
 # Checks for library functions
 AC_FUNC_FORK
@@ -89,23 +87,16 @@ AC_CHECK_FUNCS([backtrace])
 AC_CHECK_FUNCS([read write readv writev])
 
 
-AC_C_BIGENDIAN(
-  [],
-  [AC_DEFINE(HAVE_LITTLE_ENDIAN, 1, [Define to 1 if machine is little endian])],
-  [AC_MSG_ERROR([endianess of this machine is unknown])],
-  [AC_MSG_ERROR([universial endianess not supported])]
-)
-
 # Check whether to enable asserts
 AC_MSG_CHECKING([whether to enable assert log and panic])
 AC_ARG_ENABLE([assert],
   [AS_HELP_STRING(
-    [--enable-debug=@<:@panic|log|no@:>@],
+    [--enable-assert=@<:@panic|log|no@:>@],
     [enable assert and assert panic @<:@default=log@:>@])
   ],
   [],
   [enable_assert=log])
-AS_CASE([x$enable_debug],
+AS_CASE([x$enable_assert],
   [xpanic], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
                       [Define to 1 if panic on an assert is enabled])
             AC_DEFINE([HAVE_LOGGING], [1], [Define to 1 if logging is enabled])
@@ -197,29 +188,6 @@ AS_IF([test "x$ac_cv_epoll_works" = "xno" &&
 
 # Check whether the test libraries are present
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])
-
-# Check whether to enable debug logs and asserts
-AC_MSG_CHECKING([whether to enable debug logs and asserts])
-AC_ARG_ENABLE([debug],
-  [AS_HELP_STRING(
-    [--enable-debug=@<:@panic|assert|log|no@:>@],
-    [enable debug logs and asserts @<:@default=no@:>@])
-  ],
-  [],
-  [enable_debug=no])
-AS_CASE([x$enable_debug],
-  [xpanic], [AC_DEFINE([HAVE_ASSERT_PANIC], [1],
-                      [Define to 1 if panic on an assert is enabled])
-            AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
-           ],
-  [xassert], [AC_DEFINE([HAVE_ASSERT_LOG], [1],
-                     [Define to 1 if log on an assert is enabled])
-           AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])
-          ],
-  [xlog], [AC_DEFINE([HAVE_DEBUG_LOG], [1], [Define to 1 if debug log is enabled])],
-  [xno], [],
-  [AC_MSG_FAILURE([invalid value ${enable_debug} for --enable-debug])])
-AC_MSG_RESULT([$enable_debug])
 
 # Check if we're a little-endian or a big-endian system
 AC_C_BIGENDIAN(

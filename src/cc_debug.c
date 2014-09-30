@@ -24,6 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define BACKTRACE_DEPTH 64
+
 void
 cc_log_assert(const char *cond, const char *file, int line, int panic)
 {
@@ -38,11 +40,12 @@ void
 cc_log_stacktrace(int skip_count)
 {
 #ifdef CC_BACKTRACE
-    void *stack[64];
+    void *stack[BACKTRACE_DEPTH];
     char **symbols;
     int size, i, j;
 
-    size = backtrace(stack, 64);
+    log_info("printing stracktrace (depth limit: %d)", BACKTRACE_DEPTH);
+    size = backtrace(stack, BACKTRACE_DEPTH);
     symbols = backtrace_symbols(stack, size);
     if (symbols == NULL) {
         return;

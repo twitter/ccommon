@@ -45,7 +45,7 @@
 #endif
 
 #ifdef HAVE_BACKTRACE
-# define CC_HAVE_BACKTRACE 1
+# define CC_BACKTRACE 1
 #endif
 
 /* TODO: add compile time option to turn chaining on/off */
