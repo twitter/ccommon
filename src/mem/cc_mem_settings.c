@@ -21,7 +21,7 @@ struct mem_settings mem_settings = { SETTINGS_MEM(SETTINGS_INIT) };
 #define SETTINGS_LOAD_FILE(_name, _required, _type, _dynamic, _default, _description)\
     if(!strcasecmp(argv[0], #_name) && argc >= 2) {                                  \
         if(_dynamic && settings_initialized) {                                       \
-	    log_debug(LOG_NOTICE, "Cannot overwrite non dynamic setting " #_name);   \
+	    log_notice("Cannot overwrite non dynamic setting " #_name);   \
 	} else {                                                                     \
 	    struct setting_val val;                                                  \
 	    val.type = _type ## _setting;                                            \
