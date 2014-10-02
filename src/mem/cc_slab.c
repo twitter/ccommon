@@ -89,7 +89,7 @@ slab_print(void)
     uint8_t id;
     struct slabclass *p;
 
-    loga("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
+    log_info("slab size: %zu\nslab header size: %zu\nitem header size: %zu\n"
 	   "total memory: %zu\n\n", mem_settings.slab_size.val.uint32_val, SLAB_HDR_SIZE,
 	   ITEM_HDR_SIZE, mem_settings.maxbytes.val.uint64_val);
 
@@ -97,7 +97,7 @@ slab_print(void)
     for (id = SLABCLASS_MIN_ID; id <= slabclass_max_id; id++) {
         p = &slabclass[id];
 
-	loga("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n\n",
+	log_info("class: %hhu\nitems: %u\nsize: %zu\ndata: %zu\nslac: %zu\n\n",
 	       id, p->nitem, p->size, p->size - ITEM_HDR_SIZE,
 	       slab_size() - p->nitem * p->size);
     }
