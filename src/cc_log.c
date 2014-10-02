@@ -38,7 +38,6 @@ static char * level_str[] = {
     "CRIT",
     "ERROR",
     "WARN",
-    "NOTICE",
     "INFO",
     "DEBUG",
     "VERB",

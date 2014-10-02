@@ -404,7 +404,7 @@ server_listen(struct addrinfo *ai)
     }
     sc->sd = sd;
 
-    log_notice("server listen setup on s %d", sc->sd);
+    log_info("server listen setup on s %d", sc->sd);
 
     return sc;
 }

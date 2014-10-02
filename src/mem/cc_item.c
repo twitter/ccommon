@@ -649,7 +649,7 @@ _item_alloc(uint8_t nkey, rel_time_t exptime, uint32_t nbyte)
     id = slab_id(item_ntotal(nkey, nbyte, mem_settings.use_cas.val.bool_val));
 
     if(id == SLABCLASS_CHAIN_ID) {
-	log_notice("No id large enough to contain that item!");
+	log_warn("No id large enough to contain that item!");
 	return NULL;
     }
 

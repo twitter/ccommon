@@ -24,14 +24,13 @@
  * TODO(yao): a reasonable guideline for using these different levels.
  */
 #define LOG_ALWAYS  0   /* always log, special value  */
-#define LOG_CRIT    1   /* critical conditions */
-#define LOG_ERROR   2   /* error conditions */
-#define LOG_WARN    3   /* warning conditions */
-#define LOG_NOTICE  4   /* normal but significant condition (default) */
-#define LOG_INFO    5   /* informational */
-#define LOG_DEBUG   6   /* debug messages */
-#define LOG_VERB    7   /* verbose messages */
-#define LOG_VVERB   8   /* verbose messages on crack */
+#define LOG_CRIT    1   /* critical: usually warrants exiting */
+#define LOG_ERROR   2   /* error: may need action */
+#define LOG_WARN    3   /* warning: may need attention */
+#define LOG_INFO    4   /* informational: important but normal */
+#define LOG_DEBUG   5   /* debug: abnormal behavior that's not an error */
+#define LOG_VERB    6   /* verbose: showing normal logic flow */
+#define LOG_VVERB   7   /* verbose on crack, for annoying msg e.g. timer */
 
 /* NOTE(yao): it may be useful to have a sampled log func for bursty events */
 /* TODO(yao): add a config option to completely disable logging above a certain
@@ -70,7 +69,6 @@
 #define log_crit(...)   _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__)
 #define log_error(...)  _log(__FILE__, __LINE__, LOG_ERROR, __VA_ARGS__)
 #define log_warn(...)   _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__)
-#define log_notice(...) _log(__FILE__, __LINE__, LOG_NOTICE, __VA_ARGS__)
 #define log_info(...)   _log(__FILE__, __LINE__, LOG_INFO, __VA_ARGS__)
 #define log_debug(...)  _log(__FILE__, __LINE__, LOG_DEBUG, __VA_ARGS__)
 #define log_verb(...)   _log(__FILE__, __LINE__, LOG_VERB, __VA_ARGS__)
@@ -88,7 +86,6 @@
 #define log_crit(...)
 #define log_error(...)
 #define log_warn(...)
-#define log_notice(...)
 #define log_info(...)
 #define log_debug(...)
 #define log_verb(...)

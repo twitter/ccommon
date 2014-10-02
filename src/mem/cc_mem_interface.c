@@ -45,7 +45,7 @@ add_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_add(new_item) == ADD_EXISTS) {
-	log_notice("Server already holds data for key %s, value not stored.", key);
+	log_info("Server already holds data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -57,7 +57,7 @@ replace_key(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *new_item = create_item(key, nkey, val, nval);
 
     if(item_replace(new_item) == REPLACE_NOT_FOUND) {
-	log_notice("Server does not hold data for key %s, value not stored.", key);
+	log_info("Server does not hold data for key %s, value not stored.", key);
     }
 
     item_remove(new_item);
@@ -102,7 +102,7 @@ get_val_size(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_notice("No item with key %s!", key);
+	log_info("No item with key %s!", key);
 	return 0;
     }
 
@@ -119,7 +119,7 @@ get_num_nodes(void *key, uint8_t nkey)
     struct item *it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_notice("No item with key %s!", key);
+	log_info("No item with key %s!", key);
 	return 0;
     }
 
@@ -143,7 +143,7 @@ get_val_ref(void *key, uint8_t nkey, struct iovec *vector)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_notice("No item with key %s!", key);
+	log_info("No item with key %s!", key);
 	return false;
     }
 
@@ -179,7 +179,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     it = item_get(key, nkey);
 
     if(it == NULL) {
-	log_notice("No item with key %s!", key);
+	log_info("No item with key %s!", key);
 	return false;
     }
 
@@ -189,7 +189,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
 	iter = iter->next_node, offset -= iter->nbyte);
 
     if(iter == NULL) {
-	log_notice("Offset too large!");
+	log_info("Offset too large!");
 	return false;
     }
 
@@ -209,7 +209,7 @@ get_val(void *key, uint8_t nkey, void *buf, uint64_t buf_size, uint64_t offset)
     }
 #else
 if(offset >= it->nbyte) {
-	log_notice("Offset too large!");
+	log_info("Offset too large!");
 	return false;
     }
 
@@ -226,7 +226,7 @@ void
 remove_key(void *key, uint8_t nkey)
 {
     if(item_delete(key, nkey) == DELETE_NOT_FOUND) {
-	log_notice("key %s does not exist", key);
+	log_info("key %s does not exist", key);
     } else {
 	log_verb("Item %s deleted", key);
     }
@@ -266,7 +266,7 @@ create_item(void *key, uint8_t nkey, void *val, uint32_t nval)
     struct item *ret;
 
     if(item_slabid(nkey, nval) == SLABCLASS_CHAIN_ID) {
-	log_notice("No slabclass large enough to contain item of that"
+	log_info("No slabclass large enough to contain item of that"
 		  " size! (try turning chaining on)");
 	return NULL;
     }
@@ -295,10 +295,10 @@ check_annex_status(item_annex_result_t ret)
 {
     switch(ret) {
     case ANNEX_OVERSIZED:
-	log_notice("Cannot annex: annex operation too large");
+	log_info("Cannot annex: annex operation too large");
 	break;
     case ANNEX_NOT_FOUND:
-	log_notice("Cannot annex: no item with that key found");
+	log_info("Cannot annex: no item with that key found");
 	break;
     case ANNEX_EOM:
 	log_warn("Cannot annex: not enough memory");
@@ -316,16 +316,16 @@ check_delta_status(item_delta_result_t ret)
 {
     switch(ret) {
     case DELTA_NOT_FOUND:
-	log_notice("Cannot perform delta operation: no item with that key found.");
+	log_info("Cannot perform delta operation: no item with that key found.");
 	break;
     case DELTA_NON_NUMERIC:
-	log_notice("Cannot perform delta operation: value is not numeric.");
+	log_info("Cannot perform delta operation: value is not numeric.");
 	break;
     case DELTA_EOM:
 	log_warn("Cannot perform delta operation: not enough memory.");
 	break;
     case DELTA_CHAINED:
-	log_notice("Cannot perform delta operation: target is chained.");
+	log_info("Cannot perform delta operation: target is chained.");
 	break;
     default:
 	break;
