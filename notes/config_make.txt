@@ -5,7 +5,7 @@ Most projects have outdated configure.ac. Lacking much automating mechanisms, th
 * check of functions
 
 ## Flags
--g3: almost always a good idea
+-ggdb3: almost always a good idea
 -fstrict-aliasing: this is currently used, but it breaks twemcache
 
 ## Making the case for non-resursive automake
