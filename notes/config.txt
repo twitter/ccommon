@@ -11,7 +11,12 @@ The subset of features I think will be useful are:
 1) inlined format of list: [a, b, c]
 2) associative array: key: value
 3) data types: integer, float, boolean, string
+4) comment: '#' for comments
 undecided:
 1) document start separator: '---'
+additional assumption (these should be relaxed later):
+1) one line per option, do not support options spanning multiple lines initially
+2) '#' has to be at the beginning of a line to simplify parsing
+3) no whitespace before option name
 
 Storing options is a non-issue if we don't want to allow option reload. We should start with that. The problem with reloading is atomicity and the extra read overhead to enforce that integrity of data.

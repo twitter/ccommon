@@ -11,4 +11,5 @@ Since we are sticking to C99, prefer "static inline" over a macro for simple fun
 can introduce unintended side effects when someone calls MAX(x++, y++).
 Therefore, static inline functions are not only easier to debug but safer as well, when one has to use macros, mark it with "_UNSAFE" suffix to warn the users.
 
-
+int types:
+https://www.securecoding.cert.org/confluence/display/seccode/INT15-C.+Use+intmax_t+or+uintmax_t+for+formatted+IO+on+programmer-defined+integer+types

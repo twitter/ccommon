@@ -30,21 +30,13 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_mm.c								\
 	cc_nio.c							\
 	cc_print.c							\
-	cc_sds.c							\
-	cc_settings.c							\
+	cc_option.c							\
 	cc_stream.c							\
 	cc_time.c                                           	        \
 	event/cc_epoll.c						\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
-	hash/cc_hash_table.c						\
-	hash/cc_lookup3.c						\
-	mem/cc_mem_globals.c						\
-	mem/cc_mem_interface.c						\
-	mem/cc_mem_settings.c						\
-	mem/cc_item.c							\
-	mem/cc_slab.c							\
-	data_structure/cc_zipmap.c
+	hash/cc_lookup3.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
@@ -60,18 +52,10 @@ ccommon_include_HEADERS =						\
 	cc_pool.h							\
 	cc_print.h							\
 	cc_queue.h							\
-	cc_sds.h							\
-	cc_settings.h							\
+	cc_option.h							\
 	cc_stream.h							\
 	cc_time.h                                                   	\
 	cc_util.h							\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
-	hash/cc_hash_table.h						\
-	hash/cc_lookup3.h						\
-	mem/cc_mem_globals.h						\
-	mem/cc_mem_interface.h						\
-	mem/cc_mem_settings.h						\
-	mem/cc_item.h							\
-	mem/cc_slab.h							\
-	data_structure/cc_zipmap.h
+	hash/cc_lookup3.h

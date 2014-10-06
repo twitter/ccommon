@@ -121,22 +121,6 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 /* Return 'x' rounded down to the nearest multiple of 'step'. */
 #define ROUND_DOWN(x, step) ((x) / (step) * (step))
 
-/*
- * Wrappers to read or write data to/from (multiple) buffers
- * to a file or socket descriptor.
- */
-#define cc_read(_d, _b, _n)     \
-    read(_d, _b, (size_t)(_n))
-
-#define cc_readv(_d, _b, _n)    \
-    readv(_d, _b, (int)(_n))
-
-#define cc_write(_d, _b, _n)    \
-    write(_d, _b, (size_t)(_n))
-
-#define cc_writev(_d, _b, _n)   \
-    writev(_d, _b, (int)(_n))
-
 /* network */
 #define CC_INET4_ADDRSTRLEN (sizeof("255.255.255.255") - 1)
 #define CC_INET6_ADDRSTRLEN \

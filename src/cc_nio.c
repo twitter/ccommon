@@ -425,7 +425,7 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
     log_verb("recv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_read(c->sd, buf, nbyte);
+        n = read(c->sd, buf, nbyte);
 
         log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
 
@@ -467,7 +467,7 @@ ssize_t
 conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with conn_recv except for the call
-     * to cc_readv. Consolidate the two?
+     * to readv. Consolidate the two?
      */
     ssize_t n;
 
@@ -477,7 +477,7 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("recvv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_readv(c->sd, bufv->data, bufv->nelem);
+        n = readv(c->sd, bufv->data, bufv->nelem);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
@@ -530,7 +530,7 @@ conn_send(struct conn *c, void *buf, size_t nbyte)
     log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_write(c->sd, buf, nbyte);
+        n = write(c->sd, buf, nbyte);
 
         log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
 
@@ -570,7 +570,7 @@ ssize_t
 conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with conn_send except for the call
-     * to cc_writev. Consolidate the two? Revisit these functions when we build
+     * to writev. Consolidate the two? Revisit these functions when we build
      * more concrete backend systems.
      */
     ssize_t n;
@@ -581,7 +581,7 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_writev(c->sd, bufv->data, bufv->nelem);
+        n = writev(c->sd, bufv->data, bufv->nelem);
 
         log_verb("sendv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
