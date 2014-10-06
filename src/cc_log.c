@@ -276,7 +276,7 @@ _log_hexdump(int level, char *data, int datalen)
         off += 16;
     }
 
-    n = cc_write(l->fd, buf, len);
+    n = write(l->fd, buf, len);
     if (n < 0) {
         l->nerror++;
     }
