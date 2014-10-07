@@ -40,9 +40,6 @@
  */
 
 
-/*
- * Macro used to declare each individual setting in struct option
- */
 #define OPTION_DECLARE(_name, _type, _required, _default, _description)     \
     struct option _name;
 
@@ -51,7 +48,7 @@
     ._name = {.set = false, .required = _required, .type = _type,           \
     .default_val_str = _default, .description = _description},
 
-/* Print out a description of each setting */
+/* Print out a description of each option */
 #define OPTION_PRINT(_name, _type, _required, _default, _description)       \
     loga(#_name": %s", _description);
 

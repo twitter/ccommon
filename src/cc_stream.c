@@ -37,6 +37,7 @@
 */
 
 #define STREAM_MODULE_NAME "ccommon::stream"
+
 FREEPOOL(stream_pool, streamq, stream);
 struct stream_pool streamp;
 
@@ -136,7 +137,7 @@ stream_read(struct stream *stream, size_t nbyte)
  * the role of pre_write is some sort of check- buffer readiness? bookkeeping?
  * post_write is the callback that is suppose to clean up the buffer after data
  * is sent, and that's why we won't call it if no data is actually sent
-*/
+ */
 rstatus_t
 stream_write(struct stream *stream, size_t nbyte)
 {

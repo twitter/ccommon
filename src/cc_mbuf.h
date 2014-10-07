@@ -40,6 +40,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/*          name        type                required    default                 description */
+#define MBUF_OPTION(ACTION)                                                                      \
+    ACTION( mbuf_size,  CONFIG_TYPE_UINT,   false,      stringify(MBUF_SIZE),   "mbuf size"    )
+
+
 /* TODO(yao): create a non-pooled/chained version of mbuf */
 struct mbuf {
     uint32_t           magic;   /* mbuf magic (const) */

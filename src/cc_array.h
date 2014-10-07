@@ -23,6 +23,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/*          name                type                required    default     description */
+#define ARRAY_OPTION(ACTION)                                                                                                    \
+    ACTION( array_max_delta,    CONFIG_TYPE_UINT,   false,      NULL,       "max nelem delta allowed during array expansion" )
+
+
 typedef int (*array_compare_t)(const void *, const void *);
 typedef rstatus_t (*array_each_t)(void *, void *);
 
@@ -86,6 +91,7 @@ void *array_pop(struct array *arr);
 void array_sort(struct array *arr, array_compare_t compare);
 uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err);
 
+/* TODO(yao): refactor to use better arg names */
 void array_setup(uint32_t nelem);
 void array_teardown(void);
 

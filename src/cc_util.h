@@ -69,6 +69,13 @@
     (void *) (((uintptr_t) (p) + ((uintptr_t) n - 1)) & ~((uintptr_t) n - 1))
 
 /* string */
+/*
+ * This stringifies both a regular variable/value and a macro-defined symbol,
+ * the latter needs another level to pre-expand properly
+ */
+#define stringify(_s) _stringify(_s)
+#define _stringify(_s) #_s
+
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))
 

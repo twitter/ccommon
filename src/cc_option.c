@@ -114,6 +114,7 @@ option_set(struct option *opt, char *val_str)
 static inline bool
 _allowed_in_name(char c)
 {
+    /* the criteria is C's rules on variable names since we use it as such */
     if ((c >= 'a' && c <= 'z') || c == '_' || (c >= 'A' && c <= 'Z') ||
             (c >= '0' && c <= '9')) {
         return true;
@@ -157,20 +158,17 @@ option_parse(char *line, char *name, char *val)
         }
         p++;
     }
-
     if (p - line == llen) {
         log_error("option parse error: incomplete option line");
 
         return CC_ERROR;
     }
-
     if (p - line > OPTNAME_MAXLEN) {
         log_error("option parse error: name too long (max %zu)",
                 OPTNAME_MAXLEN);
 
         return CC_ERROR;
     }
-
     *name = '\0'; /* terminate name string properly */
 
     /* parse value: l/rtrim WS characters */
@@ -182,13 +180,11 @@ option_parse(char *line, char *name, char *val)
     while (isspace(*q) && q >= p) {
         q--;
     }
-
     if (p > q) {
         log_error("option parse error: empty value");
 
         return CC_ERROR;
     }
-
     vlen = q - p + 1; /* +1 for inclusion */
     strncpy(val, p, vlen);
     *(val + vlen) = '\0'; /* terminate value string properly */

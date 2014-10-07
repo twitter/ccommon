@@ -32,7 +32,6 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_print.c							\
 	cc_option.c							\
 	cc_stream.c							\
-	cc_time.c                                           	        \
 	event/cc_epoll.c						\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
@@ -54,7 +53,6 @@ ccommon_include_HEADERS =						\
 	cc_queue.h							\
 	cc_option.h							\
 	cc_stream.h							\
-	cc_time.h                                                   	\
 	cc_util.h							\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
