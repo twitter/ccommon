@@ -22,10 +22,10 @@
 
 #define LOG_LEVEL 4 /* default log level */
 
-/*          name        type                required    default                 description */
-#define LOG_OPTION(ACTION)                                                                      \
-    ACTION( log_level,  CONFIG_TYPE_UINT,   false,      stringify(LOG_LEVEL),   "log level"    )\
-    ACTION( log_name,   CONFIG_TYPE_STR,    false,      NULL,                   "log name"     )\
+/*          name        type                required    default           description */
+#define LOG_OPTION(ACTION)                                                              \
+    ACTION( log_level,  CONFIG_TYPE_UINT,   false,      str(LOG_LEVEL),   "log level"  )\
+    ACTION( log_name,   CONFIG_TYPE_STR,    false,      NULL,             "log name"   )\
 
 #define LOG_MAX_LEN 256 /* max length of log message */
 

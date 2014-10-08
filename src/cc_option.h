@@ -48,6 +48,8 @@
     ._name = {.set = false, .required = _required, .type = _type,           \
     .default_val_str = _default, .description = _description},
 
+#define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
+
 
 /* Enum used to match setting to type in order to set values */
 typedef enum config_type {
