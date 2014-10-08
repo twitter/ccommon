@@ -24,9 +24,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/*          name                type                required    default     description */
-#define ARRAY_OPTION(ACTION)                                                                                                    \
-    ACTION( array_max_delta,    CONFIG_TYPE_UINT,   false,      NULL,       "max nelem delta allowed during array expansion" )
+#define NELEM_DELTA 16
+
+
+/*          name                type                required    default             description */
+#define ARRAY_OPTION(ACTION)                                                                                                \
+    ACTION( array_nelem_delta,  CONFIG_TYPE_UINT,   false,      str(NELEM_DELTA),     "max nelem delta during expansion" )
 
 
 typedef int (*array_compare_t)(const void *, const void *);

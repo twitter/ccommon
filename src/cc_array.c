@@ -26,11 +26,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MAX_NELEM_DELTA 16
-
 #define ARRAY_MODULE_NAME "ccommon::array"
 
-static uint32_t max_nelem_delta = MAX_NELEM_DELTA;
+static uint32_t max_nelem_delta = NELEM_DELTA;
 
 /**
  * set up array and allocate data buffer in array
