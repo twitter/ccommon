@@ -210,41 +210,6 @@ mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring bstr)
     mbuf_copy(mbuf, bstr.data, bstr.len);
 }
 
-/*
- * split the mbuf by copying data from addr onward to a new mbuf
- * before the copy, we invoke a precopy handler cb that will copy a predefined
- * string to the head of the new mbuf
- */
-struct mbuf *
-mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg)
-{
-    struct mbuf *nbuf;
-    uint32_t sz;
-
-    nbuf = mbuf_borrow();
-    if (nbuf == NULL) {
-        return NULL;
-    }
-
-    if (cb != NULL) {
-        /* precopy nbuf */
-        cb(nbuf, cbarg);
-    }
-
-    /* copy data from mbuf to nbuf */
-    sz = mbuf->wpos - addr;
-    mbuf_copy(nbuf, addr, sz);
-
-    /* adjust mbuf */
-    mbuf->wpos = addr;
-
-    log_verb("split into mbuf %p len %"PRIu32" and nbuf %p len "
-              "%"PRIu32" copied %zu bytes", mbuf, mbuf_length(mbuf), nbuf,
-              mbuf_length(nbuf), sz);
-
-    return nbuf;
-}
-
 void
 mbuf_pool_create(uint32_t max)
 {

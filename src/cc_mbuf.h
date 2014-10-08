@@ -93,7 +93,6 @@ void mbuf_lshift(struct mbuf *mbuf);
 void mbuf_rshift(struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
 void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
-struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
 void mbuf_pool_create(uint32_t max);
 void mbuf_pool_destroy(void);
