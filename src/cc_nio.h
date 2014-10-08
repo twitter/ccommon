@@ -93,7 +93,20 @@ struct conn *server_accept(struct conn *sc);
 void server_close(struct conn *c);
 struct conn *server_listen(struct addrinfo *ai);
 
-/* add functions setting connection attribute */
+/* add functions getting/setting connection attribute */
+int conn_set_blocking(int sd);
+int conn_set_nonblocking(int sd);
+int conn_set_reuseaddr(int sd);
+int conn_set_tcpnodelay(int sd);
+int conn_set_keepalive(int sd);
+int conn_set_linger(int sd, int timeout);
+int conn_unset_linger(int sd);
+int conn_set_sndbuf(int sd, int size);
+int conn_set_rcvbuf(int sd, int size);
+int conn_get_sndbuf(int sd);
+int conn_get_rcvbuf(int sd);
+int conn_get_soerror(int sd);
+void conn_maximize_sndbuf(int sd);
 
 ssize_t conn_recv(struct conn *c, void *buf, size_t nbyte);
 ssize_t conn_send(struct conn *c, void *buf, size_t nbyte);
