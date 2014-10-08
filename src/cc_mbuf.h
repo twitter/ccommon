@@ -34,15 +34,19 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
-#include <cc_queue.h>
 #include <cc_bstring.h>
+#include <cc_queue.h>
+#include <cc_util.h>
 
 #include <stddef.h>
 #include <stdint.h>
 
-/*          name        type                required    default                 description */
-#define MBUF_OPTION(ACTION)                                                                      \
-    ACTION( mbuf_size,  CONFIG_TYPE_UINT,   false,      stringify(MBUF_SIZE),   "mbuf size"    )
+#define MBUF_POOLSIZE 0 /* unlimited */
+
+/*          name            type                required    default             description */
+#define MBUF_OPTION(ACTION)                                                                         \
+    ACTION( mbuf_size,      CONFIG_TYPE_UINT,   false,      str(MBUF_SIZE),     "mbuf size"        )\
+    ACTION( mbuf_poolsize,  CONFIG_TYPE_UINT,   false,      str(MBUF_POOLSIZE), "mbuf pool size"   )
 
 
 /* TODO(yao): create a non-pooled/chained version of mbuf */

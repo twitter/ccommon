@@ -52,6 +52,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
+#define STREAM_POOLSIZE 0 /* unlimited */
+
+/*          name                type                required    default                     description */
+#define STREAM_OPTION(ACTION)                                                                                   \
+    ACTION( stream_poolsize,    CONFIG_TYPE_UINT,   false,      stringify(STREAM_POOLSIZE), "stream pool size" )
+
 typedef enum channel_type {
     CHANNEL_UNKNOWN,
     CHANNEL_TCP,

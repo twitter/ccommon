@@ -20,8 +20,9 @@
 
 #include <cc_array.h>
 #include <cc_define.h>
-#include <cc_stream.h>
 #include <cc_event.h>
+#include <cc_queue.h>
+#include <cc_util.h>
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -45,6 +46,14 @@
  * dealt with only network and events. I will revisit this module after gaining
  * more concrete experiences with the generic cases.
  */
+
+#define CONN_BACKLOG 1024
+#define CONN_POOLSIZE 0 /* unlimited */
+
+/*          name            type                required    default             description */
+#define NIO_OPTION(ACTION)                                                                                  \
+    ACTION( conn_backlog,   CONFIG_TYPE_UINT,   false,      str(CONN_BACKLOG),  "connection backlog limit" )\
+    ACTION( conn_poolsize,  CONFIG_TYPE_UINT,   false,      str(CONN_POOLSIZE), "connection pool size"     )
 
 
 #define CONN_RAW        0

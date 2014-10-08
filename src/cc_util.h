@@ -71,10 +71,10 @@
 /* string */
 /*
  * This stringifies both a regular variable/value and a macro-defined symbol,
- * the latter needs another level to pre-expand properly
+ * the latter needs another level of macro to pre-expand properly
  */
-#define stringify(_s) _stringify(_s)
-#define _stringify(_s) #_s
+#define str(_s) _str(_s)
+#define _str(_s) #_s
 
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))

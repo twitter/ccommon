@@ -38,7 +38,7 @@
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
-static int max_backlog = 1024;
+static int max_backlog = CONN_BACKLOG;
 
 void
 conn_setup(int backlog)
