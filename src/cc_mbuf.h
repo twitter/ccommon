@@ -35,6 +35,7 @@
 #define _CC_MBUF_H_
 
 #include <cc_bstring.h>
+#include <cc_option.h>
 #include <cc_queue.h>
 #include <cc_util.h>
 

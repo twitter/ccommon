@@ -21,6 +21,7 @@
 #include <cc_array.h>
 #include <cc_define.h>
 #include <cc_event.h>
+#include <cc_option.h>
 #include <cc_queue.h>
 #include <cc_util.h>
 

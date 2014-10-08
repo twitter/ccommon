@@ -19,6 +19,7 @@
 #define _CC_ARRAY_H_
 
 #include <cc_define.h>
+#include <cc_option.h>
 
 #include <stdint.h>
 #include <stddef.h>

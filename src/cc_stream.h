@@ -47,6 +47,7 @@
 /* TODO: take buffers out of stream */
 
 #include <cc_define.h>
+#include <cc_option.h>
 #include <cc_queue.h>
 
 #include <inttypes.h>
