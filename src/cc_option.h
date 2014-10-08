@@ -48,10 +48,6 @@
     ._name = {.set = false, .required = _required, .type = _type,           \
     .default_val_str = _default, .description = _description},
 
-/* Print out a description of each option */
-#define OPTION_PRINT(_name, _type, _required, _default, _description)       \
-    loga(#_name": %s", _description);
-
 
 /* Enum used to match setting to type in order to set values */
 typedef enum config_type {
