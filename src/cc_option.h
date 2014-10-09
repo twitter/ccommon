@@ -49,6 +49,9 @@
 
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
 
+#define OPTION_NAME(_name, _type, _default, _description)                   \
+    #_name,
+
 /* Enum used to match setting to type in order to set values */
 typedef enum config_type {
     CONFIG_TYPE_BOOL,

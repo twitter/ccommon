@@ -38,8 +38,8 @@ _option_parse_bool(struct option *opt, char *val_str)
         opt->set = true;
         opt->val.vbool = false;
     } else {
-        log_error("unrecognized boolean option (acceptable values: yes or no), "
-                "value provided: %s", val_str);
+        log_error("unrecognized boolean option (valid values: 'yes' or 'no'), "
+                "value provided: '%s'", val_str);
 
         status = CC_ERROR;
     }

@@ -47,9 +47,12 @@ static char * level_str[] = {
 static struct logger {
     char *name;  /* log file name */
     int  level;  /* log level */
-    int  fd;     /* log file descriptor */
+    int  fd; /* log file descriptor */
     int  nerror; /* # log error */
-} logger;
+} logger = {
+    .fd = STDERR_FILENO,
+    .level = LOG_LEVEL
+};
 
 static inline bool
 log_loggable(int level)
