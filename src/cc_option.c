@@ -78,7 +78,9 @@ _option_parse_uint(struct option *opt, char *val_str)
 static void
 _option_parse_str(struct option *opt, char *val_str)
 {
-    opt->set = true;
+    if (val_str != NULL) {
+        opt->set = true;
+    }
     opt->val.vstr = val_str;
 }
 
@@ -185,7 +187,18 @@ option_parse(char *line, char *name, char *val)
 
         return CC_ERROR;
     }
-    vlen = q - p + 1; /* +1 for inclusion */
+    vlen = q - p + 1; /* +1 because value range is [p, q] */
+    if (vlen > OPTVAL_MAXLEN) {
+        log_error("option parse error: value too long (max %zu)",
+                OPTVAL_MAXLEN);
+
+        return CC_ERROR;
+    }
+    /*
+     * Here we don't use strlcpy() below because value is not NULL-terminated.
+     * As long as the buffers parsed in are big enough (satisfy ASSERTs above),
+     * we should be fine.
+     */
     strncpy(val, p, vlen);
     *(val + vlen) = '\0'; /* terminate value string properly */
 
