@@ -20,6 +20,7 @@
 
 #include <cc_define.h>
 #include <cc_bstring.h>
+#include <cc_util.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -30,11 +31,9 @@
 
 /*
  * Each option is described by a 6-tuple:
- *      (NAME, TYPE, REQUIRED, DYNAMIC, DEFAULT, DESCRIPTION)
+ *      (NAME, TYPE, DEFAULT, DESCRIPTION)
  *   - NAME has to be a legal C variable name
  *   - TYPE supported types include: boolean, int, float, string
- *   - REQUIRED if there's a non-NULL default value, it is probably NOT required
- *   - DYNAMIC true if the option is allowed to change on the fly, ignored now
  *   - DEFAULT is the default value of the option, as a string
  *   - DESCRIPTION is a brief description of what the option does.
  */
@@ -49,7 +48,6 @@
         .description = _description},
 
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
-
 
 /* Enum used to match setting to type in order to set values */
 typedef enum config_type {

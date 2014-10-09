@@ -79,6 +79,9 @@
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))
 
+#define cc_strcmp(_s1, _s2)                                     \
+    strcmp((char *)(_s1), (char *)(_s2))
+
 #define cc_strncmp(_s1, _s2, _n)                                \
     strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
 
