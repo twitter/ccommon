@@ -40,13 +40,13 @@
  */
 
 
-#define OPTION_DECLARE(_name, _type, _required, _default, _description)     \
+#define OPTION_DECLARE(_name, _type, _default, _description)                \
     struct option _name;
 
 /* Initialize option */
-#define OPTION_INIT(_name, _type, _required, _default, _description)        \
-    ._name = {.set = false, .required = _required, .type = _type,           \
-    .default_val_str = _default, .description = _description},
+#define OPTION_INIT(_name, _type, _default, _description)                   \
+    ._name = {.set = false, .type = _type, .default_val_str = _default,     \
+        .description = _description},
 
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
 
@@ -69,7 +69,6 @@ typedef union option_val {
 /* Struct containing data for one individual setting */
 struct option {
     bool set;
-    bool required;
     config_type_t type;
     char *default_val_str;
     option_val_u val;

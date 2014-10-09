@@ -51,10 +51,10 @@
 #define CONN_BACKLOG 1024
 #define CONN_POOLSIZE 0 /* unlimited */
 
-/*          name            type                required    default             description */
-#define NIO_OPTION(ACTION)                                                                                  \
-    ACTION( conn_backlog,   CONFIG_TYPE_UINT,   false,      str(CONN_BACKLOG),  "connection backlog limit" )\
-    ACTION( conn_poolsize,  CONFIG_TYPE_UINT,   false,      str(CONN_POOLSIZE), "connection pool size"     )
+/*          name            type                default             description */
+#define NIO_OPTION(ACTION)                                                                      \
+    ACTION( conn_backlog,   CONFIG_TYPE_UINT,   str(CONN_BACKLOG),  "connection backlog limit" )\
+    ACTION( conn_poolsize,  CONFIG_TYPE_UINT,   str(CONN_POOLSIZE), "connection pool size"     )
 
 
 #define CONN_RAW        0
