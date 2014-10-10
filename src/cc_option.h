@@ -51,12 +51,13 @@
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
 
 /* Enum used to match setting to type in order to set values */
-typedef enum config_type {
-    CONFIG_TYPE_BOOL,
-    CONFIG_TYPE_UINT,
-    CONFIG_TYPE_STR,
-    CONFIG_TYPE_SENTINEL
-} config_type_t;
+typedef enum option_type {
+    OPTION_TYPE_BOOL,
+    OPTION_TYPE_UINT,
+    OPTION_TYPE_STR,
+    OPTION_TYPE_SENTINEL
+} option_type_t;
+extern char *option_type_str[];
 
 /* Union containing payload for setting */
 typedef union option_val {
@@ -69,7 +70,7 @@ typedef union option_val {
 struct option {
     char *name;
     bool set;
-    config_type_t type;
+    option_type_t type;
     char *default_val_str;
     option_val_u val;
     char *description;
@@ -77,7 +78,9 @@ struct option {
 
 rstatus_t option_set(struct option *opt, char *val_str);
 rstatus_t option_parse(char *line, char *name, char *val);
+void option_print(struct option *opt);
+void option_printall(struct option options[], unsigned int nopt);
 rstatus_t option_load_default(struct option options[], unsigned int nopt);
-rstatus_t option_load_config(FILE *fp, struct option options[], unsigned int nopt);
+rstatus_t option_load_file(FILE *fp, struct option options[], unsigned int nopt);
 
 #endif

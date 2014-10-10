@@ -57,7 +57,7 @@
 
 /*          name                type                default                 description */
 #define STREAM_OPTION(ACTION)                                                                   \
-    ACTION( stream_poolsize,    CONFIG_TYPE_UINT,   str(STREAM_POOLSIZE),   "stream pool size" )
+    ACTION( stream_poolsize,    OPTION_TYPE_UINT,   str(STREAM_POOLSIZE),   "stream pool size" )
 
 typedef enum channel_type {
     CHANNEL_UNKNOWN,

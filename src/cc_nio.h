@@ -53,8 +53,8 @@
 
 /*          name            type                default             description */
 #define NIO_OPTION(ACTION)                                                                      \
-    ACTION( conn_backlog,   CONFIG_TYPE_UINT,   str(CONN_BACKLOG),  "connection backlog limit" )\
-    ACTION( conn_poolsize,  CONFIG_TYPE_UINT,   str(CONN_POOLSIZE), "connection pool size"     )
+    ACTION( conn_backlog,   OPTION_TYPE_UINT,   str(CONN_BACKLOG),  "connection backlog limit" )\
+    ACTION( conn_poolsize,  OPTION_TYPE_UINT,   str(CONN_POOLSIZE), "connection pool size"     )
 
 
 #define CONN_RAW        0

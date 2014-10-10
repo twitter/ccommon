@@ -26,6 +26,12 @@
 #include <stdio.h>
 #include <string.h>
 
+char * option_type_str[] = {
+    "boolean",
+    "unsigned int",
+    "string"
+};
+
 static rstatus_t
 _option_parse_bool(struct option *opt, char *val_str)
 {
@@ -90,17 +96,17 @@ option_set(struct option *opt, char *val_str)
     rstatus_t status;
 
     switch (opt->type) {
-    case CONFIG_TYPE_BOOL:
+    case OPTION_TYPE_BOOL:
         status = _option_parse_bool(opt, val_str);
 
 	return status;
 
-    case CONFIG_TYPE_UINT:
+    case OPTION_TYPE_UINT:
         status = _option_parse_uint(opt, val_str);
 
 	return status;
 
-    case CONFIG_TYPE_STR:
+    case OPTION_TYPE_STR:
         _option_parse_str(opt, val_str);
 
 	return CC_OK;
@@ -203,6 +209,44 @@ option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
     return CC_OK;
 }
 
+void option_print(struct option *opt)
+{
+    loga("name: %s, type: %s, set? %s, default: %s, description: %s",
+            opt->name, option_type_str[opt->type], opt->set ? "yes" : "no",
+            opt->default_val_str, opt->description);
+
+    switch (opt->type) {
+    case OPTION_TYPE_BOOL:
+        loga("current value: %d", opt->val.vbool);
+
+        break;
+
+    case OPTION_TYPE_UINT:
+        loga("current value: %ju", opt->val.vuint);
+
+        break;
+
+    case OPTION_TYPE_STR:
+        loga("current value: %s", opt->val.vstr);
+
+        break;
+
+    default:
+        NOT_REACHED();
+    }
+}
+
+void option_printall(struct option options[], unsigned int nopt)
+{
+    unsigned int i;
+    struct option *opt = options;
+
+    for (i = 0; i < nopt; i++, opt++) {
+        option_print(opt);
+    }
+
+}
+
 rstatus_t
 option_load_default(struct option options[], unsigned int nopt)
 {
@@ -224,7 +268,7 @@ option_load_default(struct option options[], unsigned int nopt)
 }
 
 rstatus_t
-option_load_config(FILE *fp, struct option options[], unsigned int nopt)
+option_load_file(FILE *fp, struct option options[], unsigned int nopt)
 {
     /* Note: when in use, all bufs are '\0' terminated if no error occurs */
     char linebuf[OPTLINE_MAXLEN + 1];

@@ -29,7 +29,7 @@
 
 /*          name                type                default             description */
 #define ARRAY_OPTION(ACTION)                                                                                    \
-    ACTION( array_nelem_delta,  CONFIG_TYPE_UINT,   str(NELEM_DELTA),     "max nelem delta during expansion" )
+    ACTION( array_nelem_delta,  OPTION_TYPE_UINT,   str(NELEM_DELTA),     "max nelem delta during expansion" )
 
 
 typedef int (*array_compare_t)(const void *, const void *);

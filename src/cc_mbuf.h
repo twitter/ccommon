@@ -46,8 +46,8 @@
 
 /*          name            type                default             description */
 #define MBUF_OPTION(ACTION)                                                             \
-    ACTION( mbuf_size,      CONFIG_TYPE_UINT,   str(MBUF_SIZE),     "mbuf size"        )\
-    ACTION( mbuf_poolsize,  CONFIG_TYPE_UINT,   str(MBUF_POOLSIZE), "mbuf pool size"   )
+    ACTION( mbuf_size,      OPTION_TYPE_UINT,   str(MBUF_SIZE),     "mbuf size"        )\
+    ACTION( mbuf_poolsize,  OPTION_TYPE_UINT,   str(MBUF_POOLSIZE), "mbuf pool size"   )
 
 
 /* TODO(yao): create a non-pooled/chained version of mbuf */
