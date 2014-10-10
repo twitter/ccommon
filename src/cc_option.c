@@ -126,16 +126,13 @@ _allowed_in_name(char c)
 }
 
 rstatus_t
-option_parse(char *line, char *name, char *val)
+option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
 {
     char *p = line;
     char *q;
     size_t vlen, llen = strlen(line);
 
-    ASSERT(sizeof(name) >= OPTNAME_MAXLEN + 1);
-    ASSERT(sizeof(val) >= OPTVAL_MAXLEN + 1);
-
-    if (strlen(line) == 0 || line[0] == '#') {
+    if (strlen(line) == 0 || isspace(line[0]) || line[0] == '#') {
         log_debug("empty line or comment line");
 
         return CC_EEMPTY;
@@ -154,7 +151,8 @@ option_parse(char *line, char *name, char *val)
             *name = *p;
             name++;
         } else {
-            log_error("option parse error: invalid char'%c' in name", *p);
+            log_error("option parse error: invalid char'%c' at pos %d in name",
+                    *p, (p - line));
 
             return CC_ERROR;
         }

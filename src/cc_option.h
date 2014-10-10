@@ -44,13 +44,16 @@
 
 /* Initialize option */
 #define OPTION_INIT(_name, _type, _default, _description)                   \
-    ._name = {.set = false, .type = _type, .default_val_str = _default,     \
-        .description = _description},
+    ._name = {.name = #_name, .set = false, .type = _type,                  \
+        .default_val_str = _default, .description = _description},
+
+#define OPTION_SET(_name, _type, _default, _description) do {               \
+    if (cc_strcmp(_k, #_name) == 0) {                                       \
+        _r = option_set(&_s._name, _v);                                     \
+    }                                                                       \
+} while (0);
 
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
-
-#define OPTION_NAME(_name, _type, _default, _description)                   \
-    #_name,
 
 /* Enum used to match setting to type in order to set values */
 typedef enum config_type {
@@ -69,6 +72,7 @@ typedef union option_val {
 
 /* Struct containing data for one individual setting */
 struct option {
+    char *name;
     bool set;
     config_type_t type;
     char *default_val_str;
