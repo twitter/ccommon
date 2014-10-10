@@ -69,8 +69,18 @@
     (void *) (((uintptr_t) (p) + ((uintptr_t) n - 1)) & ~((uintptr_t) n - 1))
 
 /* string */
+/*
+ * This stringifies both a regular variable/value and a macro-defined symbol,
+ * the latter needs another level of macro to pre-expand properly
+ */
+#define str(_s) _str(_s)
+#define _str(_s) #_s
+
 #define cc_strlen(_s)                                           \
     strlen((char *)(_s))
+
+#define cc_strcmp(_s1, _s2)                                     \
+    strcmp((char *)(_s1), (char *)(_s2))
 
 #define cc_strncmp(_s1, _s2, _n)                                \
     strncmp((char *)(_s1), (char *)(_s2), (size_t)(_n))
@@ -120,22 +130,6 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 #define ROUND_UP(x, step)   (((x) + (step) - 1) / (step) * (step))
 /* Return 'x' rounded down to the nearest multiple of 'step'. */
 #define ROUND_DOWN(x, step) ((x) / (step) * (step))
-
-/*
- * Wrappers to read or write data to/from (multiple) buffers
- * to a file or socket descriptor.
- */
-#define cc_read(_d, _b, _n)     \
-    read(_d, _b, (size_t)(_n))
-
-#define cc_readv(_d, _b, _n)    \
-    readv(_d, _b, (int)(_n))
-
-#define cc_write(_d, _b, _n)    \
-    write(_d, _b, (size_t)(_n))
-
-#define cc_writev(_d, _b, _n)   \
-    writev(_d, _b, (int)(_n))
 
 /* network */
 #define CC_INET4_ADDRSTRLEN (sizeof("255.255.255.255") - 1)

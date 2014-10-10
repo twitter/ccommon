@@ -34,11 +34,21 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
-#include <cc_queue.h>
 #include <cc_bstring.h>
+#include <cc_option.h>
+#include <cc_queue.h>
+#include <cc_util.h>
 
 #include <stddef.h>
 #include <stdint.h>
+
+#define MBUF_POOLSIZE 0 /* unlimited */
+
+/*          name            type                default             description */
+#define MBUF_OPTION(ACTION)                                                             \
+    ACTION( mbuf_size,      OPTION_TYPE_UINT,   str(MBUF_SIZE),     "mbuf size"        )\
+    ACTION( mbuf_poolsize,  OPTION_TYPE_UINT,   str(MBUF_POOLSIZE), "mbuf pool size"   )
+
 
 /* TODO(yao): create a non-pooled/chained version of mbuf */
 struct mbuf {
@@ -84,7 +94,6 @@ void mbuf_lshift(struct mbuf *mbuf);
 void mbuf_rshift(struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
 void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
-struct mbuf *mbuf_split(struct mbuf *mbuf, uint8_t *addr, mbuf_copy_t cb, void *cbarg);
 
 void mbuf_pool_create(uint32_t max);
 void mbuf_pool_destroy(void);

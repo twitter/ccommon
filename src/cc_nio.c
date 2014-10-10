@@ -38,7 +38,7 @@
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
-static int max_backlog = 1024;
+static int max_backlog = CONN_BACKLOG;
 
 void
 conn_setup(int backlog)
@@ -55,7 +55,7 @@ conn_teardown(void)
     log_info("tear down the %s module", NIO_MODULE_NAME);
 }
 
-static int
+int
 conn_set_blocking(int sd)
 {
     int flags;
@@ -68,7 +68,7 @@ conn_set_blocking(int sd)
     return fcntl(sd, F_SETFL, flags & ~O_NONBLOCK);
 }
 
-static int
+int
 conn_set_nonblocking(int sd)
 {
     int flags;
@@ -81,7 +81,7 @@ conn_set_nonblocking(int sd)
     return fcntl(sd, F_SETFL, flags | O_NONBLOCK);
 }
 
-static int
+int
 conn_set_reuseaddr(int sd)
 {
     int reuse;
@@ -101,7 +101,7 @@ conn_set_reuseaddr(int sd)
  * option must use readv() or writev() to do data transfer in bulk and
  * hence avoid the overhead of small packets.
  */
-static int
+int
 conn_set_tcpnodelay(int sd)
 {
     int nodelay;
@@ -113,7 +113,7 @@ conn_set_tcpnodelay(int sd)
     return setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &nodelay, len);
 }
 
-static int
+int
 conn_set_keepalive(int sd)
 {
     int keepalive;
@@ -125,7 +125,7 @@ conn_set_keepalive(int sd)
     return setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, len);
 }
 
-static int
+int
 conn_set_linger(int sd, int timeout)
 {
     struct linger linger;
@@ -139,7 +139,7 @@ conn_set_linger(int sd, int timeout)
     return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
 }
 
-static int
+int
 conn_unset_linger(int sd)
 {
     struct linger linger;
@@ -153,7 +153,7 @@ conn_unset_linger(int sd)
     return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
 }
 
-static int
+int
 conn_set_sndbuf(int sd, int size)
 {
     socklen_t len;
@@ -163,7 +163,7 @@ conn_set_sndbuf(int sd, int size)
     return setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, len);
 }
 
-static int
+int
 conn_set_rcvbuf(int sd, int size)
 {
     socklen_t len;
@@ -173,24 +173,7 @@ conn_set_rcvbuf(int sd, int size)
     return setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, len);
 }
 
-static int
-conn_get_soerror(int sd)
-{
-    int status, err;
-    socklen_t len;
-
-    err = 0;
-    len = sizeof(err);
-
-    status = getsockopt(sd, SOL_SOCKET, SO_ERROR, &err, &len);
-    if (status == 0) {
-        errno = err;
-    }
-
-    return status;
-}
-
-static int
+int
 conn_get_sndbuf(int sd)
 {
     int status, size;
@@ -207,7 +190,7 @@ conn_get_sndbuf(int sd)
     return size;
 }
 
-static int
+int
 conn_get_rcvbuf(int sd)
 {
     int status, size;
@@ -224,7 +207,7 @@ conn_get_rcvbuf(int sd)
     return size;
 }
 
-static void
+void
 conn_maximize_sndbuf(int sd)
 {
     int status, min, max, avg;
@@ -249,7 +232,22 @@ conn_maximize_sndbuf(int sd)
     }
 }
 
+int
+conn_get_soerror(int sd)
+{
+    int status, err;
+    socklen_t len;
 
+    err = 0;
+    len = sizeof(err);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_ERROR, &err, &len);
+    if (status == 0) {
+        errno = err;
+    }
+
+    return status;
+}
 
 void
 conn_reset(struct conn *c)
@@ -425,7 +423,7 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
     log_verb("recv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_read(c->sd, buf, nbyte);
+        n = read(c->sd, buf, nbyte);
 
         log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
 
@@ -467,7 +465,7 @@ ssize_t
 conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with conn_recv except for the call
-     * to cc_readv. Consolidate the two?
+     * to readv. Consolidate the two?
      */
     ssize_t n;
 
@@ -477,7 +475,7 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("recvv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_readv(c->sd, bufv->data, bufv->nelem);
+        n = readv(c->sd, bufv->data, bufv->nelem);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
@@ -530,7 +528,7 @@ conn_send(struct conn *c, void *buf, size_t nbyte)
     log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_write(c->sd, buf, nbyte);
+        n = write(c->sd, buf, nbyte);
 
         log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
 
@@ -570,7 +568,7 @@ ssize_t
 conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with conn_send except for the call
-     * to cc_writev. Consolidate the two? Revisit these functions when we build
+     * to writev. Consolidate the two? Revisit these functions when we build
      * more concrete backend systems.
      */
     ssize_t n;
@@ -581,7 +579,7 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = cc_writev(c->sd, bufv->data, bufv->nelem);
+        n = writev(c->sd, bufv->data, bufv->nelem);
 
         log_verb("sendv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);

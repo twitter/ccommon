@@ -63,6 +63,7 @@
 #define CC_EEMPTY   -5 /* no data */
 
 #define CC_ERDHUP   -6 /* EOF/peer closed */
+#define CC_EINVAL   -7
 
 #define CC_UNFIN    1  /* unfinished, more data expected */
 

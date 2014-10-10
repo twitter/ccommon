@@ -19,9 +19,18 @@
 #define _CC_ARRAY_H_
 
 #include <cc_define.h>
+#include <cc_option.h>
 
 #include <stdint.h>
 #include <stddef.h>
+
+#define NELEM_DELTA 16
+
+
+/*          name                type                default             description */
+#define ARRAY_OPTION(ACTION)                                                                                    \
+    ACTION( array_nelem_delta,  OPTION_TYPE_UINT,   str(NELEM_DELTA),     "max nelem delta during expansion" )
+
 
 typedef int (*array_compare_t)(const void *, const void *);
 typedef rstatus_t (*array_each_t)(void *, void *);
@@ -86,6 +95,7 @@ void *array_pop(struct array *arr);
 void array_sort(struct array *arr, array_compare_t compare);
 uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err);
 
+/* TODO(yao): refactor to use better arg names */
 void array_setup(uint32_t nelem);
 void array_teardown(void);
 

@@ -47,10 +47,17 @@
 /* TODO: take buffers out of stream */
 
 #include <cc_define.h>
+#include <cc_option.h>
 #include <cc_queue.h>
 
 #include <inttypes.h>
 #include <stdlib.h>
+
+#define STREAM_POOLSIZE 0 /* unlimited */
+
+/*          name                type                default                 description */
+#define STREAM_OPTION(ACTION)                                                                   \
+    ACTION( stream_poolsize,    OPTION_TYPE_UINT,   str(STREAM_POOLSIZE),   "stream pool size" )
 
 typedef enum channel_type {
     CHANNEL_UNKNOWN,

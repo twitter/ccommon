@@ -18,6 +18,15 @@
 #ifndef _CC_LOG_H_
 #define _CC_LOG_H_
 
+#include <cc_util.h>
+
+#define LOG_LEVEL 4 /* default log level */
+
+/*          name        type                default           description */
+#define LOG_OPTION(ACTION)                                                  \
+    ACTION( log_level,  OPTION_TYPE_UINT,   str(LOG_LEVEL),   "log level"  )\
+    ACTION( log_name,   OPTION_TYPE_STR,    NULL,             "log name"   )\
+
 #define LOG_MAX_LEN 256 /* max length of log message */
 
 /*
