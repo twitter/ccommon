@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define OPTLINE_MAXLEN  1024
 #define OPTNAME_MAXLEN  31
@@ -46,12 +47,6 @@
 #define OPTION_INIT(_name, _type, _default, _description)                   \
     ._name = {.name = #_name, .set = false, .type = _type,                  \
         .default_val_str = _default, .description = _description},
-
-#define OPTION_SET(_name, _type, _default, _description) do {               \
-    if (cc_strcmp(_k, #_name) == 0) {                                       \
-        _r = option_set(&_s._name, _v);                                     \
-    }                                                                       \
-} while (0);
 
 #define OPTION_CARDINALITY(_o) sizeof(_o)/sizeof(struct option)
 
@@ -82,5 +77,7 @@ struct option {
 
 rstatus_t option_set(struct option *opt, char *val_str);
 rstatus_t option_parse(char *line, char *name, char *val);
+rstatus_t option_load_default(struct option options[], unsigned int nopt);
+rstatus_t option_load_config(FILE *fp, struct option options[], unsigned int nopt);
 
 #endif

@@ -202,3 +202,81 @@ option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
 
     return CC_OK;
 }
+
+rstatus_t
+option_load_default(struct option options[], unsigned int nopt)
+{
+    unsigned int i;
+    rstatus_t status;
+    struct option *opt = options;
+
+    for (i = 0; i < nopt; i++, opt++) {
+        status = option_set(opt, opt->default_val_str);
+        if (status != CC_OK) {
+            log_error("error loading default value %s into option type %d",
+                    opt->default_val_str, opt->type);
+
+            return CC_ERROR;
+        }
+    }
+
+    return CC_OK;
+}
+
+rstatus_t
+option_load_config(FILE *fp, struct option options[], unsigned int nopt)
+{
+    /* Note: when in use, all bufs are '\0' terminated if no error occurs */
+    char linebuf[OPTLINE_MAXLEN + 1];
+    char namebuf[OPTNAME_MAXLEN + 1];
+    char valbuf[OPTVAL_MAXLEN + 1];
+    rstatus_t status;
+    struct option *opt;
+    bool match;
+    unsigned int i;
+    int fe;
+
+    while (fgets(linebuf, OPTLINE_MAXLEN + 1, fp) != NULL) {
+        status = option_parse(linebuf, namebuf, valbuf);
+        if (status == CC_EEMPTY) {
+            continue;
+        }
+        if (status != CC_OK) {
+            log_error("error loading config line %s", linebuf);
+
+            return CC_ERROR;
+        }
+
+        opt = options;
+        match = false;
+        for (i = 0; i < nopt; i++, opt++) {
+            if (cc_strcmp(namebuf, opt->name) == 0) {
+                match = true;
+                status = option_set(opt, valbuf);
+                break;
+            }
+        }
+        if (!match) {
+            log_error("error loading config line: no option named '%s'",
+                    namebuf);
+
+            return CC_ERROR;
+        }
+        if (status != CC_OK) {
+            log_error("error applying value '%s' to option '%s': error %d.",
+                    valbuf, namebuf, status);
+
+            return CC_ERROR;
+        }
+    }
+
+    fe = ferror(fp);
+    if (fe != 0) {
+        log_error("load config failed due to file error: %d", fe);
+
+        return CC_ERROR;
+    }
+
+    return CC_OK;
+}
+
