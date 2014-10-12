@@ -224,6 +224,8 @@ stream_create(void)
     if (stream == NULL) {
         return NULL;
     }
+    stream->rbuf = NULL;
+    stream->wbuf = NULL;
 
     stream->rbuf = mbuf_borrow();
     if (stream->rbuf == NULL) {
@@ -247,13 +249,13 @@ void
 stream_destroy(struct stream *stream)
 {
     ASSERT (stream != NULL);
-    ASSERT(stream->handler != NULL);
     ASSERT(stream->data == NULL);
 
-    stream->handler->close(stream->channel);
+    if (stream->handler) {
+        stream->handler->close(stream->channel);
+    }
     mbuf_return(stream->rbuf);
     mbuf_return(stream->wbuf);
-
     cc_free(stream);
 }
 
@@ -293,21 +295,26 @@ stream_borrow(void)
     FREEPOOL_BORROW(stream, &streamp, next, stream_create);
     if (stream == NULL) {
         log_debug("borrow stream failed: OOM");
+
         return NULL;
     }
     stream->channel = NULL;
-    stream->rbuf = NULL;
-    stream->wbuf = NULL;
 
-    stream->rbuf = mbuf_borrow();
     if (stream->rbuf == NULL) {
+        stream->rbuf = mbuf_borrow();
+    }
+    if (stream->rbuf == NULL) {
+        log_debug("borrow stream failed: OOM");
         stream_return(stream);
 
         return NULL;
     }
 
-    stream->wbuf = mbuf_borrow();
     if (stream->wbuf == NULL) {
+        stream->wbuf = mbuf_borrow();
+    }
+    if (stream->wbuf == NULL) {
+        log_debug("borrow stream failed: OOM");
         stream_return(stream);
 
         return NULL;
@@ -328,8 +335,12 @@ stream_return(struct stream *stream)
     log_verb("return stream %p", stream);
 
     stream->handler->close(stream->channel);
+    stream->handler = NULL;
+    stream->channel = NULL;
 
     mbuf_return(stream->rbuf);
+    stream->rbuf = NULL;
     mbuf_return(stream->wbuf);
+    stream->wbuf = NULL;
     FREEPOOL_RETURN(&streamp, stream, next);
 }

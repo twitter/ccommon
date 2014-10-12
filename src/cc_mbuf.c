@@ -68,10 +68,14 @@ mbuf_create(void)
     if (buf == NULL) {
         return NULL;
     }
+
     mbuf = (struct mbuf *)(buf + mbuf_offset);
     mbuf->magic = MBUF_MAGIC;
     mbuf->end = (uint8_t *)mbuf;
     mbuf->start = buf;
+    STAILQ_NEXT(mbuf, next) = NULL;
+
+    log_verb("create mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
 
     return mbuf;
 }
@@ -84,7 +88,7 @@ mbuf_destroy(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
-    log_verb("put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
+    log_verb("destroy mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
 
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);

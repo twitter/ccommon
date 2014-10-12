@@ -296,6 +296,8 @@ conn_close(struct conn *c)
         return;
     }
 
+    log_info("closing conn %p sd %d", c, c->sd);
+
     if (c->sd >= 0) {
         close(c->sd);
     }
@@ -305,7 +307,7 @@ conn_close(struct conn *c)
 void
 server_close(struct conn *c)
 {
-    log_info("closing server conn %p sd %d", c, c->sd);
+    log_info("closing server");
 
     conn_close(c);
 }
