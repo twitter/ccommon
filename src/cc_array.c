@@ -245,7 +245,7 @@ void array_setup(uint32_t nelem)
 
     max_nelem_delta = nelem;
     if (array_init) {
-        log_warn("array module has already been setup, overwrite");
+        log_warn("%s has already been setup, overwrite", ARRAY_MODULE_NAME);
     }
     array_init = true;
 }
@@ -254,7 +254,7 @@ void array_teardown(void)
 {
     log_info("tear down the %s module", ARRAY_MODULE_NAME);
     if (!array_init) {
-        log_warn("array module has never been setup");
+        log_warn("%s has never been setup", ARRAY_MODULE_NAME);
     }
     array_init = false;
 }

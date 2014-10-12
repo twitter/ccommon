@@ -287,6 +287,9 @@ mbuf_setup(uint32_t chunk_size)
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
+    if (mbuf_init) {
+        log_warn("%s has already been setup, overwrite", MBUF_MODULE_NAME);
+    }
     mbuf_init = true;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
 
@@ -302,5 +305,8 @@ mbuf_teardown(void)
 {
     log_info("tear down the %s module", MBUF_MODULE_NAME);
 
+    if (!mbuf_init) {
+        log_warn("%s has never been setup", MBUF_MODULE_NAME);
+    }
     mbuf_init = false;
 }

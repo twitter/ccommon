@@ -38,7 +38,7 @@
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
-static bool conn_init = false;
+static bool nio_init = false;
 static bool cp_init = false;
 static int max_backlog = CONN_BACKLOG;
 
@@ -49,7 +49,10 @@ conn_setup(int backlog)
     log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
-    conn_init = true;
+    if (nio_init) {
+        log_warn("%s has already been setup, overwrite", NIO_MODULE_NAME);
+    }
+    nio_init = true;
 }
 
 void
@@ -57,7 +60,10 @@ conn_teardown(void)
 {
     log_info("tear down the %s module", NIO_MODULE_NAME);
 
-    conn_init = false;
+    if (!nio_init) {
+        log_warn("%s has never been setup", NIO_MODULE_NAME);
+    }
+    nio_init = false;
 }
 
 int
