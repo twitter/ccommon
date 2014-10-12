@@ -18,6 +18,7 @@
 #ifndef _CC_LOG_H_
 #define _CC_LOG_H_
 
+#include <cc_define.h>
 #include <cc_util.h>
 
 #define LOG_LEVEL 4 /* default log level */
