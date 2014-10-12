@@ -260,9 +260,9 @@ stream_destroy(struct stream *stream)
 void
 stream_pool_create(uint32_t max)
 {
-    log_info("creating stream pool: max %"PRIu32, max);
-
     if (!streamp_init) {
+        log_info("creating stream pool: max %"PRIu32, max);
+
         FREEPOOL_CREATE(&streamp, max);
         streamp_init = true;
     } else {
@@ -275,9 +275,9 @@ stream_pool_destroy(void)
 {
     struct stream *stream, *tstream;
 
-    log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
-
     if (streamp_init) {
+        log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
+
         FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
         streamp_init = false;
     } else {

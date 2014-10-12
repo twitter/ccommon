@@ -631,9 +631,9 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 void
 conn_pool_create(uint32_t max)
 {
-    log_info("creating conn pool: max %"PRIu32, max);
-
     if (!cp_init) {
+        log_info("creating conn pool: max %"PRIu32, max);
+
         FREEPOOL_CREATE(&cp, max);
         cp_init = true;
     } else {
@@ -646,9 +646,9 @@ conn_pool_destroy(void)
 {
     struct conn *c, *tc;
 
-    log_info("destroying conn pool: free %"PRIu32, cp.nfree);
-
     if (cp_init) {
+        log_info("destroying conn pool: free %"PRIu32, cp.nfree);
+
         FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
         cp_init = false;
     } else {
@@ -679,6 +679,10 @@ conn_borrow(void)
 void
 conn_return(struct conn *c)
 {
+    if (c == NULL) {
+        return;
+    }
+
     log_verb("return conn %p", c);
 
     FREEPOOL_RETURN(&cp, c, next);

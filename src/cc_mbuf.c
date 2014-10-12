@@ -216,9 +216,9 @@ mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring bstr)
 void
 mbuf_pool_create(uint32_t max)
 {
-    log_info("creating mbuf pool: max %"PRIu32, max);
-
     if (!mbufp_init) {
+        log_info("creating mbuf pool: max %"PRIu32, max);
+
         FREEPOOL_CREATE(&mbufp, max);
         mbufp_init = true;
     } else {
@@ -231,9 +231,9 @@ mbuf_pool_destroy(void)
 {
     struct mbuf *mbuf, *nbuf;
 
-    log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
-
     if (mbufp_init) {
+        log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
+
         FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
         mbufp_init = false;
     } else {
