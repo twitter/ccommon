@@ -17,4 +17,32 @@
 
 #include <cc_stats.h>
 
-#define LOG_MODULE_NAME "ccommon::stats"
+#include <cc_log.h>
+
+#include <stdbool.h>
+
+#define STATS_MODULE_NAME "ccommon::stats"
+
+static bool stats_init = false;
+
+void
+stats_setup(void)
+{
+    log_info("set up the %s module", STATS_MODULE_NAME);
+
+    if (stats_init) {
+        log_warn("%s has already been setup, overwrite", STATS_MODULE_NAME);
+    }
+    stats_init = true;
+}
+
+void
+stats_teardown(void)
+{
+    log_info("tear down the %s module", STATS_MODULE_NAME);
+
+    if (!stats_init) {
+        log_warn("%s has never been setup", STATS_MODULE_NAME);
+    }
+    stats_init = false;
+}

@@ -16,7 +16,25 @@
  */
 
 #ifndef _CC_STATS_H_
+#define _CC_STATS_H_
+
 #include <cc_define.h>
+
+#if defined CC_STATS && CC_STATS == 1
+
+#define stats_incr(_c)        __atomic_add_fetch(&(_c), 1, __ATOMIC_RELAXED)
+#define stats_incr_n(_c, _d)  __atomic_add_fetch(&(_c), (_d), __ATOMIC_RELAXED)
+#define stats_decr(_c)        __atomic_sub_fetch(&(_c), 1, __ATOMIC_RELAXED)
+#define stats_decr_n(_c, _d)  __atomic_sub_fetch(&(_c), (_d), __ATOMIC_RELAXED)
+
+#else
+
+#define stats_incr(_c)
+#define stats_incr_n(_c, _d)
+#define stats_decr(_c)
+#define stats_decr_n(_c, _d)
+
+#endif
 
 void stats_setup(void);
 void stats_teardown(void);
