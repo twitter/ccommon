@@ -41,6 +41,8 @@
 FREEPOOL(stream_pool, streamq, stream);
 struct stream_pool streamp;
 
+static bool streamp_init = false;
+
 /* recv nbyte at most and store it in rbuf associated with the stream.
  * Stream buffer must provide enough capacity, otherwise CC_NOMEM is returned.
  * callback pre_read, if not NULL, is called before receiving data
@@ -261,7 +263,12 @@ stream_pool_create(uint32_t max)
 {
     log_info("creating stream pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&streamp, max);
+    if (!streamp_init) {
+        FREEPOOL_CREATE(&streamp, max);
+        streamp_init = true;
+    } else {
+        log_warn("stream pool has already been created, ignore");
+    }
 }
 
 void
@@ -271,7 +278,12 @@ stream_pool_destroy(void)
 
     log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
 
-    FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
+    if (streamp_init) {
+        FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
+        streamp_init = false;
+    } else {
+        log_warn("stream pool was never created, ignore");
+    }
 }
 
 struct stream *
