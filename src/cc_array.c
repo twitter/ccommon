@@ -28,6 +28,7 @@
 
 #define ARRAY_MODULE_NAME "ccommon::array"
 
+static bool array_init = false;
 static uint32_t max_nelem_delta = NELEM_DELTA;
 
 /**
@@ -243,9 +244,17 @@ void array_setup(uint32_t nelem)
     log_info("set up the %s module", ARRAY_MODULE_NAME);
 
     max_nelem_delta = nelem;
+    if (array_init) {
+        log_warn("array module has already been setup, overwrite");
+    }
+    array_init = true;
 }
 
 void array_teardown(void)
 {
     log_info("tear down the %s module", ARRAY_MODULE_NAME);
+    if (!array_init) {
+        log_warn("array module has never been setup");
+    }
+    array_init = false;
 }
