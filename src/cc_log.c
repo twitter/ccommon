@@ -193,17 +193,17 @@ _log(const char *file, int line, int level, const char *fmt, ...)
 }
 
 void
-log_stderr(const char *fmt, ...)
+_log_fd(int fd, const char *fmt, ...)
 {
     struct logger *l = &logger;
     int len, size, errno_save;
-    char buf[4 * LOG_MAX_LEN];
+    char buf[LOG_MAX_LEN];
     va_list args;
     ssize_t n;
 
     errno_save = errno;
-    len = 0;                /* length of output buffer */
-    size = 4 * LOG_MAX_LEN; /* size of output buffer */
+    len = 0;            /* length of output */
+    size = LOG_MAX_LEN; /* size of output buffer */
 
     va_start(args, fmt);
     len += cc_vscnprintf(buf, size, fmt, args);
@@ -211,7 +211,7 @@ log_stderr(const char *fmt, ...)
 
     buf[len++] = '\n';
 
-    n = write(STDERR_FILENO, buf, len);
+    n = write(fd, buf, len);
     if (n < 0) {
         l->nerror++;
     }

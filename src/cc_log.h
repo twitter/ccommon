@@ -27,7 +27,7 @@
     ACTION( log_level,  OPTION_TYPE_UINT,   str(LOG_LEVEL),   "log level"  )\
     ACTION( log_name,   OPTION_TYPE_STR,    NULL,             "log name"   )\
 
-#define LOG_MAX_LEN 256 /* max length of log message */
+#define LOG_MAX_LEN 2560 /* max length of log message */
 
 /*
  * TODO(yao): a reasonable guideline for using these different levels.
@@ -105,6 +105,8 @@
 
 #endif
 
+#define log_stderr(...) _log_fd(STDERR_FILENO, __VA_ARGS__)
+#define log_stdout(...) _log_fd(STDOUT_FILENO, __VA_ARGS__)
 
 int log_setup(int level, char *filename);
 void log_teardown(void);
@@ -115,9 +117,8 @@ void log_level_set(int level);
 
 void log_reopen(void);
 
-void log_stderr(const char *fmt, ...);
-
 void _log(const char *file, int line, int level, const char *fmt, ...);
+void _log_fd(int fd, const char *fmt, ...);
 void _log_hexdump(int level, char *data, int datalen);
 
 #endif /* _CC_LOG_H_ */

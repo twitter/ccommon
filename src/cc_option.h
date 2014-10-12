@@ -31,13 +31,15 @@
 #define OPTVAL_MAXLEN   255
 
 /*
- * Each option is described by a 6-tuple:
+ * Each option is described by a 4-tuple:
  *      (NAME, TYPE, DEFAULT, DESCRIPTION)
  *   - NAME has to be a legal C variable name
  *   - TYPE supported types include: boolean, int, float, string
  *   - DEFAULT is the default value of the option, as a string
  *   - DESCRIPTION is a brief description of what the option does.
  */
+
+/* TODO(yao): add an (optional) callback that can sanity-check input values */
 
 
 #define OPTION_DECLARE(_name, _type, _default, _description)                \
