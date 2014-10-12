@@ -38,6 +38,8 @@
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
+static bool conn_init = false;
+static bool cp_init = false;
 static int max_backlog = CONN_BACKLOG;
 
 void
@@ -47,12 +49,15 @@ conn_setup(int backlog)
     log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
+    conn_init = true;
 }
 
 void
 conn_teardown(void)
 {
     log_info("tear down the %s module", NIO_MODULE_NAME);
+
+    conn_init = false;
 }
 
 int
@@ -617,7 +622,12 @@ conn_pool_create(uint32_t max)
 {
     log_info("creating conn pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&cp, max);
+    if (!cp_init) {
+        FREEPOOL_CREATE(&cp, max);
+        cp_init = true;
+    } else {
+        log_warn("conn pool has already been created, ignore");
+    }
 }
 
 void
@@ -627,7 +637,13 @@ conn_pool_destroy(void)
 
     log_info("destroying conn pool: free %"PRIu32, cp.nfree);
 
-    FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+    if (cp_init) {
+        FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+        cp_init = false;
+    } else {
+        log_warn("conn pool was never created, ignore");
+    }
+
 }
 
 struct conn *

@@ -301,5 +301,6 @@ void
 mbuf_teardown(void)
 {
     log_info("tear down the %s module", MBUF_MODULE_NAME);
+
     mbuf_init = false;
 }
