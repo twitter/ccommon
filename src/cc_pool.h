@@ -27,7 +27,7 @@ struct pool {                                                       \
 
 #define FREEPOOL_DESTROY(var, tvar, pool, field, destroy) do {      \
     ASSERT((pool)->initialized);                                    \
-    ASSERT((pool)->nused = 0);                                      \
+    ASSERT((pool)->nused == 0);                                     \
     STAILQ_FOREACH_SAFE(var, &(pool)->freeq, field, tvar) {         \
         STAILQ_REMOVE_HEAD(&(pool)->freeq, next);                   \
         (pool)->nfree--;                                            \
