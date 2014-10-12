@@ -292,9 +292,25 @@ stream_borrow(void)
     struct stream *stream;
 
     FREEPOOL_BORROW(stream, &streamp, next, stream_create);
-
     if (stream == NULL) {
         log_debug("borrow stream failed: OOM");
+        return NULL;
+    }
+    stream->channel = NULL;
+    stream->rbuf = NULL;
+    stream->wbuf = NULL;
+
+    stream->rbuf = mbuf_borrow();
+    if (stream->rbuf == NULL) {
+        cc_return(stream);
+
+        return NULL;
+    }
+
+    stream->wbuf = mbuf_borrow();
+    if (stream->wbuf == NULL) {
+        mbuf_return(stream);
+
         return NULL;
     }
 
@@ -306,8 +322,16 @@ stream_borrow(void)
 void
 stream_return(struct stream *stream)
 {
-    /* NOTE: mbufs are not returned, still affiliated with stream */
+    if (stream == NULL) {
+        return;
+    }
+
     log_verb("return stream %p", stream);
+
+    stream->handler->close(stream->channel);
+
+    mbuf_return(stream->rbuf);
+    mbuf_return(stream->wbuf);
 
     FREEPOOL_RETURN(&streamp, stream, next);
 }

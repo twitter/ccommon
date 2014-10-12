@@ -292,17 +292,22 @@ conn_destroy(struct conn *c)
 void
 conn_close(struct conn *c)
 {
-    close(c->sd);
+    if (c == NULL) {
+        return;
+    }
+
+    if (c->sd >= 0) {
+        close(c->sd);
+    }
     conn_return(c);
 }
 
 void
 server_close(struct conn *c)
 {
-    log_info("returning conn %p sd %d", c, c->sd);
+    log_info("closing server conn %p sd %d", c, c->sd);
 
-    close(c->sd);
-    conn_return(c);
+    conn_close(c);
 }
 
 struct conn *

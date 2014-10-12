@@ -269,6 +269,10 @@ mbuf_borrow(void)
 void
 mbuf_return(struct mbuf *mbuf)
 {
+    if (mbuf == NULL) {
+        return;
+    }
+
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);
 
