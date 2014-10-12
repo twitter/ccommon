@@ -251,7 +251,6 @@ stream_destroy(struct stream *stream)
     ASSERT(stream->data == NULL);
 
     stream->handler->close(stream->channel);
-
     mbuf_return(stream->rbuf);
     mbuf_return(stream->wbuf);
 
@@ -302,14 +301,14 @@ stream_borrow(void)
 
     stream->rbuf = mbuf_borrow();
     if (stream->rbuf == NULL) {
-        cc_return(stream);
+        stream_return(stream);
 
         return NULL;
     }
 
     stream->wbuf = mbuf_borrow();
     if (stream->wbuf == NULL) {
-        mbuf_return(stream);
+        stream_return(stream);
 
         return NULL;
     }
@@ -332,6 +331,5 @@ stream_return(struct stream *stream)
 
     mbuf_return(stream->rbuf);
     mbuf_return(stream->wbuf);
-
     FREEPOOL_RETURN(&streamp, stream, next);
 }
