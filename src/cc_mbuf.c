@@ -101,6 +101,7 @@ mbuf_reset(struct mbuf *mbuf)
 {
     mbuf->rpos = mbuf->start;
     mbuf->wpos = mbuf->start;
+    STAILQ_NEXT(mbuf, next) = NULL;
 }
 
 /*
