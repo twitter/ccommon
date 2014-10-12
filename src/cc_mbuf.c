@@ -52,6 +52,9 @@
 FREEPOOL(mbuf_pool, mbufq, mbuf);
 struct mbuf_pool mbufp;
 
+static bool mbuf_init = false;
+static bool mbufp_init = false;
+
 static uint32_t mbuf_chunk_size = MBUF_SIZE; /* chunk size (all inclusive) */
 static uint32_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
@@ -215,7 +218,12 @@ mbuf_pool_create(uint32_t max)
 {
     log_info("creating mbuf pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&mbufp, max);
+    if (!mbufp_init) {
+        FREEPOOL_CREATE(&mbufp, max);
+        mbufp_init = true;
+    } else {
+        log_warn("mbuf pool has already been created, ignore");
+    }
 }
 
 void
@@ -225,7 +233,12 @@ mbuf_pool_destroy(void)
 
     log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
 
-    FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
+    if (mbufp_init) {
+        FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
+        mbufp_init = false;
+    } else {
+        log_warn("mbuf pool was never created, ignore");
+    }
 }
 
 /*
@@ -274,6 +287,7 @@ mbuf_setup(uint32_t chunk_size)
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
+    mbuf_init = true;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
 
     log_debug("mbuf: chunk size %zu, hdr size %d, offset %zu",
@@ -287,4 +301,5 @@ void
 mbuf_teardown(void)
 {
     log_info("tear down the %s module", MBUF_MODULE_NAME);
+    mbuf_init = false;
 }

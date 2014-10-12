@@ -18,4 +18,7 @@
 #ifndef _CC_STATS_H_
 #include <cc_define.h>
 
+void stats_setup(void);
+void stats_teardown(void);
+
 #endif /* _CC_STATS_H_ */
