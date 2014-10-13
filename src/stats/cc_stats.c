@@ -17,6 +17,7 @@
 
 #include <cc_stats.h>
 
+#include <cc_debug.h>
 #include <cc_log.h>
 
 #include <stdbool.h>
@@ -24,6 +25,27 @@
 #define STATS_MODULE_NAME "ccommon::stats"
 
 static bool stats_init = false;
+
+void
+stats_reset(struct stats sarr[], unsigned int n)
+{
+    int i;
+    for (i = 0; i < n; i++) {
+        switch (sarr[i].type) {
+        case METRIC_COUNTER:
+            sarr[i].counter = 0;
+            break;
+
+        case METRIC_GAUGE:
+            sarr[i].gauge = 0;
+            break;
+
+        default:
+            NOT_REACHED();
+            break;
+        }
+    }
+}
 
 void
 stats_setup(void)
