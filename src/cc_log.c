@@ -33,6 +33,8 @@
 
 #define LOG_MODULE_NAME "ccommon::log"
 
+static bool log_init = false;
+
 static char * level_str[] = {
     "ALWAYS",
     "CRIT",
@@ -86,6 +88,10 @@ log_setup(int level, char *name)
             return -1;
         }
     }
+    if (log_init) {
+        log_warn("%s has already been setup, overwrite", LOG_MODULE_NAME);
+    }
+    log_init = true;
 
     return 0;
 }
@@ -100,6 +106,10 @@ log_teardown(void)
     if (l->fd != STDERR_FILENO) {
         close(l->fd);
     }
+    if (!log_init) {
+        log_warn("%s has never been setup", LOG_MODULE_NAME);
+    }
+    log_init = false;
 }
 
 void

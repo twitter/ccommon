@@ -90,7 +90,22 @@ typedef struct stream_handler {
  *
  * Note(yao): I'm now much more inclined to use function pointers and keep the
  * stream module to a minimum, so stream really reflects what is an interface
- * in Java or Go, in that it defines to operations but has no 'meat'.
+ * in Java or Go, in that it defines to operations but has no 'meat'. This
+ * basically means we are going to have a common interface for different channel
+ * types.
+ * Then we can have a separate interface for buffers: the kind of buffers we
+ * need really depends on both the protocol and the channel type: for example,
+ * data exchange via shared memory probably don't need buffer at all; while NIO
+ * usually needs one, on the other hand, a service like slimcache doesn't need
+ * more than one fixed sized chunk of buffer while a server speaking compressed
+ * thrift protocol will have to support variabled size buffer.
+ * Eventually we can redefine stream to be a collection of the following:
+ * - a channel struct (with all the I/O methods inside);
+ * - a buffer struct (with both read, write buffer and access methods);
+ * - a cb to follow up upon events/data;
+ * - a pointer for temporary state that needs to be remembered.
+ * Stream may exist only as an interface inside of ccommon and instantiated by
+ * application writers to accommodate their particular needs.
  *
  * we can also support using vector read and write, especially write, but that
  * doesn't necessarily require a vector-ed write buffer (only the iov needs to

@@ -26,6 +26,10 @@
 # define CC_BIG_ENDIAN 1
 #endif
 
+#ifdef HAVE_STATS
+# define CC_STATS 1
+#endif
+
 #ifdef HAVE_LOGGING
 # define CC_LOGGING 1
 #endif

@@ -41,6 +41,8 @@
 FREEPOOL(stream_pool, streamq, stream);
 struct stream_pool streamp;
 
+static bool streamp_init = false;
+
 /* recv nbyte at most and store it in rbuf associated with the stream.
  * Stream buffer must provide enough capacity, otherwise CC_NOMEM is returned.
  * callback pre_read, if not NULL, is called before receiving data
@@ -222,6 +224,8 @@ stream_create(void)
     if (stream == NULL) {
         return NULL;
     }
+    stream->rbuf = NULL;
+    stream->wbuf = NULL;
 
     stream->rbuf = mbuf_borrow();
     if (stream->rbuf == NULL) {
@@ -245,23 +249,27 @@ void
 stream_destroy(struct stream *stream)
 {
     ASSERT (stream != NULL);
-    ASSERT(stream->handler != NULL);
     ASSERT(stream->data == NULL);
 
-    stream->handler->close(stream->channel);
-
+    if (stream->handler) {
+        stream->handler->close(stream->channel);
+    }
     mbuf_return(stream->rbuf);
     mbuf_return(stream->wbuf);
-
     cc_free(stream);
 }
 
 void
 stream_pool_create(uint32_t max)
 {
-    log_info("creating stream pool: max %"PRIu32, max);
+    if (!streamp_init) {
+        log_info("creating stream pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&streamp, max);
+        FREEPOOL_CREATE(&streamp, max);
+        streamp_init = true;
+    } else {
+        log_warn("stream pool has already been created, ignore");
+    }
 }
 
 void
@@ -269,9 +277,14 @@ stream_pool_destroy(void)
 {
     struct stream *stream, *tstream;
 
-    log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
+    if (streamp_init) {
+        log_info("destroying stream pool: free %"PRIu32, streamp.nfree);
 
-    FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
+        FREEPOOL_DESTROY(stream, tstream, &streamp, next, stream_destroy);
+        streamp_init = false;
+    } else {
+        log_warn("stream pool was never created, ignore");
+    }
 }
 
 struct stream *
@@ -280,9 +293,30 @@ stream_borrow(void)
     struct stream *stream;
 
     FREEPOOL_BORROW(stream, &streamp, next, stream_create);
-
     if (stream == NULL) {
         log_debug("borrow stream failed: OOM");
+
+        return NULL;
+    }
+    stream->channel = NULL;
+
+    if (stream->rbuf == NULL) {
+        stream->rbuf = mbuf_borrow();
+    }
+    if (stream->rbuf == NULL) {
+        log_debug("borrow stream failed: OOM");
+        stream_return(stream);
+
+        return NULL;
+    }
+
+    if (stream->wbuf == NULL) {
+        stream->wbuf = mbuf_borrow();
+    }
+    if (stream->wbuf == NULL) {
+        log_debug("borrow stream failed: OOM");
+        stream_return(stream);
+
         return NULL;
     }
 
@@ -294,8 +328,19 @@ stream_borrow(void)
 void
 stream_return(struct stream *stream)
 {
-    /* NOTE: mbufs are not returned, still affiliated with stream */
+    if (stream == NULL) {
+        return;
+    }
+
     log_verb("return stream %p", stream);
 
+    stream->handler->close(stream->channel);
+    stream->handler = NULL;
+    stream->channel = NULL;
+
+    mbuf_return(stream->rbuf);
+    stream->rbuf = NULL;
+    mbuf_return(stream->wbuf);
+    stream->wbuf = NULL;
     FREEPOOL_RETURN(&streamp, stream, next);
 }

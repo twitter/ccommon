@@ -38,6 +38,8 @@
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
+static bool nio_init = false;
+static bool cp_init = false;
 static int max_backlog = CONN_BACKLOG;
 
 void
@@ -47,12 +49,21 @@ conn_setup(int backlog)
     log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
+    if (nio_init) {
+        log_warn("%s has already been setup, overwrite", NIO_MODULE_NAME);
+    }
+    nio_init = true;
 }
 
 void
 conn_teardown(void)
 {
     log_info("tear down the %s module", NIO_MODULE_NAME);
+
+    if (!nio_init) {
+        log_warn("%s has never been setup", NIO_MODULE_NAME);
+    }
+    nio_init = false;
 }
 
 int
@@ -281,17 +292,24 @@ conn_destroy(struct conn *c)
 void
 conn_close(struct conn *c)
 {
-    close(c->sd);
+    if (c == NULL) {
+        return;
+    }
+
+    log_info("closing conn %p sd %d", c, c->sd);
+
+    if (c->sd >= 0) {
+        close(c->sd);
+    }
     conn_return(c);
 }
 
 void
 server_close(struct conn *c)
 {
-    log_info("returning conn %p sd %d", c, c->sd);
+    log_info("closing server");
 
-    close(c->sd);
-    conn_return(c);
+    conn_close(c);
 }
 
 struct conn *
@@ -615,9 +633,14 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 void
 conn_pool_create(uint32_t max)
 {
-    log_info("creating conn pool: max %"PRIu32, max);
+    if (!cp_init) {
+        log_info("creating conn pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&cp, max);
+        FREEPOOL_CREATE(&cp, max);
+        cp_init = true;
+    } else {
+        log_warn("conn pool has already been created, ignore");
+    }
 }
 
 void
@@ -625,9 +648,15 @@ conn_pool_destroy(void)
 {
     struct conn *c, *tc;
 
-    log_info("destroying conn pool: free %"PRIu32, cp.nfree);
+    if (cp_init) {
+        log_info("destroying conn pool: free %"PRIu32, cp.nfree);
 
-    FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+        FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+        cp_init = false;
+    } else {
+        log_warn("conn pool was never created, ignore");
+    }
+
 }
 
 struct conn *
@@ -652,6 +681,10 @@ conn_borrow(void)
 void
 conn_return(struct conn *c)
 {
+    if (c == NULL) {
+        return;
+    }
+
     log_verb("return conn %p", c);
 
     FREEPOOL_RETURN(&cp, c, next);

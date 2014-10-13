@@ -52,6 +52,9 @@
 FREEPOOL(mbuf_pool, mbufq, mbuf);
 struct mbuf_pool mbufp;
 
+static bool mbuf_init = false;
+static bool mbufp_init = false;
+
 static uint32_t mbuf_chunk_size = MBUF_SIZE; /* chunk size (all inclusive) */
 static uint32_t mbuf_offset;     /* mbuf offset/data capacity (const) */
 
@@ -65,10 +68,14 @@ mbuf_create(void)
     if (buf == NULL) {
         return NULL;
     }
+
     mbuf = (struct mbuf *)(buf + mbuf_offset);
     mbuf->magic = MBUF_MAGIC;
     mbuf->end = (uint8_t *)mbuf;
     mbuf->start = buf;
+    STAILQ_NEXT(mbuf, next) = NULL;
+
+    log_verb("create mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
 
     return mbuf;
 }
@@ -81,7 +88,7 @@ mbuf_destroy(struct mbuf *mbuf)
 {
     uint8_t *buf;
 
-    log_verb("put mbuf %p len %d", mbuf, mbuf->wpos - mbuf->rpos);
+    log_verb("destroy mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
 
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);
@@ -98,6 +105,7 @@ mbuf_reset(struct mbuf *mbuf)
 {
     mbuf->rpos = mbuf->start;
     mbuf->wpos = mbuf->start;
+    STAILQ_NEXT(mbuf, next) = NULL;
 }
 
 /*
@@ -213,9 +221,14 @@ mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring bstr)
 void
 mbuf_pool_create(uint32_t max)
 {
-    log_info("creating mbuf pool: max %"PRIu32, max);
+    if (!mbufp_init) {
+        log_info("creating mbuf pool: max %"PRIu32, max);
 
-    FREEPOOL_CREATE(&mbufp, max);
+        FREEPOOL_CREATE(&mbufp, max);
+        mbufp_init = true;
+    } else {
+        log_warn("mbuf pool has already been created, ignore");
+    }
 }
 
 void
@@ -223,9 +236,14 @@ mbuf_pool_destroy(void)
 {
     struct mbuf *mbuf, *nbuf;
 
-    log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
+    if (mbufp_init) {
+        log_info("destroying mbuf pool: free %"PRIu32, mbufp.nfree);
 
-    FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
+        FREEPOOL_DESTROY(mbuf, nbuf, &mbufp, next, mbuf_destroy);
+        mbufp_init = false;
+    } else {
+        log_warn("mbuf pool was never created, ignore");
+    }
 }
 
 /*
@@ -256,6 +274,10 @@ mbuf_borrow(void)
 void
 mbuf_return(struct mbuf *mbuf)
 {
+    if (mbuf == NULL) {
+        return;
+    }
+
     ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
     ASSERT(mbuf->magic == MBUF_MAGIC);
 
@@ -274,6 +296,10 @@ mbuf_setup(uint32_t chunk_size)
 
     mbuf_chunk_size = chunk_size;
     mbuf_offset = mbuf_chunk_size - MBUF_HDR_SIZE;
+    if (mbuf_init) {
+        log_warn("%s has already been setup, overwrite", MBUF_MODULE_NAME);
+    }
+    mbuf_init = true;
     ASSERT(mbuf_offset > 0 && mbuf_offset < mbuf_chunk_size);
 
     log_debug("mbuf: chunk size %zu, hdr size %d, offset %zu",
@@ -287,4 +313,9 @@ void
 mbuf_teardown(void)
 {
     log_info("tear down the %s module", MBUF_MODULE_NAME);
+
+    if (!mbuf_init) {
+        log_warn("%s has never been setup", MBUF_MODULE_NAME);
+    }
+    mbuf_init = false;
 }

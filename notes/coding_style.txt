@@ -13,3 +13,7 @@ Therefore, static inline functions are not only easier to debug but safer as wel
 
 int types:
 https://www.securecoding.cert.org/confluence/display/seccode/INT15-C.+Use+intmax_t+or+uintmax_t+for+formatted+IO+on+programmer-defined+integer+types
+
+pointers & resource pooling:
+- all pointers in a struct need to be set to NULL or initialized immediately (so if there are multiple pointers, set all of the to NULL before starting to actually initialize them, so upon a failure the clean-up logic will do the right thing instead of trying to free/return the incorrect pointer);
+- all pointers need to be checked before the corresponding struct/resource is returned to the pool, so we dont' try to insert an NULL pointer to the pool.
