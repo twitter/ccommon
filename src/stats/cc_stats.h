@@ -56,7 +56,10 @@
 
 typedef enum stats_type {
     METRIC_COUNTER,
-    METRIC_GAUGE
+    METRIC_GAUGE,
+    /* directly set values */
+    METRIC_DDOUBLE,
+    METRIC_DINTMAX
 } stats_type_t;
 
 typedef uint64_t counter_t;
@@ -72,6 +75,8 @@ struct stats {
     union {
         counter_t counter;
         gauge_t gauge;
+        double vdouble;
+        intmax_t vintmax;
     };
 };
 

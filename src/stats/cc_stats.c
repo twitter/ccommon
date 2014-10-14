@@ -40,6 +40,14 @@ stats_reset(struct stats sarr[], unsigned int n)
             sarr[i].gauge = 0;
             break;
 
+        case METRIC_DDOUBLE:
+            sarr[i].vdouble = 0.0;
+            break;
+
+        case METRIC_DINTMAX:
+            sarr[i].vintmax = 0;
+            break;
+
         default:
             NOT_REACHED();
             break;
