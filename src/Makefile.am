@@ -36,7 +36,7 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
 	hash/cc_lookup3.c						\
-	stats/cc_stats.c
+	stats/cc_metric.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
@@ -58,4 +58,4 @@ ccommon_include_HEADERS =						\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
 	hash/cc_lookup3.h						\
-	stats/cc_stats.h
+	stats/cc_metric.h

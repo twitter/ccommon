@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-#include <cc_stats.h>
+#include <cc_metric.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
 
 #include <stdbool.h>
 
-#define STATS_MODULE_NAME "ccommon::stats"
+#define METRIC_MODULE_NAME "ccommon::metric"
 
-static bool stats_init = false;
+static bool metric_init = false;
 
 void
-stats_reset(struct stats sarr[], unsigned int n)
+metric_reset(struct metric sarr[], unsigned int n)
 {
     int i;
     for (i = 0; i < n; i++) {
@@ -56,23 +56,23 @@ stats_reset(struct stats sarr[], unsigned int n)
 }
 
 void
-stats_setup(void)
+metric_setup(void)
 {
-    log_info("set up the %s module", STATS_MODULE_NAME);
+    log_info("set up the %s module", METRIC_MODULE_NAME);
 
-    if (stats_init) {
-        log_warn("%s has already been setup, overwrite", STATS_MODULE_NAME);
+    if (metric_init) {
+        log_warn("%s has already been setup, overwrite", METRIC_MODULE_NAME);
     }
-    stats_init = true;
+    metric_init = true;
 }
 
 void
-stats_teardown(void)
+metric_teardown(void)
 {
-    log_info("tear down the %s module", STATS_MODULE_NAME);
+    log_info("tear down the %s module", METRIC_MODULE_NAME);
 
-    if (!stats_init) {
-        log_warn("%s has never been setup", STATS_MODULE_NAME);
+    if (!metric_init) {
+        log_warn("%s has never been setup", METRIC_MODULE_NAME);
     }
-    stats_init = false;
+    metric_init = false;
 }
