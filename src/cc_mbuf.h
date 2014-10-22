@@ -52,7 +52,10 @@
 
 /* TODO(yao): create a non-pooled/chained version of mbuf */
 struct mbuf {
+#if defined CC_ASSERT_PANIC || defined CC_ASSERT_LOG
     uint32_t           magic;   /* mbuf magic (const) */
+#endif
+    bool               free;    /* free? */
     STAILQ_ENTRY(mbuf) next;    /* next mbuf */
     uint8_t            *rpos;   /* read marker */
     uint8_t            *wpos;   /* write marker */

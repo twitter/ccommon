@@ -105,6 +105,7 @@ mbuf_reset(struct mbuf *mbuf)
 {
     mbuf->rpos = mbuf->start;
     mbuf->wpos = mbuf->start;
+    mbuf->free = false;
     STAILQ_NEXT(mbuf, next) = NULL;
 }
 
@@ -274,7 +275,7 @@ mbuf_borrow(void)
 void
 mbuf_return(struct mbuf *mbuf)
 {
-    if (mbuf == NULL) {
+    if (mbuf == NULL || mbuf->free) {
         return;
     }
 
@@ -283,6 +284,7 @@ mbuf_return(struct mbuf *mbuf)
 
     log_verb("return mbuf %p", mbuf);
 
+    mbuf->free = true;
     FREEPOOL_RETURN(&mbufp, mbuf, next);
 }
 

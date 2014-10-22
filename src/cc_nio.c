@@ -263,6 +263,7 @@ conn_get_soerror(int sd)
 void
 conn_reset(struct conn *c)
 {
+    c->free = false;
     c->sd = 0;
 
     c->recv_nbyte = 0;
@@ -681,11 +682,12 @@ conn_borrow(void)
 void
 conn_return(struct conn *c)
 {
-    if (c == NULL) {
+    if (c == NULL || c->free) {
         return;
     }
 
     log_verb("return conn %p", c);
 
+    c->free = true;
     FREEPOOL_RETURN(&cp, c, next);
 }

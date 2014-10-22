@@ -116,6 +116,7 @@ struct stream {
     STAILQ_ENTRY(stream) next;
 
     void                 *owner;     /* owner of the stream */
+    bool                 free;       /* in use? prevents double freeing */
 
     channel_type_t       type;       /* type of the communication channels */
     channel_t            channel;    /* underlying bi-directional channels */

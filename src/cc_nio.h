@@ -69,6 +69,7 @@
 
 struct conn {
     STAILQ_ENTRY(conn)  next;           /* for conn pool */
+    bool                free;           /* in use? */
 
     int                 sd;             /* socket descriptor */
 

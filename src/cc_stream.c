@@ -321,6 +321,7 @@ stream_borrow(void)
     }
 
     log_verb("borrow stream %p", stream);
+    stream->free = false;
 
     return stream;
 }
@@ -328,13 +329,12 @@ stream_borrow(void)
 void
 stream_return(struct stream *stream)
 {
-    if (stream == NULL) {
+    if (stream == NULL || stream->free) {
         return;
     }
 
     log_verb("return stream %p", stream);
 
-    stream->handler->close(stream->channel);
     stream->handler = NULL;
     stream->channel = NULL;
 
@@ -342,5 +342,6 @@ stream_return(struct stream *stream)
     stream->rbuf = NULL;
     mbuf_return(stream->wbuf);
     stream->wbuf = NULL;
+    stream->free = true;
     FREEPOOL_RETURN(&streamp, stream, next);
 }
