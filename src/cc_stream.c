@@ -107,6 +107,7 @@ stream_read(struct stream *stream, size_t nbyte)
                     stream, stream->type);
 
             status = CC_ERDHUP;
+            c->state = CONN_EOF;
         } else if (n == nbyte) {
             status = CC_ERETRY;
         } else {

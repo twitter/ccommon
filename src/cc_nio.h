@@ -64,8 +64,8 @@
 
 #define CONN_CONNECT    0
 #define CONN_CONNECTED  1
-#define CONN_EOF        2
-#define CONN_CLOSE      3
+#define CONN_EOF        2 /* peer close */
+#define CONN_CLOSE      3 /* we close */
 
 struct conn {
     STAILQ_ENTRY(conn)  next;           /* for conn pool */

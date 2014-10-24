@@ -123,7 +123,7 @@ int event_add_read(struct event_base *evb, int fd, void *data)
      * EPOLL_CTL_MOD, and the only difference is we need to ignore EEXIST
      */
     status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
-    if (status < 0 && status != EEXIST) {
+    if (status < 0 && errno != EEXIST) {
         log_error("ctl (add read) w/ epoll fd %d on fd %d failed: %s", ep, fd,
                 strerror(errno));
     }
@@ -152,9 +152,9 @@ event_add_write(struct event_base *evb, int fd, void *data)
 
     /* Note(yao): see note in event_add_read about epoll_ctl() */
     status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
-    if (status < 0 && status != EEXIST) {
+    if (status < 0 && errno != EEXIST) {
         log_error("ctl (add write) w/ epoll fd %d on fd %d failed: %s", ep, fd,
-                strerror(errno));
+                status, strerror(errno));
     }
 
     log_verb("add write event to epoll fd %d on fd %d", ep, fd);

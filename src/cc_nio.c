@@ -354,6 +354,7 @@ server_accept(struct conn *sc)
         }
         return NULL;
     }
+    c->state = CONN_CONNECTED;
 
     status = conn_set_nonblocking(sd);
     if (status < 0) {
@@ -420,6 +421,7 @@ server_listen(struct addrinfo *ai)
         return NULL;
     }
     sc->sd = sd;
+    sc->state = CONN_CONNECTED;
 
     log_info("server listen setup on s %d", sc->sd);
 
