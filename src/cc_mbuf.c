@@ -64,7 +64,7 @@ mbuf_create(void)
     struct mbuf *mbuf;
     uint8_t *buf;
 
-    buf = cc_alloc(mbuf_chunk_size);
+    buf = (uint8_t *)cc_alloc(mbuf_chunk_size);
     if (buf == NULL) {
         return NULL;
     }

@@ -279,7 +279,7 @@ conn_reset(struct conn *c)
 struct conn *
 conn_create(void)
 {
-    return cc_alloc(sizeof(struct conn));
+    return (struct conn *)cc_alloc(sizeof(struct conn));
 }
 
 void
@@ -496,7 +496,7 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("recvv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = readv(c->sd, bufv->data, bufv->nelem);
+        n = readv(c->sd, (const iovec *)bufv->data, bufv->nelem);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
@@ -600,7 +600,7 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
     log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = writev(c->sd, bufv->data, bufv->nelem);
+        n = writev(c->sd, (const iovec *)bufv->data, bufv->nelem);
 
         log_verb("sendv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);

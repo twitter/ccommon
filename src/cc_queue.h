@@ -140,7 +140,7 @@ extern "C" {
 
 #ifdef QUEUE_MACRO_SCRUB
 
-#define QMD_SAVELINK(name, link)    void **name = (void *)&(link)
+#define QMD_SAVELINK(name, link)    void **name = (void **)&(link)
 
 #define TRASHIT(x) do {                                                 \
     (x) = (void *) NULL;                                                \

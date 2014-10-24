@@ -52,8 +52,10 @@ static struct logger {
     int  fd; /* log file descriptor */
     int  nerror; /* # log error */
 } logger = {
+    .name = NULL,
+    .level = LOG_LEVEL,
     .fd = STDERR_FILENO,
-    .level = LOG_LEVEL
+    .nerror = 0
 };
 
 static inline bool
@@ -256,7 +258,7 @@ _log_hexdump(int level, char *data, int datalen)
     size = 8 * LOG_MAX_LEN;   /* size of output buffer */
 
     while (datalen != 0 && (len < size - 1)) {
-        char *save, *str;
+        char *save;
         unsigned char c;
         int savelen;
 
@@ -267,12 +269,12 @@ _log_hexdump(int level, char *data, int datalen)
 
         for (i = 0; datalen != 0 && i < 16; data++, datalen--, i++) {
             c = (unsigned char)(*data);
-            str = (i == 7) ? "  " : " ";
-            len += cc_scnprintf(buf + len, size - len, "%02x%s", c, str);
+            len += cc_scnprintf(buf + len, size - len, "%02x%s", c,
+                    (i == 7) ? "  " : " ");
         }
         for ( ; i < 16; i++) {
-            str = (i == 7) ? "  " : " ";
-            len += cc_scnprintf(buf + len, size - len, "  %s", str);
+            len += cc_scnprintf(buf + len, size - len, "  %s",
+                    (i == 7) ? "  " : " ");
         }
 
         data = save;

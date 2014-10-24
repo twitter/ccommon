@@ -29,7 +29,7 @@ static bool metric_init = false;
 void
 metric_reset(struct metric sarr[], unsigned int n)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < n; i++) {
         switch (sarr[i].type) {
         case METRIC_COUNTER:

@@ -46,7 +46,7 @@ event_base_create(int nevent, event_cb_t cb)
         return NULL;
     }
 
-    change = cc_calloc(nevent, sizeof(*change));
+    change = (struct kevent *)cc_calloc(nevent, sizeof(*change));
     if (change == NULL) {
         status = close(kq);
         if (status < 0) {
@@ -56,7 +56,7 @@ event_base_create(int nevent, event_cb_t cb)
         return NULL;
     }
 
-    event = cc_calloc(nevent, sizeof(*event));
+    event = (struct kevent *)cc_calloc(nevent, sizeof(*event));
     if (event == NULL) {
         cc_free(change);
         status = close(kq);
@@ -67,7 +67,7 @@ event_base_create(int nevent, event_cb_t cb)
         return NULL;
     }
 
-    evb = cc_alloc(sizeof(*evb));
+    evb = (struct event_base *)cc_alloc(sizeof(*evb));
     if (evb == NULL) {
         cc_free(change);
         cc_free(event);

@@ -150,7 +150,7 @@ uint32_t hash(
 
   u.ptr = key;
   if (HASH_LITTLE_ENDIAN && ((u.i & 0x3) == 0)) {
-    const uint32_t *k = key;                           /* read 32-bit chunks */
+    const uint32_t *k = (const uint32_t *)key;         /* read 32-bit chunks */
 #ifdef VALGRIND
     const uint8_t  *k8;
 #endif /* ifdef VALGRIND */
@@ -218,7 +218,7 @@ uint32_t hash(
 #endif /* !valgrind */
 
   } else if (HASH_LITTLE_ENDIAN && ((u.i & 0x1) == 0)) {
-    const uint16_t *k = key;                           /* read 16-bit chunks */
+    const uint16_t *k = (const uint16_t *)key;         /* read 16-bit chunks */
     const uint8_t  *k8;
 
     /*--------------- all but last block: aligned reads and different mixing */
@@ -265,7 +265,7 @@ uint32_t hash(
     }
 
   } else {                        /* need to read the key one byte at a time */
-    const uint8_t *k = key;
+    const uint8_t *k = (const uint8_t *)key;
 
     /*--------------- all but the last block: affect some 32 bits of (a,b,c) */
     while (length > 12)

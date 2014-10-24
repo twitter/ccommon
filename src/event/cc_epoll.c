@@ -51,7 +51,7 @@ event_base_create(int nevent, event_cb_t cb)
         return NULL;
     }
 
-    event = cc_calloc(nevent, sizeof(*event));
+    event = (struct epoll_event *)cc_calloc(nevent, sizeof(*event));
     if (event == NULL) {
         status = close(ep);
         if (status < 0) {
@@ -60,7 +60,7 @@ event_base_create(int nevent, event_cb_t cb)
         return NULL;
     }
 
-    evb = cc_alloc(sizeof(*evb));
+    evb = (struct event_base *)cc_alloc(sizeof(*evb));
     if (evb == NULL) {
         cc_free(event);
         status = close(ep);

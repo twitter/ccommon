@@ -87,7 +87,7 @@ stream_read(struct stream *stream, size_t nbyte)
         /* receive based on channel type, and schedule retries if necessary */
         switch (stream->type) {
         case CHANNEL_TCP:   /* TCP socket */
-            c = stream->channel;
+            c = (struct conn *)stream->channel;
             n = conn_recv(c, stream->rbuf->wpos, nbyte);
             if (n < 0) {
                 if (n == CC_EAGAIN) {
@@ -109,7 +109,7 @@ stream_read(struct stream *stream, size_t nbyte)
 
                 status = CC_ERDHUP;
                 c->state = CONN_EOF;
-            } else if (n == nbyte) {
+            } else if (n == (ssize_t)nbyte) {
                 status = CC_ERETRY;
             } else {
                 status = CC_OK;
@@ -175,8 +175,8 @@ stream_write(struct stream *stream, size_t nbyte)
     /* send based on channel type, and schedule retries if necessary */
     switch (stream->type) {
     case CHANNEL_TCP:   /* TCP socket */
-        c = stream->channel;
-        n = conn_send(stream->channel, stream->wbuf->rpos, content);
+        c = (struct conn *)stream->channel;
+        n = conn_send(c, stream->wbuf->rpos, content);
 
         if (n < 0) {
             if (n == CC_EAGAIN) {
@@ -193,7 +193,7 @@ stream_write(struct stream *stream, size_t nbyte)
             }
         }
 
-        if (n < content) {
+        if (n < (ssize_t)content) {
             status = CC_ERETRY;
         } else {
             status = CC_OK;
@@ -222,7 +222,7 @@ stream_create(void)
 {
     struct stream *stream;
 
-    stream = cc_alloc(sizeof(struct stream));
+    stream = (struct stream *)cc_alloc(sizeof(struct stream));
     if (stream == NULL) {
         return NULL;
     }

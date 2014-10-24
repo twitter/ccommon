@@ -67,7 +67,7 @@ _option_parse_uint(struct option *opt, char *val_str)
         return CC_ERROR;
     }
 
-    if (endptr - val_str < strlen(val_str)) {
+    if ((size_t)(endptr - val_str) < strlen(val_str)) {
         log_error("unsigned int option value %s cannot be parsed completely: "
                 "%s, stopped at position %zu", val_str, strerror(errno),
                 endptr - val_str);
@@ -152,7 +152,7 @@ option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
     }
 
     /* parse name */
-    while (*p != ':' && (p - line) < llen && (p - line) <= OPTNAME_MAXLEN) {
+    while (*p != ':' && (size_t)(p - line) < MIN(llen, OPTNAME_MAXLEN + 1)) {
         if (_allowed_in_name(*p)) {
             *name = *p;
             name++;
@@ -164,12 +164,12 @@ option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
         }
         p++;
     }
-    if (p - line == llen) {
+    if ((size_t)(p - line) == llen) {
         log_error("option parse error: incomplete option line");
 
         return CC_ERROR;
     }
-    if (p - line > OPTNAME_MAXLEN) {
+    if ((size_t)(p - line) > OPTNAME_MAXLEN) {
         log_error("option parse error: name too long (max %zu)",
                 OPTNAME_MAXLEN);
 

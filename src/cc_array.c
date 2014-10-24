@@ -72,7 +72,7 @@ array_create(struct array **arr, uint32_t nalloc, size_t size)
 
     ASSERT(nalloc != 0 && size != 0);
 
-    *arr = cc_alloc(sizeof(**arr));
+    *arr = (struct array *)cc_alloc(sizeof(**arr));
     if (arr == NULL) {
         return CC_ENOMEM;
     }
@@ -106,7 +106,7 @@ array_locate(struct array *arr, void *elem)
 
     ASSERT(elem >= arr->data);
 
-    offset = (uint32_t)(elem - arr->data);
+    offset = (uint32_t)((char *)elem - (char *)arr->data);
 
     ASSERT(offset % (uint32_t)arr->size == 0);
 
