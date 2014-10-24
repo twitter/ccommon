@@ -18,6 +18,10 @@
 #ifndef _CC_OPTION_H_
 #define _CC_OPTION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 #include <cc_bstring.h>
 #include <cc_util.h>
@@ -84,5 +88,9 @@ void option_print(struct option *opt);
 void option_printall(struct option options[], unsigned int nopt);
 rstatus_t option_load_default(struct option options[], unsigned int nopt);
 rstatus_t option_load_file(FILE *fp, struct option options[], unsigned int nopt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

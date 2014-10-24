@@ -18,6 +18,10 @@
 #ifndef _CC_UTIL_H_
 #define _CC_UTIL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -139,5 +143,9 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 #define CC_UNIX_ADDRSTRLEN  \
     (sizeof(struct sockaddr_un) - offsetof(struct sockaddr_un, sun_path))
 #define CC_MAXHOSTNAMELEN   256
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

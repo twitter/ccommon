@@ -34,6 +34,10 @@
 #ifndef _CC_MBUF_H_
 #define _CC_MBUF_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_bstring.h>
 #include <cc_option.h>
 #include <cc_queue.h>
@@ -105,4 +109,9 @@ void mbuf_return(struct mbuf *mbuf);
 
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _CC_MBUF_H_ */

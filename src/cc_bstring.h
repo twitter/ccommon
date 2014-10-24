@@ -18,6 +18,10 @@
 #ifndef _CC_BSTRING_H_
 #define _CC_BSTRING_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 #include <cc_util.h>
 
@@ -157,5 +161,9 @@ int bstring_compare(const struct bstring *s1, const struct bstring *s2);
 
 /* bstring to uint conversion */
 rstatus_t bstring_atou64(uint64_t *u64, struct bstring *str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

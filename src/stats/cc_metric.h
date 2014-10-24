@@ -18,6 +18,10 @@
 #ifndef _CC_METRIC_H_
 #define _CC_METRIC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 
 #include <inttypes.h>
@@ -96,5 +100,9 @@ struct metric {
 void metric_reset(struct metric sarr[], unsigned int nmetric);
 void metric_setup(void);
 void metric_teardown(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_METRIC_H_ */

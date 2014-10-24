@@ -18,6 +18,10 @@
 #ifndef _CC_DEBUG_H_
 #define _CC_DEBUG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 
 /*
@@ -55,5 +59,9 @@
 
 void cc_log_assert(const char *cond, const char *file, int line, int panic);
 void cc_log_stacktrace(int skip_count);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_DEBUG_H_ */

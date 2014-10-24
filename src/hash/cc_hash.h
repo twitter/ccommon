@@ -18,6 +18,10 @@
 #ifndef _CC_HASH_H_
 #define _CC_HASH_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 
 #include <stdint.h>
@@ -25,4 +29,8 @@
 
 uint32_t hash(const void *key, size_t length, const uint32_t initval);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* _CC_HASH_H_ */

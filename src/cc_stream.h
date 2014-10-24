@@ -46,6 +46,10 @@
 
 /* TODO: take buffers out of stream */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 #include <cc_option.h>
 #include <cc_queue.h>
@@ -156,5 +160,9 @@ void stream_return(struct stream *stream);
  * before returning, but that can wait, too.
  * We may want to add the scatter-gather style write, i.e. sendmsg() alike,
  * very soon*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

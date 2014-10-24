@@ -18,6 +18,10 @@
 #ifndef _CC_PRINT_H_
 #define _CC_PRINT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_util.h>
 
 #include <stdarg.h>
@@ -44,5 +48,9 @@
 
 size_t _scnprintf(char *buf, size_t size, const char *fmt, ...);
 size_t _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -18,6 +18,10 @@
 #ifndef _CC_LOG_H_
 #define _CC_LOG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 #include <cc_util.h>
 
@@ -121,5 +125,9 @@ void log_reopen(void);
 void _log(const char *file, int line, int level, const char *fmt, ...);
 void _log_fd(int fd, const char *fmt, ...);
 void _log_hexdump(int level, char *data, int datalen);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_LOG_H_ */

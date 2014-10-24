@@ -18,6 +18,10 @@
 #ifndef _CC_ARRAY_H_
 #define _CC_ARRAY_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 #include <cc_option.h>
 
@@ -98,5 +102,9 @@ uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
 /* TODO(yao): refactor to use better arg names */
 void array_setup(uint32_t nelem);
 void array_teardown(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_ARRAY_H_ */

@@ -18,6 +18,10 @@
 #ifndef __CC_NIO_H_
 #define __CC_NIO_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_array.h>
 #include <cc_define.h>
 #include <cc_event.h>
@@ -124,5 +128,9 @@ static inline int conn_fd(struct conn *c)
 {
     return c->sd;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

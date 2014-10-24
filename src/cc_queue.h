@@ -50,6 +50,10 @@
 #ifndef _CC_QUEUE_H_
 #define _CC_QUEUE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_log.h>
 
 #ifndef __offsetof
@@ -786,5 +790,9 @@ struct {                                                                \
         CIRCLEQ_NEXT(CIRCLEQ_PREV((elm), field), field) =               \
             CIRCLEQ_NEXT((elm), field);                                 \
 } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

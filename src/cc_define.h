@@ -18,6 +18,10 @@
 #ifndef _CC_DEFINE_H_
 #define _CC_DEFINE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <config.h>
 
 #ifdef HAVE_LITTLE_ENDIAN
@@ -73,5 +77,9 @@
 
 typedef int rstatus_t;  /* generic function return value type */
 typedef int err_t; /* erroneous values for rstatus_t */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_DEFINE_H_ */

@@ -18,6 +18,10 @@
 #ifndef _CC_EVENT_H_
 #define _CC_EVENT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 
 #include <inttypes.h>
@@ -73,5 +77,9 @@ int event_deregister(struct event_base *evb, int fd);
 
 /* event wait */
 int event_wait(struct event_base *evb, int timeout);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_EVENT_H */
