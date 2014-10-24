@@ -57,7 +57,7 @@ stream_read(struct stream *stream, size_t nbyte)
 {
     stream_handler_t *handler;
     struct conn *c = NULL;
-    rstatus_t status;
+    rstatus_t status = CC_OK;
     size_t capacity;
     ssize_t n = 0; /* bytes actually received */
 
@@ -83,49 +83,50 @@ stream_read(struct stream *stream, size_t nbyte)
         return CC_ENOMEM;
     }
 
-    /* receive based on channel type, and schedule retries if necessary */
-    switch (stream->type) {
-    case CHANNEL_TCP:   /* TCP socket */
-        c = stream->channel;
-        n = conn_recv(c, stream->rbuf->wpos, nbyte);
-        if (n < 0) {
-            if (n == CC_EAGAIN) {
-                log_verb("recv on stream %p of type %d returns "
-                        "rescuable error: EAGAIN", stream, stream->type);
+    if (nbyte > 0) { /* not planning for actual read, go straight to post_read */
+        /* receive based on channel type, and schedule retries if necessary */
+        switch (stream->type) {
+        case CHANNEL_TCP:   /* TCP socket */
+            c = stream->channel;
+            n = conn_recv(c, stream->rbuf->wpos, nbyte);
+            if (n < 0) {
+                if (n == CC_EAGAIN) {
+                    log_verb("recv on stream %p of type %d returns "
+                            "rescuable error: EAGAIN", stream, stream->type);
 
-                status = CC_OK;
-            } else {
-                log_verb("recv on stream %p of type %d returns "
-                        "other error: %d", stream, stream->type, n);
+                    status = CC_OK;
+                } else {
+                    log_verb("recv on stream %p of type %d returns "
+                            "other error: %d", stream, stream->type, n);
+                    log_info("channel %p of stream %p of type %d closed", c,
+                        stream, stream->type);
+
+                    status = CC_ERROR;
+                }
+            } else if (n == 0) {
                 log_info("channel %p of stream %p of type %d closed", c,
-                    stream, stream->type);
+                        stream, stream->type);
 
-                status = CC_ERROR;
+                status = CC_ERDHUP;
+                c->state = CONN_EOF;
+            } else if (n == nbyte) {
+                status = CC_ERETRY;
+            } else {
+                status = CC_OK;
             }
-        } else if (n == 0) {
-            log_info("channel %p of stream %p of type %d closed", c,
-                    stream, stream->type);
 
-            status = CC_ERDHUP;
-            c->state = CONN_EOF;
-        } else if (n == nbyte) {
-            status = CC_ERETRY;
-        } else {
-            status = CC_OK;
+            break;
+
+        default:
+            NOT_REACHED();
+            status = CC_ERROR;
         }
 
-        break;
-
-    default:
-        NOT_REACHED();
-        status = CC_ERROR;
+        log_verb("recv %zd bytes on stream %p of type %d", n, stream,
+                stream->type);
     }
-
-    log_verb("recv %zd bytes on stream %p of type %d", n, stream,
-            stream->type);
-
     stream->rbuf->wpos += (n > 0) ? n : 0;
-    if (n > 0 && handler->post_read != NULL) {
+    if (mbuf_rsize(stream->rbuf) > 0 && handler->post_read != NULL) {
         handler->post_read(stream, (size_t)n);
     }
 
