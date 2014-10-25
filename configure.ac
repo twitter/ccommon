@@ -187,7 +187,8 @@ AS_IF([test "x$ac_cv_epoll_works" = "xno" &&
 
 
 # Check whether the test libraries are present
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])
+# Note: disabling test for now
+# PKG_CHECK_MODULES([CHECK], [check >= 0.9.10])
 
 # Check if we're a little-endian or a big-endian system
 AC_C_BIGENDIAN(
@@ -200,9 +201,6 @@ AC_C_BIGENDIAN(
 # Define Makefiles
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 test/Makefile
-		 benchmark/Makefile
-		 demo/Makefile
                  ccommon-${CCOMMON_RELEASE_VERSION}.pc:ccommon.pc.in])
 
 # Generate the "configure" script
