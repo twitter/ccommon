@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-#include <cc_define.h>
-
-#ifdef CC_HAVE_KQUEUE
-
 #include <cc_event.h>
 
 #include <cc_debug.h>
+#include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 
@@ -294,5 +291,3 @@ event_wait(struct event_base *evb, int timeout)
 
     NOT_REACHED();
 }
-
-#endif /* CC_HAVE_KQUEUE */

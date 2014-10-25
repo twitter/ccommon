@@ -15,16 +15,13 @@
  * limitations under the License.
  */
 
-#include <cc_define.h>
-
-#ifdef CC_HAVE_EPOLL
-
 /* need the following to use EPOLLRDHUP
  * #define _GNU_SOURCE */
 
 #include <cc_event.h>
 
 #include <cc_debug.h>
+#include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_nio.h>
@@ -296,5 +293,3 @@ event_wait(struct event_base *evb, int timeout)
 
     NOT_REACHED();
 }
-
-#endif /* CC_HAVE_EPOLL */

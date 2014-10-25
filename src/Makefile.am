@@ -32,11 +32,24 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 	cc_print.c							\
 	cc_option.c							\
 	cc_stream.c							\
-	event/cc_epoll.c						\
-	event/cc_kqueue.c						\
 	hash/cc_hash.c							\
 	hash/cc_lookup3.c						\
 	stats/cc_metric.c
+
+if OS_LINUX
+libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
+    	event/cc_epoll.c
+endif
+#	event/cc_epoll.c						\
+#	time/cc_timer_linux.c
+
+# APPLE / OSX
+if OS_DARWIN
+libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
+	event/cc_kqueue.c
+endif
+#	event/cc_kqueue.c						\
+#	time/cc_timer_osx.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\

@@ -15,10 +15,17 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for OS and set OS variables
 AC_CANONICAL_HOST
-case $host_os in
-    linux*)   OS_LINUX=yes ;;
-    darwin*)  OS_DARWIN=yes ;;
-    *)        AC_MSG_ERROR([Your platform is not currently supported]) ;;
+case "$host_os" in
+    linux*)
+        linux=yes
+        AC_DEFINE([OS_LINUX], [], [linux])
+        ;;
+    darwin*)
+        darwin=yes
+        AC_DEFINE([OS_DARWIN], [], [Mac OSX])
+        ;;
+    *)
+        AC_MSG_ERROR([Your platform is not currently supported]) ;;
 esac
 
 # Initialize automake
@@ -42,6 +49,10 @@ AM_PROG_AR
 # Initialize libtool
 LT_INIT
 AC_PROG_LIBTOOL
+
+# Set conditional variables
+AM_CONDITIONAL([OS_LINUX], [test "$linux" = yes])
+AM_CONDITIONAL([OS_DARWIN], [test "$darwin" = yes])
 
 # Checks for typedefs, structures, and compiler characteristics
 AC_C_INLINE
