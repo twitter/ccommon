@@ -39,10 +39,9 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 
 if OS_LINUX
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
-    	event/cc_epoll.c
+	event/cc_epoll.c						\
+	time/cc_timer_linux.c
 endif
-#	event/cc_epoll.c						\
-#	time/cc_timer_linux.c
 
 # APPLE / OSX
 if OS_DARWIN
