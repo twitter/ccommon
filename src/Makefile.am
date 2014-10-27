@@ -6,6 +6,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS =
 AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+AM_CPPFLAGS += -I $(top_srcdir)/
 AM_CPPFLAGS += -I $(top_srcdir)/src/include
 
 AM_CFLAGS =
