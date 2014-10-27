@@ -6,11 +6,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS =
 AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-AM_CPPFLAGS += -I $(top_srcdir)/src
-AM_CPPFLAGS += -I $(top_srcdir)/src/event
-AM_CPPFLAGS += -I $(top_srcdir)/src/hash
-AM_CPPFLAGS += -I $(top_srcdir)/src/stats
-AM_CPPFLAGS += -I $(top_srcdir)/src/time
+AM_CPPFLAGS += -I $(top_srcdir)/src/include
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -52,23 +48,22 @@ endif
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
-	$(top_srcdir)/config.h						\
-	cc_array.h							\
-	cc_bstring.h							\
-	cc_debug.h							\
-	cc_define.h							\
-	cc_log.h							\
-	cc_mbuf.h							\
-	cc_mm.h								\
-	cc_nio.h							\
-	cc_pool.h							\
-	cc_print.h							\
-	cc_queue.h							\
-	cc_option.h							\
-	cc_stream.h							\
-	cc_util.h							\
-	event/cc_event.h						\
-	hash/cc_hash.h							\
-	hash/cc_lookup3.h						\
-	stats/cc_metric.h						\
-	time/cc_timer.h
+	include/cc_array.h						\
+	include/cc_bstring.h						\
+	include/cc_debug.h						\
+	include/cc_define.h						\
+	include/cc_log.h						\
+	include/cc_mbuf.h						\
+	include/cc_mm.h							\
+	include/cc_nio.h						\
+	include/cc_pool.h						\
+	include/cc_print.h						\
+	include/cc_queue.h						\
+	include/cc_option.h						\
+	include/cc_stream.h						\
+	include/cc_util.h						\
+	include/cc_event.h						\
+	include/cc_hash.h						\
+	include/cc_lookup3.h						\
+	include/cc_metric.h						\
+	include/cc_timer.h
