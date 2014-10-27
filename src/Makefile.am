@@ -10,6 +10,7 @@ AM_CPPFLAGS += -I $(top_srcdir)/src
 AM_CPPFLAGS += -I $(top_srcdir)/src/event
 AM_CPPFLAGS += -I $(top_srcdir)/src/hash
 AM_CPPFLAGS += -I $(top_srcdir)/src/stats
+AM_CPPFLAGS += -I $(top_srcdir)/src/time
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -38,18 +39,16 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES =			\
 
 if OS_LINUX
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
-    	event/cc_epoll.c
+	event/cc_epoll.c						\
+	time/cc_timer_linux.c
 endif
-#	event/cc_epoll.c						\
-#	time/cc_timer_linux.c
 
 # APPLE / OSX
 if OS_DARWIN
 libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
-	event/cc_kqueue.c
+	event/cc_kqueue.c						\
+	time/cc_timer_darwin.c
 endif
-#	event/cc_kqueue.c						\
-#	time/cc_timer_osx.c
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
@@ -71,4 +70,5 @@ ccommon_include_HEADERS =						\
 	event/cc_event.h						\
 	hash/cc_hash.h							\
 	hash/cc_lookup3.h						\
-	stats/cc_metric.h
+	stats/cc_metric.h						\
+	time/cc_timer.h
