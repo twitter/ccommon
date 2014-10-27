@@ -7,7 +7,7 @@ MAINTAINERCLEANFILES = Makefile.in
 AM_CPPFLAGS =
 AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 AM_CPPFLAGS += -I $(top_srcdir)/
-AM_CPPFLAGS += -I $(top_srcdir)/src/include
+AM_CPPFLAGS += -I $(top_srcdir)/include
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -46,25 +46,3 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
 	event/cc_kqueue.c						\
 	time/cc_timer_darwin.c
 endif
-
-ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
-ccommon_include_HEADERS =						\
-	include/cc_array.h						\
-	include/cc_bstring.h						\
-	include/cc_debug.h						\
-	include/cc_define.h						\
-	include/cc_log.h						\
-	include/cc_mbuf.h						\
-	include/cc_mm.h							\
-	include/cc_nio.h						\
-	include/cc_pool.h						\
-	include/cc_print.h						\
-	include/cc_queue.h						\
-	include/cc_option.h						\
-	include/cc_stream.h						\
-	include/cc_util.h						\
-	include/cc_event.h						\
-	include/cc_hash.h						\
-	include/cc_lookup3.h						\
-	include/cc_metric.h						\
-	include/cc_timer.h
