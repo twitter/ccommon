@@ -10,6 +10,7 @@ SUBDIRS = src .
 
 ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
 ccommon_include_HEADERS =						\
+	config.h							\
 	include/cc_array.h						\
 	include/cc_bstring.h						\
 	include/cc_debug.h						\
