@@ -65,4 +65,3 @@ void * _cc_mmap(size_t size, const char *name, int line);
 int _cc_munmap(void *p, size_t size, const char *name, int line);
 
 #endif /* _CC_MM_H_ */
-

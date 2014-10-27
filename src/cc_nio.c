@@ -22,7 +22,7 @@
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>
-#include <event/cc_event.h>
+#include <cc_event.h>
 
 #include <errno.h>
 #include <fcntl.h>

@@ -6,11 +6,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 AM_CPPFLAGS =
 AM_CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-AM_CPPFLAGS += -I $(top_srcdir)/src
-AM_CPPFLAGS += -I $(top_srcdir)/src/event
-AM_CPPFLAGS += -I $(top_srcdir)/src/hash
-AM_CPPFLAGS += -I $(top_srcdir)/src/stats
-AM_CPPFLAGS += -I $(top_srcdir)/src/time
+AM_CPPFLAGS += -I $(top_srcdir)/
+AM_CPPFLAGS += -I $(top_srcdir)/include
 
 AM_CFLAGS =
 AM_CFLAGS += -Wall
@@ -49,26 +46,3 @@ libccommon_@CCOMMON_RELEASE_VERSION@_la_SOURCES +=			\
 	event/cc_kqueue.c						\
 	time/cc_timer_darwin.c
 endif
-
-ccommon_includedir = $(includedir)/ccommon-$(CCOMMON_RELEASE_VERSION)
-ccommon_include_HEADERS =						\
-	$(top_srcdir)/config.h						\
-	cc_array.h							\
-	cc_bstring.h							\
-	cc_debug.h							\
-	cc_define.h							\
-	cc_log.h							\
-	cc_mbuf.h							\
-	cc_mm.h								\
-	cc_nio.h							\
-	cc_pool.h							\
-	cc_print.h							\
-	cc_queue.h							\
-	cc_option.h							\
-	cc_stream.h							\
-	cc_util.h							\
-	event/cc_event.h						\
-	hash/cc_hash.h							\
-	hash/cc_lookup3.h						\
-	stats/cc_metric.h						\
-	time/cc_timer.h

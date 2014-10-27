@@ -70,7 +70,9 @@ mbuf_create(void)
     }
 
     mbuf = (struct mbuf *)(buf + mbuf_offset);
+#if defined CC_ASSERT_PANIC || defined CC_ASSERT_LOG
     mbuf->magic = MBUF_MAGIC;
+#endif
     mbuf->end = (uint8_t *)mbuf;
     mbuf->start = buf;
     STAILQ_NEXT(mbuf, next) = NULL;
