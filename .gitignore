@@ -50,11 +50,11 @@ INSTALL
 /config/install-sh
 /config/ltmain.sh
 /config/missing
+/config/config.h.in
+/config/config.h.in~
 /config
 
 /config.h
-/config.h.in
-/config.h.in~
 /config.log
 /config.status
 /configure.scan
