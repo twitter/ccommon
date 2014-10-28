@@ -314,16 +314,14 @@ server_close(struct conn *c)
     conn_close(c);
 }
 
-struct conn *
-server_accept(struct conn *sc)
+static inline int
+_server_accept(struct conn *sc)
 {
-    rstatus_t status;
-    struct conn *c;
     int sd;
 
     ASSERT(sc->sd > 0);
 
-    for (;;) {
+    for (;;) { /* we accept at most one conn with the 'break' at the end */
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
             if (errno == EINTR) {
@@ -335,26 +333,31 @@ server_accept(struct conn *sc)
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 log_verb("accept on s %d not ready - eagain",
                         sc->sd);
-                return NULL;
+                return -1;
             }
 
             log_error("accept on s %d failed: %s", sc->sd, strerror(errno));
-            return NULL;
+            return -1;
         }
 
         break;
     }
 
-    c = conn_borrow();
-    c->sd = sd;
-    if (c == NULL) {
-        log_error("accept failed: cannot get connection struct");
-        status = close(sd);
-        if (status < 0) {
-            log_error("close c %d failed, ignored: %s", sd, strerror(errno));
-        }
-        return NULL;
+    return sd;
+}
+
+bool
+server_accept(struct conn *sc, struct conn *c)
+{
+    rstatus_t status;
+    int sd;
+
+    sd = _server_accept(sc);
+    if (sd < 0) {
+        return false;
     }
+
+    c->sd = sd;
     c->state = CONN_CONNECTED;
 
     status = conn_set_nonblocking(sd);
@@ -373,6 +376,23 @@ server_accept(struct conn *sc)
     log_info("accepted c %d on sd %d", c->sd, sc->sd);
 
     return c;
+}
+
+void
+server_reject(struct conn *sc)
+{
+    rstatus_t status;
+    int sd;
+
+    sd = _server_accept(sc);
+    if (sd < 0) {
+        return;
+    }
+
+    status = close(sd);
+    if (status < 0) {
+        log_error("close c %d failed, ignored: %s", sd, strerror(errno));
+    }
 }
 
 struct conn *
@@ -671,7 +691,7 @@ conn_borrow(void)
     FREEPOOL_BORROW(c, &cp, next, conn_create);
 
     if (c == NULL) {
-        log_debug("borrow conn failed: OOM");
+        log_debug("borrow conn failed: OOM or over limit");
         return NULL;
     }
 

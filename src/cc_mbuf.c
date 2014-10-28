@@ -260,7 +260,7 @@ mbuf_borrow(void)
     FREEPOOL_BORROW(mbuf, &mbufp, next, mbuf_create);
 
     if (mbuf == NULL) {
-        log_debug("borrow mbuf failed: OOM");
+        log_debug("borrow mbuf failed: OOM or over limit");
         return NULL;
     }
 

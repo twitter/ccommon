@@ -296,7 +296,7 @@ stream_borrow(void)
 
     FREEPOOL_BORROW(stream, &streamp, next, stream_create);
     if (stream == NULL) {
-        log_debug("borrow stream failed: OOM");
+        log_debug("borrow stream failed: OOM or stream over limit");
 
         return NULL;
     }
@@ -306,7 +306,7 @@ stream_borrow(void)
         stream->rbuf = mbuf_borrow();
     }
     if (stream->rbuf == NULL) {
-        log_debug("borrow stream failed: OOM");
+        log_debug("borrow stream failed: OOM or mbuf over limit");
         stream_return(stream);
 
         return NULL;
@@ -316,7 +316,7 @@ stream_borrow(void)
         stream->wbuf = mbuf_borrow();
     }
     if (stream->wbuf == NULL) {
-        log_debug("borrow stream failed: OOM");
+        log_debug("borrow stream failed: OOM or mbuf over limit");
         stream_return(stream);
 
         return NULL;
