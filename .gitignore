@@ -69,6 +69,7 @@ ccommon*.pc
 /CMakeCache.txt
 /CMakeFiles
 /cmake_install.cmake
+/install_manifest.txt
 
 # Docs
 /docs/_build
