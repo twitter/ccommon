@@ -33,10 +33,10 @@
  */
 #include <cc_hash.h>
 
-#if defined HAVE_BIG_ENDIAN && HAVE_BIG_ENDIAN == 1
+#if defined CC_BIG_ENDIAN && CC_BIG_ENDIAN == 1
 # define HASH_LITTLE_ENDIAN 0
 # define HASH_BIG_ENDIAN    1
-#elif defined HAVE_LITTLE_ENDIAN && HAVE_LITTLE_ENDIAN == 1
+#elif defined CC_LITTLE_ENDIAN && CC_LITTLE_ENDIAN == 1
 # define HASH_LITTLE_ENDIAN 1
 # define HASH_BIG_ENDIAN    0
 #else

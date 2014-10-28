@@ -24,10 +24,10 @@ extern "C" {
 
 #include <config.h>
 
-#ifdef HAVE_LITTLE_ENDIAN
-# define CC_LITTLE_ENDIAN 1
-#elif HAVE_BIG_ENDIAN
+#ifdef HAVE_BIG_ENDIAN
 # define CC_BIG_ENDIAN 1
+#else
+# define CC_LITTLE_ENDIAN 1
 #endif
 
 #ifdef HAVE_STATS
@@ -48,7 +48,7 @@ extern "C" {
 
 #ifdef HAVE_EPOLL
 # define CC_HAVE_EPOLL 1
-#elif HAVE_KQUEUE
+#elif defined HAVE_KQUEUE
 # define CC_HAVE_KQUEUE 1
 #endif
 
