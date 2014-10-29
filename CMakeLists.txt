@@ -16,11 +16,7 @@ endif()
 
 # the following sections work with config.h(.in): version, compile variables
 # config.h.in has to include entries set/tested here for them to have effect
-# how to use config.h.in to generate config.h
-configure_file (
-  "${PROJECT_SOURCE_DIR}/config.h.in"
-  "${PROJECT_BINARY_DIR}/config.h"
-  )
+
 # version info
 set (CCOMMON_VERSION_MAJOR 1)
 set (CCOMMON_VERSION_MINOR 0)
@@ -31,23 +27,39 @@ set (CCOMMON_VERSION
 set (CCOMMON_RELEASE_VERSION
     ${CCOMMON_VERSION_MAJOR}.${CCOMMON_VERSION_MINOR}
     )
+
 # flags => compile-time variables: use modules/macros
+option (HAVE_ASSERT_LOG "assert_log enabled by default" ON)
+option (HAVE_ASSERT_PANIC "assert_panic disabled by default" OFF)
+option (HAVE_LOGGING "logging enabled by default" ON)
+option (HAVE_STATS "stats enabled by default" ON)
+
 include (CheckFunctionExists)
-check_function_exists (epoll HAVE_EPOLL)
+check_function_exists (backtrace HAVE_BACKTRACE)
+check_function_exists (epoll_wait HAVE_EPOLL)
 check_function_exists (kevent HAVE_KQUEUE)
+
 include (TestBigEndian)
 test_big_endian (HAVE_BIG_ENDIAN)
+
+# how to use config.h.in to generate config.h
+# this has to be set _after_ the above checks
+configure_file (
+  "${PROJECT_SOURCE_DIR}/config.h.in"
+  "${PROJECT_BINARY_DIR}/config.h"
+  )
 
 # set compiler flags
 # string concat is easier in 3.0, but older versions don't have the concat subcommand
 # so we are using list as input until we move to new version
+# TODO once we add build types, we should also set flags such as "-ggdb3 -O2 "
+add_definitions(-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64)
 set (CFLAGS_LIST
     "-std=c99 "
     "-Wall "
     "-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls "
     "-Wunused-function -Wunused-value -Wunused-variable "
     "-fstrict-aliasing "
-    "-ggdb3 -O2 "
     )
 string (REPLACE "" "" CFLAGS ${CFLAGS_LIST})
 set (CMAKE_C_FLAGS
