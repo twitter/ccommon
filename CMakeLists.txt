@@ -3,19 +3,24 @@ project (ccommon)
 
 # detect platform
 set (OperatingSystem "OS_UNKNOWN")
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set (OperatingSystem "OS_DARWIN")
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set (OperatingSystem "OS_LINUX")
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+endif ()
+
 if (OperatingSystem STREQUAL "OS_UNKNOWN")
     message(FATAL_ERROR "unsupported operating system")
 endif()
 
-
 # the following sections work with config.h(.in): version, compile variables
 # config.h.in has to include entries set/tested here for them to have effect
+# how to use config.h.in to generate config.h
+configure_file (
+  "${PROJECT_SOURCE_DIR}/config.h.in"
+  "${PROJECT_BINARY_DIR}/config.h"
+  )
 # version info
 set (CCOMMON_VERSION_MAJOR 1)
 set (CCOMMON_VERSION_MINOR 0)
@@ -26,21 +31,27 @@ set (CCOMMON_VERSION
 set (CCOMMON_RELEASE_VERSION
     ${CCOMMON_VERSION_MAJOR}.${CCOMMON_VERSION_MINOR}
     )
-# flags->compile-time variables: use modules/macros
+# flags => compile-time variables: use modules/macros
 include (CheckFunctionExists)
 check_function_exists (epoll HAVE_EPOLL)
 check_function_exists (kevent HAVE_KQUEUE)
 include (TestBigEndian)
 test_big_endian (HAVE_BIG_ENDIAN)
-# how to use config.h.in to generate config.h
-configure_file (
-  "${PROJECT_SOURCE_DIR}/config.h.in"
-  "${PROJECT_BINARY_DIR}/config.h"
-  )
 
 # set compiler flags
+# string concat is easier in 3.0, but older versions don't have the concat subcommand
+# so we are using list as input until we move to new version
+set (CFLAGS_LIST
+    "-std=c99 "
+    "-Wall "
+    "-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls "
+    "-Wunused-function -Wunused-value -Wunused-variable "
+    "-fstrict-aliasing "
+    "-ggdb3 -O2 "
+    )
+string (REPLACE "" "" CFLAGS ${CFLAGS_LIST})
 set (CMAKE_C_FLAGS
-
+    "${CMAKE_C_FLAGS}  ${CFLAGS}"
     )
 
 # where to find include files
@@ -62,24 +73,22 @@ set (SOURCE
     src/hash/cc_lookup3.c
     src/stats/cc_metric.c
     )
-
+# some files are platform-specific
 if (OperatingSystem STREQUAL "OS_DARWIN")
     set (SOURCE
         ${SOURCE}
         src/event/cc_kqueue.c
         src/time/cc_timer_darwin.c
         )
-endif (OperatingSystem STREQUAL "OS_DARWIN")
-
-if (OperatingSystem STREQUAL "OS_LINUX")
+elseif (OperatingSystem STREQUAL "OS_LINUX")
     set (SOURCE
         ${SOURCE}
         src/event/cc_epoll.c
         src/time/cc_timer_linux.c
         )
-endif (OperatingSystem STREQUAL "OS_LINUX")
+endif ()
 
-# target to build
+# targets to build: here we have both static and dynmaic libs
 set (LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 add_library (ccommon-static STATIC ${SOURCE})
 add_library (ccommon-dynamic SHARED ${SOURCE})

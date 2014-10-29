@@ -66,6 +66,7 @@ Makefile.in
 ccommon*.pc
 
 # Cmake
+_build
 /CMakeCache.txt
 /CMakeFiles
 /cmake_install.cmake
