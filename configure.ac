@@ -10,7 +10,7 @@ AC_PREREQ([2.60])
 AC_INIT([libccommon], [CC_MAJOR.CC_MINOR], [CC_BUGS])
 AC_CONFIG_SRCDIR([src/cc_log.c])
 AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_HEADERS([config.h:config.h.in])
+AC_CONFIG_HEADERS([config.h:config/config.h.in])
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for OS and set OS variables
