@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.6)
 project (ccommon)
 
 # detect platform
@@ -53,9 +53,9 @@ configure_file (
 # string concat is easier in 3.0, but older versions don't have the concat subcommand
 # so we are using list as input until we move to new version
 # TODO once we add build types, we should also set flags such as "-ggdb3 -O2 "
-add_definitions(-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64)
+add_definitions (-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64)
 set (CFLAGS_LIST
-    "-std=c99 "
+    "-std=c11 "
     "-Wall "
     "-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls "
     "-Wunused-function -Wunused-value -Wunused-variable "

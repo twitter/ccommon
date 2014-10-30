@@ -17,7 +17,6 @@
 
 /* need the following to use EPOLLRDHUP
  * #define _GNU_SOURCE */
-
 #include <cc_event.h>
 
 #include <cc_debug.h>
@@ -32,6 +31,13 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+/*
+ * glibc added EPOLLRDHUP much later than the kernel support,
+ * so we may need to define it ourselves
+ */
+#ifndef EPOLLRDHUP
+# define EPOLLRDHUP 0x2000
+#endif
 
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
