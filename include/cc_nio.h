@@ -95,6 +95,8 @@ struct conn *conn_create(void);
 void conn_destroy(struct conn *c);
 void conn_close(struct conn *c);
 
+bool client_connect(struct addrinfo *ai, struct conn *c);
+
 bool server_accept(struct conn *sc, struct conn *c);
 void server_reject(struct conn *sc);
 void server_close(struct conn *c);

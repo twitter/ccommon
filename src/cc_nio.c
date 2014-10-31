@@ -306,6 +306,59 @@ conn_close(struct conn *c)
     conn_return(c);
 }
 
+bool
+client_connect(struct addrinfo *ai, struct conn *c)
+{
+    int ret;
+
+    ASSERT(c != NULL);
+
+    c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (c->sd < 0) {
+	log_error("socket create for conn %p failed: %s", c, strerror(errno));
+
+        goto error;
+    }
+
+    ret = conn_set_nonblocking(c->sd);
+    if (ret < 0) {
+        log_error("set nonblock on c %p sd %d failed: %s", c, c->sd,
+                strerror(errno));
+
+        goto error;
+    }
+
+    ret = conn_set_tcpnodelay(c->sd);
+    if (ret < 0) {
+        log_error("set tcpnodelay on c %p sd %d failed: %s", c, c->sd,
+                strerror(errno));
+
+        goto error;
+    }
+
+    ret = connect(c->sd, ai->ai_addr, ai->ai_addrlen);
+    if (ret < 0) {
+        log_error("connect on c %p sd %d failed: %s", c, c->sd,
+                strerror(errno));
+
+        goto error;
+    }
+
+    c->state = CONN_CONNECTED;
+
+    log_info("connected on c %p sd %d", c, c->sd);
+
+    return true;
+
+error:
+    c->err = errno;
+    if (c->sd > 0) {
+        close(c->sd);
+    }
+
+    return false;
+}
+
 void
 server_close(struct conn *c)
 {
@@ -349,7 +402,7 @@ _server_accept(struct conn *sc)
 bool
 server_accept(struct conn *sc, struct conn *c)
 {
-    rstatus_t status;
+    int ret;
     int sd;
 
     sd = _server_accept(sc);
@@ -360,28 +413,28 @@ server_accept(struct conn *sc, struct conn *c)
     c->sd = sd;
     c->state = CONN_CONNECTED;
 
-    status = conn_set_nonblocking(sd);
-    if (status < 0) {
+    ret = conn_set_nonblocking(sd);
+    if (ret < 0) {
         log_error("set nonblock on c %d failed, ignored: %s", sd,
                 strerror(errno));
         return c;
     }
 
-    status = conn_set_tcpnodelay(sd);
-    if (status < 0) {
+    ret = conn_set_tcpnodelay(sd);
+    if (ret < 0) {
         log_warn("set tcp nodely on c %d failed, ignored: %s", sd,
                  strerror(errno));
     }
 
     log_info("accepted c %d on sd %d", c->sd, sc->sd);
 
-    return c;
+    return true;
 }
 
 void
 server_reject(struct conn *sc)
 {
-    rstatus_t status;
+    int ret;
     int sd;
 
     sd = _server_accept(sc);
@@ -389,16 +442,17 @@ server_reject(struct conn *sc)
         return;
     }
 
-    status = close(sd);
-    if (status < 0) {
+    ret = close(sd);
+    if (ret < 0) {
         log_error("close c %d failed, ignored: %s", sd, strerror(errno));
     }
 }
 
+/* TODO(yao): update this so we uniformly require conn struct pre-allocated */
 struct conn *
 server_listen(struct addrinfo *ai)
 {
-    rstatus_t status;
+    int ret;
     struct conn *sc;
     int sd;
 
@@ -408,26 +462,26 @@ server_listen(struct addrinfo *ai)
         return NULL;
     }
 
-    status = conn_set_reuseaddr(sd);
-    if (status != CC_OK) {
+    ret = conn_set_reuseaddr(sd);
+    if (ret < 0) {
         log_error("reuse of sd %d failed: %s", sd, strerror(errno));
         return NULL;
     }
 
-    status = bind(sd, ai->ai_addr, ai->ai_addrlen);
-    if (status < 0) {
+    ret = bind(sd, ai->ai_addr, ai->ai_addrlen);
+    if (ret < 0) {
         log_error("bind on sd %d failed: %s", sd, strerror(errno));
         return NULL;
     }
 
-    status = listen(sd, max_backlog);
-    if (status < 0) {
+    ret = listen(sd, max_backlog);
+    if (ret < 0) {
         log_error("listen on sd %d failed: %s", sd, strerror(errno));
         return NULL;
     }
 
-    status = conn_set_nonblocking(sd);
-    if (status != CC_OK) {
+    ret = conn_set_nonblocking(sd);
+    if (ret != CC_OK) {
         log_error("set nonblock on sd %d failed: %s", sd, strerror(errno));
         return NULL;
     }
@@ -435,8 +489,8 @@ server_listen(struct addrinfo *ai)
     sc = conn_borrow();
     if (sc == NULL) {
         log_error("borrow conn for s %d failed: %s", sd, strerror(errno));
-        status = close(sd);
-        if (status < 0) {
+        ret = close(sd);
+        if (ret < 0) {
             log_error("close s %d failed, ignored: %s", sd, strerror(errno));
         }
         return NULL;
