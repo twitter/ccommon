@@ -216,7 +216,7 @@ event_wait(struct event_base *evb, int timeout)
                 struct kevent *ev = &evb->event[evb->nprocessed];
                 uint32_t events = 0;
 
-                log_vverb("kevent %04"PRIX32" with filter %d "
+                log_verb("kevent %04"PRIX32" with filter %d "
                           "triggered on ident %d", ev->flags, ev->filter,
                           ev->ident);
 
