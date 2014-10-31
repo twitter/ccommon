@@ -126,6 +126,8 @@ event_add_read(struct event_base *evb, int fd, void *data)
 
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, data);
+    kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
+    evb->nchange = 0;
 
     log_verb("adding read event at %p, nchange %d", event, evb->nchange);
 
@@ -144,6 +146,8 @@ event_add_write(struct event_base *evb, int fd, void *data)
 
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, data);
+    kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
+    evb->nchange = 0;
 
     log_verb("adding write event at %p, nchange %d", event, evb->nchange);
 
@@ -155,7 +159,6 @@ event_register(struct event_base *evb, int fd, void *data)
 {
     event_add_read(evb, fd, data);
     event_add_write(evb, fd, data);
-    kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
 
     return 0;
 }
@@ -172,8 +175,10 @@ event_deregister(struct event_base *evb, int fd)
 
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
+    event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
     kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
+    evb->nchange = 0;
 
     return 0;
 }
