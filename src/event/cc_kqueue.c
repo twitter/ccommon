@@ -155,6 +155,7 @@ event_register(struct event_base *evb, int fd, void *data)
 {
     event_add_read(evb, fd, data);
     event_add_write(evb, fd, data);
+    kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
 
     return 0;
 }
@@ -172,6 +173,7 @@ event_deregister(struct event_base *evb, int fd)
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_READ, EV_DELETE, 0, 0, 0);
     EV_SET(event, fd, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
+    kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
 
     return 0;
 }
