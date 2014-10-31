@@ -214,8 +214,8 @@ event_wait(struct event_base *evb, int timeout)
         evb->nreturned = kevent(kq, evb->change, evb->nchange, evb->event,
                                 evb->nevent, tsp);
         evb->nchange = 0;
-        if (evb->nevent > 0) {
-            for (evb->nprocessed = 0; evb->nprocessed < evb->nevent;
+        if (evb->nreturned > 0) {
+            for (evb->nprocessed = 0; evb->nprocessed < evb->nreturned;
                 evb->nprocessed++) {
                 struct kevent *ev = &evb->event[evb->nprocessed];
                 uint32_t events = 0;
@@ -263,8 +263,7 @@ event_wait(struct event_base *evb, int timeout)
                 }
             }
 
-            log_verb("returned %d events from kqueue fd %d",
-                    evb->nreturned, kq);
+            log_verb("returned %d events from kqueue fd %d", evb->nreturned, kq);
 
             return evb->nreturned;
         }
