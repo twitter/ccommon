@@ -127,6 +127,8 @@ event_add_read(struct event_base *evb, int fd, void *data)
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, data);
 
+    log_verb("adding read event at %p, nchange %d", event, evb->nchange);
+
     return 0;
 }
 
@@ -142,6 +144,8 @@ event_add_write(struct event_base *evb, int fd, void *data)
 
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, data);
+
+    log_verb("adding write event at %p, nchange %d", event, evb->nchange);
 
     return 0;
 }
@@ -210,8 +214,8 @@ event_wait(struct event_base *evb, int timeout)
         evb->nreturned = kevent(kq, evb->change, evb->nchange, evb->event,
                                 evb->nevent, tsp);
         evb->nchange = 0;
-        if (evb->nreturned > 0) {
-            for (evb->nprocessed = 0; evb->nprocessed < evb->nreturned;
+        if (evb->nevent > 0) {
+            for (evb->nprocessed = 0; evb->nprocessed < evb->nevent;
                 evb->nprocessed++) {
                 struct kevent *ev = &evb->event[evb->nprocessed];
                 uint32_t events = 0;
