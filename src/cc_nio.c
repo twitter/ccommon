@@ -338,15 +338,20 @@ client_connect(struct addrinfo *ai, struct conn *c)
 
     ret = connect(c->sd, ai->ai_addr, ai->ai_addrlen);
     if (ret < 0) {
-        log_error("connect on c %p sd %d failed: %s", c, c->sd,
+        if (errno != EINPROGRESS) {
+            log_error("connect on c %p sd %d failed: %s", c, c->sd,
                 strerror(errno));
 
-        goto error;
+            goto error;
+        }
+
+        c->state = CONN_CONNECT;
+        log_info("connecting on c %p sd %d", c, c->sd);
+    } else {
+        c->state = CONN_CONNECTED;
+        log_info("connected on c %p sd %d", c, c->sd);
     }
 
-    c->state = CONN_CONNECTED;
-
-    log_info("connected on c %p sd %d", c, c->sd);
 
     return true;
 
