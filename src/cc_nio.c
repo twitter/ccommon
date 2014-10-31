@@ -320,14 +320,6 @@ client_connect(struct addrinfo *ai, struct conn *c)
         goto error;
     }
 
-    ret = conn_set_nonblocking(c->sd);
-    if (ret < 0) {
-        log_error("set nonblock on c %p sd %d failed: %s", c, c->sd,
-                strerror(errno));
-
-        goto error;
-    }
-
     ret = conn_set_tcpnodelay(c->sd);
     if (ret < 0) {
         log_error("set tcpnodelay on c %p sd %d failed: %s", c, c->sd,
@@ -352,6 +344,14 @@ client_connect(struct addrinfo *ai, struct conn *c)
         log_info("connected on c %p sd %d", c, c->sd);
     }
 
+
+    ret = conn_set_nonblocking(c->sd);
+    if (ret < 0) {
+        log_error("set nonblock on c %p sd %d failed: %s", c, c->sd,
+                strerror(errno));
+
+        goto error;
+    }
 
     return true;
 

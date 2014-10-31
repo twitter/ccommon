@@ -104,7 +104,7 @@ stream_read(struct stream *stream, size_t nbyte)
                     status = CC_ERROR;
                 }
             } else if (n == 0) {
-                log_info("channel %p of stream %p of type %d closed", c,
+                log_info("eof recved on channel %p of stream %p of type %d", c,
                         stream, stream->type);
 
                 status = CC_ERDHUP;
