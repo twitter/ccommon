@@ -103,21 +103,21 @@ endif ()
 # targets to build: here we have both static and dynmaic libs
 set (LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 add_library (ccommon-static STATIC ${SOURCE})
-add_library (ccommon-dynamic SHARED ${SOURCE})
-set_target_properties (ccommon-dynamic
+add_library (ccommon-shared SHARED ${SOURCE})
+set_target_properties (ccommon-static
+    PROPERTIES
+    OUTPUT_NAME ccommon-${CCOMMON_VERSION}
+    )
+set_target_properties (ccommon-shared
     PROPERTIES
     OUTPUT_NAME ccommon
     VERSION ${CCOMMON_VERSION}
     SOVERSION 0
     )
-set_target_properties (ccommon-static
-    PROPERTIES
-    OUTPUT_NAME ccommon-${CCOMMON_VERSION}
-    )
 
 # install instructions
 install (TARGETS ccommon-static DESTINATION lib)
-install (TARGETS ccommon-dynamic DESTINATION lib)
+install (TARGETS ccommon-shared DESTINATION lib)
 install (DIRECTORY include/
     DESTINATION include/ccommon-${CCOMMON_RELEASE_VERSION}
     FILES_MATCHING PATTERN "*.h")
