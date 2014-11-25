@@ -118,7 +118,8 @@ int event_add_read(struct event_base *evb, int fd, void *data)
     ASSERT(ep > 0);
     ASSERT (fd > 0);
 
-    event.events = (EPOLLIN | EPOLLET);
+    event.events = EPOLLIN;
+    //event.events = (EPOLLIN | EPOLLET);
     event.data.ptr = data;
 
     /*
@@ -150,7 +151,8 @@ event_add_write(struct event_base *evb, int fd, void *data)
     ASSERT(ep > 0);
     ASSERT(fd > 0);
 
-    event.events = (EPOLLOUT | EPOLLET);
+    event.events = EPOLLOUT;
+    //event.events = (EPOLLOUT | EPOLLET);
     event.data.ptr = data;
 
     /* Note(yao): see note in event_add_read about epoll_ctl() */
@@ -179,7 +181,8 @@ event_register(struct event_base *evb, int fd, void *data)
     ASSERT(ep > 0);
     ASSERT(fd > 0);
 
-    event.events = (EPOLLOUT | EPOLLIN | EPOLLET);
+    event.events = (EPOLLOUT | EPOLLIN);
+    //event.events = (EPOLLOUT | EPOLLIN | EPOLLET);
     event.data.ptr = data;
 
     status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
