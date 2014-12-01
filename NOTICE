@@ -1,6 +1,6 @@
 /* The use of Check is limited to testing. Source files depending on
  * Check are under the `test' directory.
- * This package does now ship with any source code contained in Check,
+ * This package does not ship with any source code contained in Check,
  * except the following license statement.
  *
  * Check: a unit test framework for C

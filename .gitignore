@@ -32,45 +32,9 @@ INSTALL
 *.project
 *.cproject
 
-# Autotools
-.deps
-.libs
-.dirstamp
-
-/aclocal.m4
-/autom4te.cache
-/stamp-h1
-/autoscan.log
-/libtool
-
-/config/compile
-/config/config.guess
-/config/config.sub
-/config/depcomp
-/config/install-sh
-/config/ltmain.sh
-/config/missing
-/config/config.h.in
-/config/config.h.in~
-/config
-
-/config.h
-/config.log
-/config.status
-/configure.scan
-/configure
-
-Makefile
-Makefile.in
-
-ccommon*.pc
-
 # Cmake
 _build
-/CMakeCache.txt
-/CMakeFiles
-/cmake_install.cmake
-/install_manifest.txt
 
-# Docs
-/docs/_build
+# Tags
+tags
+.tags
