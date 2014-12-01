@@ -145,6 +145,10 @@ buf_sock_create(void)
     if (s == NULL) {
         return NULL;
     }
+    STAILQ_NEXT(s, next) = NULL;
+    s->owner = NULL;
+    s->free = false;
+    s->hdl = NULL;
     s->ch = NULL;
     s->rbuf = NULL;
     s->wbuf = NULL;

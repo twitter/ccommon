@@ -96,6 +96,8 @@ conn_create(void)
         log_verb("created conn %p", c);
     }
 
+    conn_reset(c);
+
     return c;
 }
 
@@ -301,7 +303,6 @@ tcp_close(struct conn *c)
     if (c->sd >= 0) {
         close(c->sd);
     }
-    conn_return(&c);
 }
 
 static inline int
