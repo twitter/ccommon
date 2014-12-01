@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __CC_STREAM_H_
-#define __CC_STREAM_H_
+#ifndef _CC_SOCKIO_H_
+#define _CC_SOCKIO_H_
 
 /**
  * Stream, short for data stream, defines the data IO interface.
@@ -42,38 +42,40 @@
 extern "C" {
 #endif
 
-#include <cc_channel.h>
+#include <cc_stream.h>
+
+#include <cc_define.h>
 
 #include <inttypes.h>
+#include <stdlib.h>
 
-typedef void * iobuf_t; // TODO(yao): move into a generic buffer interface
-typedef ssize_t (*io_size_fn)(channel_t, iobuf_t, size_t);
-typedef ssize_t (*io_limiter_fn)(channel_t, iobuf_t, const char *);
-
-typedef void * stream_t;
-
-typedef stream_t (* stream_get_fn)(void);
-typedef void (* stream_put_fn)(stream_t);
-
-/**
- * an implementation of a stream should look something like the following
- *
-struct stream {
-    // these fields are useful for resource managmenet
-    STAILQ_ENTRY(stream)    next;
+struct buf_sock {
+    /* these fields are useful for resource managmenet */
+    STAILQ_ENTRY(buf_sock)  next;
     void                    *owner;
     bool                    free;
 
-    channel_t               ch;
-    iobuf_t                 rbuf;
-    iocb_size_fn            read;
-    iobuf_t                 wbuf;
-    iocb_size_fn            write;
+    struct conn             *ch;
+    channel_handler_t       *hdl;
+    struct mbuf             *rbuf;
+    struct mbuf             *wbuf;
 };
- */
+
+struct buf_sock *buf_sock_create(void);     /* stream_get_fn */
+void buf_sock_destroy(struct buf_sock **);  /* stream_put_fn */
+
+void buf_sock_pool_create(uint32_t);
+void buf_sock_pool_destroy(void);
+struct buf_sock *buf_sock_borrow(void);     /* stream_get_fn */
+void buf_sock_return(struct buf_sock **);   /* stream_put_fn */
+
+void buf_sock_reset(struct buf_sock *);
+
+rstatus_t buf_tcp_read(struct buf_sock *);
+rstatus_t buf_tcp_write(struct buf_sock *);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif // _CC_SOCKIO_H_

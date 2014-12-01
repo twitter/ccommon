@@ -91,27 +91,29 @@ event_base_create(int nevent, event_cb_t cb)
 }
 
 void
-event_base_destroy(struct event_base *evb)
+event_base_destroy(struct event_base **evb)
 {
     int status;
+    struct event_base *e = *evb;
 
-    if (evb == NULL) {
+    if (e == NULL) {
         return;
     }
 
-    ASSERT(evb->kq > 0);
+    ASSERT(e->kq > 0);
 
-    cc_free(evb->change);
-    cc_free(evb->event);
+    cc_free(e->change);
+    cc_free(e->event);
 
-    status = close(evb->kq);
+    status = close(e->kq);
     if (status < 0) {
-        log_warn("close kq %d failed, ignored: %s", evb->kq,
-                strerror(errno));
+        log_warn("close kq %d failed, ignored: %s", e->kq, strerror(errno));
     }
-    evb->kq = -1;
+    e->kq = -1;
 
-    cc_free(evb);
+    cc_free(e);
+
+    *evb = NULL;
 }
 
 int

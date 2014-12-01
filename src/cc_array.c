@@ -42,6 +42,8 @@ array_data_create(struct array *arr, uint32_t nalloc, size_t size)
 
     arr->data = cc_alloc(nalloc * size);
     if (arr->data == NULL) {
+        log_info("array data creation failed due to OOM");
+
         return CC_ENOMEM;
     }
 
@@ -74,6 +76,8 @@ array_create(struct array **arr, uint32_t nalloc, size_t size)
 
     *arr = (struct array *)cc_alloc(sizeof(**arr));
     if (arr == NULL) {
+        log_info("array creation failed due to OOM");
+
         return CC_ENOMEM;
     }
 
@@ -93,6 +97,10 @@ array_create(struct array **arr, uint32_t nalloc, size_t size)
 void
 array_destroy(struct array **arr)
 {
+    if (*arr == NULL) {
+        return;
+    }
+
     array_data_destroy(*arr);
     cc_free(*arr);
     *arr = NULL;

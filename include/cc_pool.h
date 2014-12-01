@@ -52,7 +52,7 @@ struct pool {                                                       \
     STAILQ_FOREACH_SAFE(var, &(pool)->freeq, field, tvar) {         \
         STAILQ_REMOVE_HEAD(&(pool)->freeq, next);                   \
         (pool)->nfree--;                                            \
-        destroy(var);                                               \
+        destroy(&var);                                              \
     }                                                               \
     ASSERT((pool)->nfree == 0);                                     \
     ASSERT(STAILQ_EMPTY(&(pool)->freeq));                           \

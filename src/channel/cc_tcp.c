@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <cc_nio.h>
+#include <channel/cc_tcp.h>
 
 #include <cc_debug.h>
 #include <cc_log.h>
@@ -34,243 +34,51 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 
-#define NIO_MODULE_NAME "ccommon::nio"
+#define TCP_MODULE_NAME "ccommon::tcp"
 
 FREEPOOL(conn_pool, cq, conn);
 static struct conn_pool cp;
 
-static bool nio_init = false;
+static bool tcp_init = false;
 static bool cp_init = false;
-static int max_backlog = CONN_BACKLOG;
+static int max_backlog = TCP_BACKLOG;
 
 void
-conn_setup(int backlog)
+tcp_setup(int backlog)
 {
-    log_info("set up the %s module", NIO_MODULE_NAME);
+    log_info("set up the %s module", TCP_MODULE_NAME);
     log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
-    if (nio_init) {
-        log_warn("%s has already been setup, overwrite", NIO_MODULE_NAME);
+    if (tcp_init) {
+        log_warn("%s has already been setup, overwrite", TCP_MODULE_NAME);
     }
-    nio_init = true;
+    tcp_init = true;
 }
 
 void
-conn_teardown(void)
+tcp_teardown(void)
 {
-    log_info("tear down the %s module", NIO_MODULE_NAME);
+    log_info("tear down the %s module", TCP_MODULE_NAME);
 
-    if (!nio_init) {
-        log_warn("%s has never been setup", NIO_MODULE_NAME);
+    if (!tcp_init) {
+        log_warn("%s has never been setup", TCP_MODULE_NAME);
     }
-    nio_init = false;
-}
-
-int
-conn_set_blocking(int sd)
-{
-    int flags;
-
-    flags = fcntl(sd, F_GETFL, 0);
-    if (flags < 0) {
-        return flags;
-    }
-
-    return fcntl(sd, F_SETFL, flags & ~O_NONBLOCK);
-}
-
-int
-conn_set_nonblocking(int sd)
-{
-    int flags;
-
-    flags = fcntl(sd, F_GETFL, 0);
-    if (flags < 0) {
-        return flags;
-    }
-
-    return fcntl(sd, F_SETFL, flags | O_NONBLOCK);
-}
-
-int
-conn_set_reuseaddr(int sd)
-{
-    int reuse;
-    socklen_t len;
-
-    reuse = 1;
-    len = sizeof(reuse);
-
-    return setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse, len);
-}
-
-/*
- * Disable Nagle algorithm on TCP socket.
- *
- * This option helps to minimize transmit latency by disabling coalescing
- * of data to fill up a TCP segment inside the kernel. Sockets with this
- * option must use readv() or writev() to do data transfer in bulk and
- * hence avoid the overhead of small packets.
- */
-int
-conn_set_tcpnodelay(int sd)
-{
-    int nodelay;
-    socklen_t len;
-
-    nodelay = 1;
-    len = sizeof(nodelay);
-
-    return setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &nodelay, len);
-}
-
-int
-conn_set_keepalive(int sd)
-{
-    int keepalive;
-    socklen_t len;
-
-    keepalive = 1;
-    len = sizeof(keepalive);
-
-    return setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, len);
-}
-
-int
-conn_set_linger(int sd, int timeout)
-{
-    struct linger linger;
-    socklen_t len;
-
-    linger.l_onoff = 1;
-    linger.l_linger = timeout;
-
-    len = sizeof(linger);
-
-    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
-}
-
-int
-conn_unset_linger(int sd)
-{
-    struct linger linger;
-    socklen_t len;
-
-    linger.l_onoff = 0;
-    linger.l_linger = 0;
-
-    len = sizeof(linger);
-
-    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
-}
-
-int
-conn_set_sndbuf(int sd, int size)
-{
-    socklen_t len;
-
-    len = sizeof(size);
-
-    return setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, len);
-}
-
-int
-conn_set_rcvbuf(int sd, int size)
-{
-    socklen_t len;
-
-    len = sizeof(size);
-
-    return setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, len);
-}
-
-int
-conn_get_sndbuf(int sd)
-{
-    int status, size;
-    socklen_t len;
-
-    size = 0;
-    len = sizeof(size);
-
-    status = getsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, &len);
-    if (status < 0) {
-        return status;
-    }
-
-    return size;
-}
-
-int
-conn_get_rcvbuf(int sd)
-{
-    int status, size;
-    socklen_t len;
-
-    size = 0;
-    len = sizeof(size);
-
-    status = getsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, &len);
-    if (status < 0) {
-        return status;
-    }
-
-    return size;
-}
-
-void
-conn_maximize_sndbuf(int sd)
-{
-    int status, min, max, avg;
-
-    /* start with the default size */
-    min = conn_get_sndbuf(sd);
-    if (min < 0) {
-        return;
-    }
-
-    /* binary-search for the real maximum */
-    max = 256 * MiB;
-
-    while (min <= max) {
-        avg = (min + max) / 2;
-        status = conn_set_sndbuf(sd, avg);
-        if (status != 0) {
-            max = avg - 1;
-        } else {
-            min = avg + 1;
-        }
-    }
-}
-
-int
-conn_get_soerror(int sd)
-{
-    int status, err;
-    socklen_t len;
-
-    err = 0;
-    len = sizeof(err);
-
-    status = getsockopt(sd, SOL_SOCKET, SO_ERROR, &err, &len);
-    if (status == 0) {
-        errno = err;
-    }
-
-    return status;
+    tcp_init = false;
 }
 
 void
 conn_reset(struct conn *c)
 {
+    STAILQ_NEXT(c, next) = NULL;
     c->free = false;
+
+    c->level = CHANNEL_INVALID;
     c->sd = 0;
 
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->mode = 0;
     c->state = 0;
     c->flags = 0;
 
@@ -280,34 +88,100 @@ conn_reset(struct conn *c)
 struct conn *
 conn_create(void)
 {
-    return (struct conn *)cc_alloc(sizeof(struct conn));
+    struct conn *c = (struct conn *)cc_alloc(sizeof(struct conn));
+
+    if (c == NULL) {
+        log_info("connection creation failed due to OOM");
+    } else {
+        log_verb("created conn %p", c);
+    }
+
+    return c;
 }
 
 void
-conn_destroy(struct conn *c)
+conn_destroy(struct conn **conn)
 {
-    cc_free(c);
-}
+    struct conn *c = *conn;
 
-/* no conn_open() because connections are opened by server_accept */
-
-void
-conn_close(struct conn *c)
-{
     if (c == NULL) {
         return;
     }
 
-    log_info("closing conn %p sd %d", c, c->sd);
+    log_verb("destroy conn %p", c);
 
-    if (c->sd >= 0) {
-        close(c->sd);
+    cc_free(c);
+
+    *conn = NULL;
+}
+
+void
+conn_pool_create(uint32_t max)
+{
+    if (!cp_init) {
+        log_info("creating conn pool: max %"PRIu32, max);
+
+        FREEPOOL_CREATE(&cp, max);
+        cp_init = true;
+    } else {
+        log_warn("conn pool has already been created, ignore");
     }
-    conn_return(c);
+}
+
+void
+conn_pool_destroy(void)
+{
+    struct conn *c, *tc;
+
+    if (cp_init) {
+        log_info("destroying conn pool: free %"PRIu32, cp.nfree);
+
+        FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+        cp_init = false;
+    } else {
+        log_warn("conn pool was never created, ignore");
+    }
+
+}
+
+struct conn *
+conn_borrow(void)
+{
+    struct conn *c;
+
+    FREEPOOL_BORROW(c, &cp, next, conn_create);
+
+    if (c == NULL) {
+        log_debug("borrow conn failed: OOM or over limit");
+        return NULL;
+    }
+
+    conn_reset(c);
+
+    log_verb("borrow conn %p", c);
+
+    return c;
+}
+
+void
+conn_return(struct conn **conn)
+{
+    struct conn *c = *conn;
+
+    if (c == NULL || c->free) {
+        return;
+    }
+
+    log_verb("return conn %p", c);
+
+    c->free = true;
+    FREEPOOL_RETURN(&cp, c, next);
+
+    *conn = NULL;
 }
 
 bool
-client_connect(struct addrinfo *ai, struct conn *c)
+tcp_connect(struct addrinfo *ai, struct conn *c)
 {
     int ret;
 
@@ -320,7 +194,7 @@ client_connect(struct addrinfo *ai, struct conn *c)
         goto error;
     }
 
-    ret = conn_set_tcpnodelay(c->sd);
+    ret = tcp_set_tcpnodelay(c->sd);
     if (ret < 0) {
         log_error("set tcpnodelay on c %p sd %d failed: %s", c, c->sd,
                 strerror(errno));
@@ -337,15 +211,15 @@ client_connect(struct addrinfo *ai, struct conn *c)
             goto error;
         }
 
-        c->state = CONN_CONNECT;
+        c->state = TCP_CONNECT;
         log_info("connecting on c %p sd %d", c, c->sd);
     } else {
-        c->state = CONN_CONNECTED;
+        c->state = TCP_CONNECTED;
         log_info("connected on c %p sd %d", c, c->sd);
     }
 
 
-    ret = conn_set_nonblocking(c->sd);
+    ret = tcp_set_nonblocking(c->sd);
     if (ret < 0) {
         log_error("set nonblock on c %p sd %d failed: %s", c, c->sd,
                 strerror(errno));
@@ -364,16 +238,74 @@ error:
     return false;
 }
 
-void
-server_close(struct conn *c)
+bool
+tcp_listen(struct addrinfo *ai, struct conn *c)
 {
-    log_info("closing server");
+    int ret;
+    ch_id_t sd;
 
-    conn_close(c);
+    c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (c->sd < 0) {
+        log_error("socket failed: %s", strerror(errno));
+        goto error;
+    }
+
+    sd = c->sd;
+
+    ret = tcp_set_reuseaddr(sd);
+    if (ret < 0) {
+        log_error("reuse of sd %d failed: %s", sd, strerror(errno));
+        goto error;
+    }
+
+    ret = bind(sd, ai->ai_addr, ai->ai_addrlen);
+    if (ret < 0) {
+        log_error("bind on sd %d failed: %s", sd, strerror(errno));
+        goto error;
+    }
+
+    ret = listen(sd, max_backlog);
+    if (ret < 0) {
+        log_error("listen on sd %d failed: %s", sd, strerror(errno));
+        goto error;
+    }
+
+    ret = tcp_set_nonblocking(sd);
+    if (ret != CC_OK) {
+        log_error("set nonblock on sd %d failed: %s", sd, strerror(errno));
+        goto error;
+    }
+
+    c->state = TCP_CONNECTED;
+    log_info("server listen setup on socket descriptor %d", c->sd);
+
+    return true;
+
+error:
+    if (c->sd > 0) {
+        tcp_close(c);
+    }
+
+    return false;
+}
+
+void
+tcp_close(struct conn *c)
+{
+    if (c == NULL) {
+        return;
+    }
+
+    log_info("closing conn %p sd %d", c, c->sd);
+
+    if (c->sd >= 0) {
+        close(c->sd);
+    }
+    conn_return(&c);
 }
 
 static inline int
-_server_accept(struct conn *sc)
+_tcp_accept(struct conn *sc)
 {
     int sd;
 
@@ -405,27 +337,27 @@ _server_accept(struct conn *sc)
 }
 
 bool
-server_accept(struct conn *sc, struct conn *c)
+tcp_accept(struct conn *sc, struct conn *c)
 {
     int ret;
     int sd;
 
-    sd = _server_accept(sc);
+    sd = _tcp_accept(sc);
     if (sd < 0) {
         return false;
     }
 
     c->sd = sd;
-    c->state = CONN_CONNECTED;
+    c->state = TCP_CONNECTED;
 
-    ret = conn_set_nonblocking(sd);
+    ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
         log_error("set nonblock on c %d failed, ignored: %s", sd,
                 strerror(errno));
         return c;
     }
 
-    ret = conn_set_tcpnodelay(sd);
+    ret = tcp_set_tcpnodelay(sd);
     if (ret < 0) {
         log_warn("set tcp nodely on c %d failed, ignored: %s", sd,
                  strerror(errno));
@@ -437,12 +369,12 @@ server_accept(struct conn *sc, struct conn *c)
 }
 
 void
-server_reject(struct conn *sc)
+tcp_reject(struct conn *sc)
 {
     int ret;
     int sd;
 
-    sd = _server_accept(sc);
+    sd = _tcp_accept(sc);
     if (sd < 0) {
         return;
     }
@@ -453,60 +385,200 @@ server_reject(struct conn *sc)
     }
 }
 
-/* TODO(yao): update this so we uniformly require conn struct pre-allocated */
-struct conn *
-server_listen(struct addrinfo *ai)
+int
+tcp_set_blocking(int sd)
 {
-    int ret;
-    struct conn *sc;
-    int sd;
+    int flags;
 
-    sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-    if (sd < 0) {
-        log_error("socket failed: %s", strerror(errno));
-        return NULL;
+    flags = fcntl(sd, F_GETFL, 0);
+    if (flags < 0) {
+        return flags;
     }
 
-    ret = conn_set_reuseaddr(sd);
-    if (ret < 0) {
-        log_error("reuse of sd %d failed: %s", sd, strerror(errno));
-        return NULL;
-    }
-
-    ret = bind(sd, ai->ai_addr, ai->ai_addrlen);
-    if (ret < 0) {
-        log_error("bind on sd %d failed: %s", sd, strerror(errno));
-        return NULL;
-    }
-
-    ret = listen(sd, max_backlog);
-    if (ret < 0) {
-        log_error("listen on sd %d failed: %s", sd, strerror(errno));
-        return NULL;
-    }
-
-    ret = conn_set_nonblocking(sd);
-    if (ret != CC_OK) {
-        log_error("set nonblock on sd %d failed: %s", sd, strerror(errno));
-        return NULL;
-    }
-
-    sc = conn_borrow();
-    if (sc == NULL) {
-        log_error("borrow conn for s %d failed: %s", sd, strerror(errno));
-        ret = close(sd);
-        if (ret < 0) {
-            log_error("close s %d failed, ignored: %s", sd, strerror(errno));
-        }
-        return NULL;
-    }
-    sc->sd = sd;
-    sc->state = CONN_CONNECTED;
-
-    log_info("server listen setup on s %d", sc->sd);
-
-    return sc;
+    return fcntl(sd, F_SETFL, flags & ~O_NONBLOCK);
 }
+
+int
+tcp_set_nonblocking(int sd)
+{
+    int flags;
+
+    flags = fcntl(sd, F_GETFL, 0);
+    if (flags < 0) {
+        return flags;
+    }
+
+    return fcntl(sd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int
+tcp_set_reuseaddr(int sd)
+{
+    int reuse;
+    socklen_t len;
+
+    reuse = 1;
+    len = sizeof(reuse);
+
+    return setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse, len);
+}
+
+/*
+ * Disable Nagle algorithm on TCP socket.
+ *
+ * This option helps to minimize transmit latency by disabling coalescing
+ * of data to fill up a TCP segment inside the kernel. Sockets with this
+ * option must use readv() or writev() to do data transfer in bulk and
+ * hence avoid the overhead of small packets.
+ */
+int
+tcp_set_tcpnodelay(int sd)
+{
+    int nodelay;
+    socklen_t len;
+
+    nodelay = 1;
+    len = sizeof(nodelay);
+
+    return setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &nodelay, len);
+}
+
+int
+tcp_set_keepalive(int sd)
+{
+    int keepalive;
+    socklen_t len;
+
+    keepalive = 1;
+    len = sizeof(keepalive);
+
+    return setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, len);
+}
+
+int
+tcp_set_linger(int sd, int timeout)
+{
+    struct linger linger;
+    socklen_t len;
+
+    linger.l_onoff = 1;
+    linger.l_linger = timeout;
+
+    len = sizeof(linger);
+
+    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
+}
+
+int
+tcp_unset_linger(int sd)
+{
+    struct linger linger;
+    socklen_t len;
+
+    linger.l_onoff = 0;
+    linger.l_linger = 0;
+
+    len = sizeof(linger);
+
+    return setsockopt(sd, SOL_SOCKET, SO_LINGER, &linger, len);
+}
+
+int
+tcp_set_sndbuf(int sd, int size)
+{
+    socklen_t len;
+
+    len = sizeof(size);
+
+    return setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, len);
+}
+
+int
+tcp_set_rcvbuf(int sd, int size)
+{
+    socklen_t len;
+
+    len = sizeof(size);
+
+    return setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, len);
+}
+
+int
+tcp_get_sndbuf(int sd)
+{
+    int status, size;
+    socklen_t len;
+
+    size = 0;
+    len = sizeof(size);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_SNDBUF, &size, &len);
+    if (status < 0) {
+        return status;
+    }
+
+    return size;
+}
+
+int
+tcp_get_rcvbuf(int sd)
+{
+    int status, size;
+    socklen_t len;
+
+    size = 0;
+    len = sizeof(size);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_RCVBUF, &size, &len);
+    if (status < 0) {
+        return status;
+    }
+
+    return size;
+}
+
+void
+tcp_maximize_sndbuf(int sd)
+{
+    int status, min, max, avg;
+
+    /* start with the default size */
+    min = tcp_get_sndbuf(sd);
+    if (min < 0) {
+        return;
+    }
+
+    /* binary-search for the real maximum */
+    max = 256 * MiB;
+
+    while (min <= max) {
+        avg = (min + max) / 2;
+        status = tcp_set_sndbuf(sd, avg);
+        if (status != 0) {
+            max = avg - 1;
+        } else {
+            min = avg + 1;
+        }
+    }
+}
+
+int
+tcp_get_soerror(int sd)
+{
+    int status, err;
+    socklen_t len;
+
+    err = 0;
+    len = sizeof(err);
+
+    status = getsockopt(sd, SOL_SOCKET, SO_ERROR, &err, &len);
+    if (status == 0) {
+        errno = err;
+    }
+
+    return status;
+}
+
 
 /*
  * try reading nbyte bytes from conn and place the data in buf
@@ -514,7 +586,7 @@ server_listen(struct addrinfo *ai)
  * returned as a generic error/failure.
  */
 ssize_t
-conn_recv(struct conn *c, void *buf, size_t nbyte)
+tcp_recv(struct conn *c, void *buf, size_t nbyte)
 {
     ssize_t n;
 
@@ -534,7 +606,7 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            c->state = CONN_EOF;
+            c->state = TCP_EOF;
             log_info("recv on sd %d eof rb  %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;
@@ -560,12 +632,12 @@ conn_recv(struct conn *c, void *buf, size_t nbyte)
 }
 
 /*
- * vector version of conn_recv, using readv to read into a mbuf array
+ * vector version of tcp_recv, using readv to read into a mbuf array
  */
 ssize_t
-conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
+tcp_recvv(struct conn *c, struct array *bufv, size_t nbyte)
 {
-    /* TODO(yao): this is almost identical with conn_recv except for the call
+    /* TODO(yao): this is almost identical with tcp_recv except for the call
      * to readv. Consolidate the two?
      */
     ssize_t n;
@@ -619,7 +691,7 @@ conn_recvv(struct conn *c, struct array *bufv, size_t nbyte)
  * returned as a generic error/failure.
  */
 ssize_t
-conn_send(struct conn *c, void *buf, size_t nbyte)
+tcp_send(struct conn *c, void *buf, size_t nbyte)
 {
     ssize_t n;
 
@@ -663,12 +735,12 @@ conn_send(struct conn *c, void *buf, size_t nbyte)
 }
 
 /*
- * vector version of conn_send, using writev to send an array of bufs
+ * vector version of tcp_send, using writev to send an array of bufs
  */
 ssize_t
-conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
+tcp_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 {
-    /* TODO(yao): this is almost identical with conn_send except for the call
+    /* TODO(yao): this is almost identical with tcp_send except for the call
      * to writev. Consolidate the two? Revisit these functions when we build
      * more concrete backend systems.
      */
@@ -711,65 +783,4 @@ conn_sendv(struct conn *c, struct array *bufv, size_t nbyte)
     NOT_REACHED();
 
     return CC_ERROR;
-}
-
-void
-conn_pool_create(uint32_t max)
-{
-    if (!cp_init) {
-        log_info("creating conn pool: max %"PRIu32, max);
-
-        FREEPOOL_CREATE(&cp, max);
-        cp_init = true;
-    } else {
-        log_warn("conn pool has already been created, ignore");
-    }
-}
-
-void
-conn_pool_destroy(void)
-{
-    struct conn *c, *tc;
-
-    if (cp_init) {
-        log_info("destroying conn pool: free %"PRIu32, cp.nfree);
-
-        FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
-        cp_init = false;
-    } else {
-        log_warn("conn pool was never created, ignore");
-    }
-
-}
-
-struct conn *
-conn_borrow(void)
-{
-    struct conn *c;
-
-    FREEPOOL_BORROW(c, &cp, next, conn_create);
-
-    if (c == NULL) {
-        log_debug("borrow conn failed: OOM or over limit");
-        return NULL;
-    }
-
-    conn_reset(c);
-
-    log_verb("borrow conn %p", c);
-
-    return c;
-}
-
-void
-conn_return(struct conn *c)
-{
-    if (c == NULL || c->free) {
-        return;
-    }
-
-    log_verb("return conn %p", c);
-
-    c->free = true;
-    FREEPOOL_RETURN(&cp, c, next);
 }
