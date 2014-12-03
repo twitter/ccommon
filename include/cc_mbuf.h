@@ -89,11 +89,23 @@ mbuf_full(struct mbuf *mbuf)
     return mbuf->wpos == mbuf->end ? true : false;
 }
 
+/**
+ * functions to setup and tear down the mbuf module
+ */
 void mbuf_setup(uint32_t chunk_size);
 void mbuf_teardown(void);
-void mbuf_reset(struct mbuf *mbuf);
+
+/**
+ * functions that deal with memory management
+ */
 struct mbuf *mbuf_create(void);
-void mbuf_destroy(struct mbuf *mbuf);
+void mbuf_destroy(struct mbuf **mbuf);
+void mbuf_pool_create(uint32_t max);
+void mbuf_pool_destroy(void);
+struct mbuf *mbuf_borrow(void);
+void mbuf_return(struct mbuf **mbuf);
+
+void mbuf_reset(struct mbuf *mbuf);
 uint32_t mbuf_rsize(struct mbuf *mbuf);
 uint32_t mbuf_wsize(struct mbuf *mbuf);
 uint32_t mbuf_capacity(void);
@@ -101,11 +113,6 @@ void mbuf_lshift(struct mbuf *mbuf);
 void mbuf_rshift(struct mbuf *mbuf);
 void mbuf_copy(struct mbuf *mbuf, uint8_t *addr, uint32_t n);
 void mbuf_copy_bstring(struct mbuf *mbuf, const struct bstring str);
-
-void mbuf_pool_create(uint32_t max);
-void mbuf_pool_destroy(void);
-struct mbuf *mbuf_borrow(void);
-void mbuf_return(struct mbuf *mbuf);
 
 void mbuf_insert(struct mq *mq, struct mbuf *mbuf);
 void mbuf_remove(struct mq *mq, struct mbuf *mbuf);

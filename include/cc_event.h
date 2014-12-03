@@ -67,7 +67,7 @@ struct event_base {
 
 /* event base */
 struct event_base *event_base_create(int size, event_cb_t cb);
-void event_base_destroy(struct event_base *evb);
+void event_base_destroy(struct event_base **evb);
 
 /* event control */
 int event_add_read(struct event_base *evb, int fd, void *data);

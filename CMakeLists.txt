@@ -78,13 +78,13 @@ set (SOURCE
     src/cc_log.c
     src/cc_mbuf.c
     src/cc_mm.c
-    src/cc_nio.c
     src/cc_print.c
     src/cc_option.c
-    src/cc_stream.c
+    src/channel/cc_tcp.c
     src/hash/cc_hash.c
     src/hash/cc_lookup3.c
     src/stats/cc_metric.c
+    src/stream/cc_sockio.c
     )
 # some files are platform-specific
 if (OperatingSystem STREQUAL "OS_DARWIN")

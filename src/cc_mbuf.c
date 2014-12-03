@@ -66,6 +66,8 @@ mbuf_create(void)
 
     buf = (uint8_t *)cc_alloc(mbuf_chunk_size);
     if (buf == NULL) {
+        log_info("mbuf creation failed due to OOM");
+
         return NULL;
     }
 
@@ -77,7 +79,7 @@ mbuf_create(void)
     mbuf->start = buf;
     STAILQ_NEXT(mbuf, next) = NULL;
 
-    log_verb("create mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
+    log_verb("created mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
 
     return mbuf;
 }
@@ -86,17 +88,21 @@ mbuf_create(void)
  * free an mbuf (assuming it has already been unlinked and not corrupted)
  */
 void
-mbuf_destroy(struct mbuf *mbuf)
+mbuf_destroy(struct mbuf **mbuf)
 {
-    uint8_t *buf;
+    uint8_t *buf = (uint8_t *)*mbuf;
 
-    log_verb("destroy mbuf %p capacity %d", mbuf, mbuf->end - mbuf->start);
+    if (buf == NULL) {
+        return;
+    }
 
-    ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
-    ASSERT(mbuf->magic == MBUF_MAGIC);
+    log_verb("destroy mbuf %p capacity", buf);
 
-    buf = (uint8_t *)mbuf - mbuf_offset;
+
+    buf = buf - mbuf_offset;
     cc_free(buf);
+
+    *mbuf = NULL;
 }
 
 /*
@@ -105,10 +111,10 @@ mbuf_destroy(struct mbuf *mbuf)
 void
 mbuf_reset(struct mbuf *mbuf)
 {
+    STAILQ_NEXT(mbuf, next) = NULL;
+    mbuf->free = false;
     mbuf->rpos = mbuf->start;
     mbuf->wpos = mbuf->start;
-    mbuf->free = false;
-    STAILQ_NEXT(mbuf, next) = NULL;
 }
 
 /*
@@ -275,19 +281,23 @@ mbuf_borrow(void)
  * return an mbuf to the pool
  */
 void
-mbuf_return(struct mbuf *mbuf)
+mbuf_return(struct mbuf **mbuf)
 {
-    if (mbuf == NULL || mbuf->free) {
+    struct mbuf *buf = *mbuf;
+
+    if (buf == NULL || buf->free) {
         return;
     }
 
-    ASSERT(STAILQ_NEXT(mbuf, next) == NULL);
-    ASSERT(mbuf->magic == MBUF_MAGIC);
+    ASSERT(STAILQ_NEXT(buf, next) == NULL);
+    ASSERT(buf->magic == MBUF_MAGIC);
 
-    log_verb("return mbuf %p", mbuf);
+    log_verb("return mbuf %p", buf);
 
-    mbuf->free = true;
-    FREEPOOL_RETURN(&mbufp, mbuf, next);
+    buf->free = true;
+    FREEPOOL_RETURN(&mbufp, buf, next);
+
+    *mbuf = NULL;
 }
 
 /*
