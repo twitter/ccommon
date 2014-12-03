@@ -23,7 +23,6 @@
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_mm.h>
-#include <cc_nio.h>
 
 #include <inttypes.h>
 #include <string.h>

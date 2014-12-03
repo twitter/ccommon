@@ -77,7 +77,7 @@ buf_tcp_read(struct buf_sock *s)
     } else if (n == 0) {
         log_info("eof recved on conn %p", c);
         status = CC_ERDHUP;
-        c->state = TCP_EOF;
+        c->state = CONN_EOF;
     } else if (n == cap) {
         log_debug("unread data remain on conn %p, should retry", c);
         status = CC_ERETRY;

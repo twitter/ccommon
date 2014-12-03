@@ -80,7 +80,7 @@ conn_reset(struct conn *c)
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->state = TCP_UNKNOWN;
+    c->state = CONN_UNKNOWN;
     c->flags = 0;
 
     c->err = 0;
@@ -214,10 +214,10 @@ tcp_connect(struct addrinfo *ai, struct conn *c)
             goto error;
         }
 
-        c->state = TCP_CONNECT;
+        c->state = CONN_CONNECT;
         log_info("connecting on c %p sd %d", c, c->sd);
     } else {
-        c->state = TCP_CONNECTED;
+        c->state = CONN_CONNECTED;
         log_info("connected on c %p sd %d", c, c->sd);
     }
 
@@ -280,7 +280,7 @@ tcp_listen(struct addrinfo *ai, struct conn *c)
     }
 
     c->level = CHANNEL_META;
-    c->state = TCP_LISTEN;
+    c->state = CONN_LISTEN;
     log_info("server listen setup on socket descriptor %d", c->sd);
 
     return true;
@@ -353,7 +353,7 @@ tcp_accept(struct conn *sc, struct conn *c)
 
     c->sd = sd;
     c->level = CHANNEL_BASE;
-    c->state = TCP_CONNECTED;
+    c->state = CONN_CONNECTED;
 
     ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
@@ -610,7 +610,7 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            c->state = TCP_EOF;
+            c->state = CONN_EOF;
             log_info("recv on sd %d eof rb  %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;

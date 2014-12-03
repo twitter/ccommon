@@ -48,12 +48,12 @@ extern "C" {
     ACTION( tcp_poolsize,  OPTION_TYPE_UINT,   str(TCP_POOLSIZE), "tcp conn pool size"     )
 
 /* possible states */
-#define TCP_UNKNOWN    0
-#define TCP_CONNECT    1
-#define TCP_CONNECTED  2
-#define TCP_EOF        3 /* peer close */
-#define TCP_CLOSE      4 /* we close */
-#define TCP_LISTEN     5
+#define CONN_UNKNOWN    0
+#define CONN_CONNECT    1
+#define CONN_CONNECTED  2
+#define CONN_EOF        3
+#define CONN_CLOSING    4
+#define CONN_LISTEN     5
 
 /* struct conn is subjected to code refactoring when we implement more channels */
 struct conn {
