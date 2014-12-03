@@ -47,10 +47,13 @@ extern "C" {
     ACTION( tcp_backlog,   OPTION_TYPE_UINT,   str(TCP_BACKLOG),  "tcp conn backlog limit" )\
     ACTION( tcp_poolsize,  OPTION_TYPE_UINT,   str(TCP_POOLSIZE), "tcp conn pool size"     )
 
-#define TCP_CONNECT    0
-#define TCP_CONNECTED  1
-#define TCP_EOF        2 /* peer close */
-#define TCP_CLOSE      3 /* we close */
+/* possible states */
+#define TCP_UNKNOWN    0
+#define TCP_CONNECT    1
+#define TCP_CONNECTED  2
+#define TCP_EOF        3 /* peer close */
+#define TCP_CLOSE      4 /* we close */
+#define TCP_LISTEN     5
 
 /* struct conn is subjected to code refactoring when we implement more channels */
 struct conn {
@@ -64,8 +67,8 @@ struct conn {
     size_t              recv_nbyte;     /* received (read) bytes */
     size_t              send_nbyte;     /* sent (written) bytes */
 
-    unsigned            state:2;        /* connect|connected|eof|close */
-    unsigned            flags:14;       /* annotation fields */
+    unsigned            state:4;        /* defined as TCP_ above */
+    unsigned            flags:12;       /* annotation fields */
 
     err_t               err;            /* errno */
 };

@@ -53,7 +53,7 @@ buf_tcp_read(struct buf_sock *s)
     channel_handler_t *h = s->hdl;
     struct mbuf *buf = s->rbuf;
     rstatus_t status = CC_OK;
-    ssize_t cap, n;
+    ssize_t cap, n, nbyte;
 
     ASSERT(c != NULL && h != NULL && buf != NULL);
     ASSERT(c->type == CHANNEL_TCP);
@@ -84,7 +84,9 @@ buf_tcp_read(struct buf_sock *s)
     } else {
         status = CC_OK;
     }
-    buf->wpos += (n > 0) ? n : 0;
+    nbyte = (n > 0) ? n : 0;
+    buf->wpos += nbyte;
+    c->recv_nbyte += nbyte;
 
     log_verb("recv %zd bytes on conn %p ", n, c);
 
@@ -234,6 +236,8 @@ buf_sock_reset(struct buf_sock *s)
     STAILQ_NEXT(s, next) = NULL;
     s->owner = NULL;
     s->free = false;
+    s->flag = 0;
+    s->data = NULL;
     s->hdl = NULL;
 
     conn_reset(s->ch);

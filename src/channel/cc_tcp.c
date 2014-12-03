@@ -73,13 +73,14 @@ conn_reset(struct conn *c)
     STAILQ_NEXT(c, next) = NULL;
     c->free = false;
 
+    c->type = CHANNEL_TCP;
     c->level = CHANNEL_INVALID;
     c->sd = 0;
 
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->state = 0;
+    c->state = TCP_UNKNOWN;
     c->flags = 0;
 
     c->err = 0;
@@ -278,7 +279,8 @@ tcp_listen(struct addrinfo *ai, struct conn *c)
         goto error;
     }
 
-    c->state = TCP_CONNECTED;
+    c->level = CHANNEL_META;
+    c->state = TCP_LISTEN;
     log_info("server listen setup on socket descriptor %d", c->sd);
 
     return true;
@@ -316,18 +318,17 @@ _tcp_accept(struct conn *sc)
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
             if (errno == EINTR) {
-                log_verb("accept on sd %d not ready: eintr",
+                log_debug("accept on sd %d not ready: eintr",
                         sc->sd);
                 continue;
             }
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                log_verb("accept on s %d not ready - eagain",
+                log_debug("accept on s %d not ready - eagain",
                         sc->sd);
                 return -1;
             }
 
-            log_error("accept on s %d failed: %s", sc->sd, strerror(errno));
             return -1;
         }
 
@@ -345,22 +346,24 @@ tcp_accept(struct conn *sc, struct conn *c)
 
     sd = _tcp_accept(sc);
     if (sd < 0) {
+        log_error("accept on s %d failed: %s", sc->sd, strerror(errno));
+
         return false;
     }
 
     c->sd = sd;
+    c->level = CHANNEL_BASE;
     c->state = TCP_CONNECTED;
 
     ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
-        log_error("set nonblock on c %d failed, ignored: %s", sd,
+        log_warn("set nonblock on c %d failed, ignored: %s", sd,
                 strerror(errno));
-        return c;
     }
 
     ret = tcp_set_tcpnodelay(sd);
     if (ret < 0) {
-        log_warn("set tcp nodely on c %d failed, ignored: %s", sd,
+        log_warn("set tcp nodelay on c %d failed, ignored: %s", sd,
                  strerror(errno));
     }
 

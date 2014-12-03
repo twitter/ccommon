@@ -49,14 +49,23 @@ extern "C" {
 #include <inttypes.h>
 #include <stdlib.h>
 
+#define BUFSOCK_POOLSIZE 0 /* unlimited */
+
+/*          name                type                default                 description */
+#define SOCKIO_OPTION(ACTION)                                                                  \
+    ACTION( buf_sock_poolsize,  OPTION_TYPE_UINT,   str(BUFSOCK_POOLSIZE),  "buf_sock limit" )
+
 struct buf_sock {
     /* these fields are useful for resource managmenet */
     STAILQ_ENTRY(buf_sock)  next;
     void                    *owner;
     bool                    free;
 
+    uint64_t                flag;   /* generic flag field to be used by app */
+    void                    *data;  /* generic data field to be used by app */
+    channel_handler_t       *hdl;   /* use can specify per-channel action */
+
     struct conn             *ch;
-    channel_handler_t       *hdl;
     struct mbuf             *rbuf;
     struct mbuf             *wbuf;
 };
