@@ -46,10 +46,9 @@ extern "C" {
 #define LOG_VERB    6   /* verbose: showing normal logic flow */
 #define LOG_VVERB   7   /* verbose on crack, for annoying msg e.g. timer */
 
+int log_level;
+
 /* NOTE(yao): it may be useful to have a sampled log func for bursty events */
-/* TODO(yao): add a config option to completely disable logging above a certain
- * level at compile time.
- */
 
 /*
  * log_stderr   - log to stderr
@@ -69,7 +68,7 @@ extern "C" {
 #define loga(...) _log(__FILE__, __LINE__, LOG_ALWAYS, __VA_ARGS__)
 
 #define loga_hexdump(_data, _datalen, ...) do {                             \
-    _log(__FILE__,__LINE__, LOG_ALWAYS, __VA_ARGS__);                               \
+    _log(__FILE__,__LINE__, LOG_ALWAYS, __VA_ARGS__);                       \
     _log_hexdump(-1, (char *)(_data), (int)(_datalen));                     \
 } while (0)                                                                 \
 
@@ -80,13 +79,47 @@ extern "C" {
 
 #if defined CC_LOGGING && CC_LOGGING == 1
 
-#define log_crit(...)   _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__)
-#define log_error(...)  _log(__FILE__, __LINE__, LOG_ERROR, __VA_ARGS__)
-#define log_warn(...)   _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__)
-#define log_info(...)   _log(__FILE__, __LINE__, LOG_INFO, __VA_ARGS__)
-#define log_debug(...)  _log(__FILE__, __LINE__, LOG_DEBUG, __VA_ARGS__)
-#define log_verb(...)   _log(__FILE__, __LINE__, LOG_VERB, __VA_ARGS__)
-#define log_vverb(...)  _log(__FILE__, __LINE__, LOG_VVERB, __VA_ARGS__)
+#define log_crit(...) do {                                                  \
+    if (log_level >= LOG_CRIT) {                                            \
+        _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__);                    \
+    }                                                                       \
+} while (0)
+
+#define log_error(...) do {                                                 \
+    if (log_level >= LOG_ERROR) {                                           \
+        _log(__FILE__, __LINE__, LOG_ERROR, __VA_ARGS__);                   \
+    }                                                                       \
+} while (0)
+
+#define log_warn(...) do {                                                  \
+    if (log_level >= LOG_WARN) {                                            \
+        _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__);                    \
+    }                                                                       \
+} while (0)
+
+#define log_info(...) do {                                                  \
+    if (log_level >= LOG_INFO) {                                            \
+        _log(__FILE__, __LINE__, LOG_INFO, __VA_ARGS__);                    \
+    }                                                                       \
+} while (0)
+
+#define log_debug(...) do {                                                 \
+    if (log_level >= LOG_DEBUG) {                                           \
+        _log(__FILE__, __LINE__, LOG_DEBUG, __VA_ARGS__);                   \
+    }                                                                       \
+} while (0)
+
+#define log_verb(...) do {                                                  \
+    if (log_level >= LOG_VERB) {                                            \
+        _log(__FILE__, __LINE__, LOG_VERB, __VA_ARGS__);                    \
+    }                                                                       \
+} while (0)
+
+#define log_vverb(...) do {                                                 \
+    if (log_level >= LOG_VVERB) {                                           \
+        _log(__FILE__, __LINE__, LOG_VVERB, __VA_ARGS__);                   \
+    }                                                                       \
+} while (0)
 
 #define log(_level, ...) _log(__FILE__, __LINE__, _level, __VA_ARGS__)
 

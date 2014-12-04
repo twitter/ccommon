@@ -46,13 +46,13 @@ static char * level_str[] = {
     "VVERB"
 };
 
-static struct logger {
+struct logger {
     char *name;  /* log file name */
     int  level;  /* log level */
     int  fd; /* log file descriptor */
     int  nerror; /* # log error */
 } logger = {
-    .name = NULL,
+    .name = NULL, /* stderr if name is NULL */
     .level = LOG_LEVEL,
     .fd = STDERR_FILENO,
     .nerror = 0
@@ -94,6 +94,7 @@ log_setup(int level, char *name)
         log_warn("%s has already been setup, overwrite", LOG_MODULE_NAME);
     }
     log_init = true;
+    log_level = l->level;
 
     return 0;
 }
