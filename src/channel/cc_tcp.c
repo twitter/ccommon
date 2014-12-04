@@ -597,7 +597,7 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
 
-    log_verb("recv on sd %d, total %zu bytes", c->sd, nbyte);
+    log_verb("recv on sd %d, capacity %zu bytes", c->sd, nbyte);
 
     for (;;) {
         n = read(c->sd, buf, nbyte);
@@ -605,23 +605,24 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
         log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
+            log_verb("%zu bytes recv'd on sd %d", n, c->sd);
             c->recv_nbyte += (size_t)n;
             return n;
         }
 
         if (n == 0) {
             c->state = CONN_EOF;
-            log_info("recv on sd %d eof rb  %zu sb %zu", c->sd,
+            log_debug("eof recv'd on sd %d, total: rb %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;
         }
 
         /* n < 0 */
         if (errno == EINTR) {
-            log_verb("recv on sd %d not ready - EINTR", c->sd);
+            log_debug("recv on sd %d not ready - EINTR", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_verb("recv on sd %d not ready - EAGAIN", c->sd);
+            log_debug("recv on sd %d not ready - EAGAIN", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;

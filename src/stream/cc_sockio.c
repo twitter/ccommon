@@ -68,18 +68,14 @@ buf_tcp_read(struct buf_sock *s)
     n = h->recv(c, buf->wpos, cap);
     if (n < 0) {
         if (n == CC_EAGAIN) {
-            log_debug("recv on tcp conn %p returns rescuable error: EAGAIN", c);
             status = CC_OK;
         } else {
-            log_info("recv on tcp conn %p returns other error: %d", c, n);
             status = CC_ERROR;
         }
     } else if (n == 0) {
-        log_info("eof recved on conn %p", c);
         status = CC_ERDHUP;
         c->state = CONN_EOF;
     } else if (n == cap) {
-        log_debug("unread data remain on conn %p, should retry", c);
         status = CC_ERETRY;
     } else {
         status = CC_OK;
