@@ -179,7 +179,9 @@ mbuf_lshift(struct mbuf *mbuf)
     uint32_t sz;
 
     sz = mbuf_rsize(mbuf);
-    cc_memmove(mbuf->start, mbuf->rpos, sz);
+    if (sz > 0) {
+        cc_memmove(mbuf->start, mbuf->rpos, sz);
+    }
     mbuf->rpos = mbuf->start;
     mbuf->wpos = mbuf->start + sz;
 }
@@ -193,7 +195,9 @@ mbuf_rshift(struct mbuf *mbuf)
     uint32_t sz;
 
     sz = mbuf_rsize(mbuf);
-    cc_memmove(mbuf->end - sz, mbuf->rpos, sz);
+    if (sz > 0) {
+        cc_memmove(mbuf->end - sz, mbuf->rpos, sz);
+    }
     mbuf->rpos = mbuf->end - sz;
     mbuf->wpos = mbuf->end;
 }
