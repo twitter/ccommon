@@ -122,10 +122,28 @@ void
 conn_pool_create(uint32_t max)
 {
     if (!cp_init) {
+        uint32_t i;
+        struct conn *c;
+
         log_info("creating conn pool: max %"PRIu32, max);
 
         FREEPOOL_CREATE(&cp, max);
         cp_init = true;
+
+        /* preallocating, see notes in cc_mbuf.c */
+        if (max == 0) {
+            return;
+        }
+
+        for (i = 0; i < max; ++i) {
+            c = conn_create();
+            if (c == NULL) {
+                log_crit("cannot preallocate conn pool due to OOM, abort");
+                exit(EXIT_FAILURE);
+            }
+            c->free = true;
+            FREEPOOL_RETURN(&cp, c, next);
+        }
     } else {
         log_warn("conn pool has already been created, ignore");
     }

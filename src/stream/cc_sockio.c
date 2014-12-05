@@ -198,10 +198,29 @@ void
 buf_sock_pool_create(uint32_t max)
 {
     if (!bsp_init) {
+        uint32_t i;
+        struct buf_sock *s;
+
         log_info("creating buffered socket pool: max %"PRIu32, max);
 
         FREEPOOL_CREATE(&bsp, max);
         bsp_init = true;
+
+        /* preallocating, see notes in cc_mbuf.c */
+        if (max == 0) {
+            return;
+        }
+
+        for (i = 0; i < max; ++i) {
+            s = buf_sock_create();
+            if (s == NULL) {
+                log_crit("cannot preallocate buffered socket pool due to OOM, "
+                        "abort");
+                exit(EXIT_FAILURE);
+            }
+            s->free = true;
+            FREEPOOL_RETURN(&bsp, s, next);
+        }
     } else {
         log_warn("buffered socket pool has already been created, ignore");
     }

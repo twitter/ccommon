@@ -235,10 +235,33 @@ void
 mbuf_pool_create(uint32_t max)
 {
     if (!mbufp_init) {
+        uint32_t i;
+        struct mbuf *buf;
+
         log_info("creating mbuf pool: max %"PRIu32, max);
 
         FREEPOOL_CREATE(&mbufp, max);
         mbufp_init = true;
+
+        /**
+         * NOTE: Right now I decide to preallocate if max != 0
+         * whether we want an option where memory is capped but
+         * not preallocated is a question for future exploration
+         * So far I see no point of that.
+         */
+        if (max == 0) {
+            return;
+        }
+
+        for (i = 0; i < max; ++i) {
+            buf = mbuf_create();
+            if (buf == NULL) {
+                log_crit("cannot preallocate mbuf pool due to OOM, abort");
+                exit(EXIT_FAILURE);
+            }
+            buf->free = true;
+            FREEPOOL_RETURN(&mbufp, buf, next);
+        }
     } else {
         log_warn("mbuf pool has already been created, ignore");
     }
