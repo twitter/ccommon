@@ -87,6 +87,7 @@ _option_parse_str(struct option *opt, const char *val_str)
     opt->set = true;
 
     if (val_str == NULL) {
+        opt->val.vstr[0] = '\0';
         return;
     }
 
@@ -230,7 +231,7 @@ void option_print(struct option *opt)
         break;
 
     case OPTION_TYPE_STR:
-        loga("current value: %s", opt->val.vstr);
+        loga("current value: %s", option_empty(opt) ? "NULL" : opt->val.vstr);
 
         break;
 

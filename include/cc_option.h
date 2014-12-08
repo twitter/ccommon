@@ -89,6 +89,16 @@ void option_printall(struct option options[], unsigned int nopt);
 rstatus_t option_load_default(struct option options[], unsigned int nopt);
 rstatus_t option_load_file(FILE *fp, struct option options[], unsigned int nopt);
 
+static inline bool
+option_empty(struct option *opt)
+{
+    if (opt->type == OPTION_TYPE_STR && opt->val.vstr[0] == '\0') {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif
