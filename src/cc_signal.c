@@ -9,6 +9,43 @@
 #include <signal.h>
 #include <string.h>
 
+#ifndef sys_signame
+const char* sys_signame[SIGNAL_MAX + 1] = {
+    "UNDEFINED",
+    "SIGHUP",
+    "SIGINT",
+    "SIGQUIT",
+    "SIGILL",
+    "SIGTRAP",
+    "SIGABRT",
+    "SIGEMT",
+    "SIGFPE",
+    "SIGKILL",
+    "SIGBUS",
+    "SIGSEGV",
+    "SIGSYS",
+    "SIGPIPE",
+    "SIGALRM",
+    "SIGTERM",
+    "SIGURG",
+    "SIGSTOP",
+    "SIGTSTP",
+    "SIGCONT",
+    "SIGCHLD",
+    "SIGTTIN",
+    "SIGTTOU",
+    "SIGIO",
+    "SIGXCPU",
+    "SIGXFSZ",
+    "SIGVTALRM",
+    "SIGPROF",
+    "SIGWINCH",
+    "SIGINFO",
+    "SIGUSR1",
+    "SIGUSR2"
+};
+#endif /* sys_signame */
+
 int
 signal_override(int signo, char *info, int flags, uint32_t mask, sig_t handler)
 {
