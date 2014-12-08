@@ -131,28 +131,6 @@ log_reopen(void)
 }
 
 void
-log_level_up(void)
-{
-    struct logger *l = &logger;
-
-    if (l->level < LOG_VVERB) {
-        l->level++;
-        loga("up log level to %d", l->level);
-    }
-}
-
-void
-log_level_down(void)
-{
-    struct logger *l = &logger;
-
-    if (l->level > LOG_CRIT) {
-        l->level--;
-        loga("down log level to %d", l->level);
-    }
-}
-
-void
 log_level_set(int level)
 {
     struct logger *l = &logger;

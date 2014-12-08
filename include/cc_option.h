@@ -69,7 +69,7 @@ extern char *option_type_str[];
 typedef union option_val {
     bool vbool;
     uintmax_t vuint;
-    char *vstr;
+    char vstr[OPTVAL_MAXLEN + 1];
 } option_val_u;
 
 /* Struct containing data for one individual setting */

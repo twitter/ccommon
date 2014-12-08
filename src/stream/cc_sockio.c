@@ -84,7 +84,7 @@ buf_tcp_read(struct buf_sock *s)
     buf->wpos += nbyte;
     c->recv_nbyte += nbyte;
 
-    log_verb("recv %zd bytes on conn %p ", n, c);
+    log_verb("recv %zd bytes on conn %p", n, c);
 
     return status;
 }

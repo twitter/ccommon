@@ -27,18 +27,18 @@
 #define BACKTRACE_DEPTH 64
 
 void
-cc_log_assert(const char *cond, const char *file, int line, int panic)
+debug_assert(const char *cond, const char *file, int line, int panic)
 {
 
     loga("assert '%s' failed @ (%s, %d)", cond, file, line);
     if (panic) {
-        cc_log_stacktrace(1);
+        debug_stacktrace(1);
         abort();
     }
 }
 
 void
-cc_log_stacktrace(int skip_count)
+debug_stacktrace(int skip_count)
 {
 #ifdef CC_BACKTRACE
     void *stack[BACKTRACE_DEPTH];

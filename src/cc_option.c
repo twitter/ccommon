@@ -33,7 +33,7 @@ char * option_type_str[] = {
 };
 
 static rstatus_t
-_option_parse_bool(struct option *opt, char *val_str)
+_option_parse_bool(struct option *opt, const char *val_str)
 {
     rstatus_t status = CC_OK;
 
@@ -54,7 +54,7 @@ _option_parse_bool(struct option *opt, char *val_str)
 }
 
 static rstatus_t
-_option_parse_uint(struct option *opt, char *val_str)
+_option_parse_uint(struct option *opt, const char *val_str)
 {
     uintmax_t val;
     char *endptr;
@@ -82,12 +82,15 @@ _option_parse_uint(struct option *opt, char *val_str)
 }
 
 static void
-_option_parse_str(struct option *opt, char *val_str)
+_option_parse_str(struct option *opt, const char *val_str)
 {
-    if (val_str != NULL) {
-        opt->set = true;
+    opt->set = true;
+
+    if (val_str == NULL) {
+        return;
     }
-    opt->val.vstr = val_str;
+
+    strcpy(opt->val.vstr, val_str);
 }
 
 rstatus_t

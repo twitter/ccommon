@@ -33,7 +33,7 @@ extern "C" {
 
 #define ASSERT(_x) do {                             \
     if (!(_x)) {                                    \
-        cc_log_assert(#_x, __FILE__, __LINE__, 1);  \
+        debug_assert(#_x, __FILE__, __LINE__, 1);  \
     }                                               \
 } while (0)
 
@@ -43,7 +43,7 @@ extern "C" {
 
 #define ASSERT(_x) do {                             \
     if (!(_x)) {                                    \
-        cc_log_assert(#_x, __FILE__, __LINE__, 0);  \
+        debug_assert(#_x, __FILE__, __LINE__, 0);  \
     }                                               \
 } while (0)
 
@@ -57,8 +57,8 @@ extern "C" {
 
 #endif
 
-void cc_log_assert(const char *cond, const char *file, int line, int panic);
-void cc_log_stacktrace(int skip_count);
+void debug_assert(const char *cond, const char *file, int line, int panic);
+void debug_stacktrace(int skip_count);
 
 #ifdef __cplusplus
 }

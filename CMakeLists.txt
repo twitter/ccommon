@@ -78,8 +78,9 @@ set (SOURCE
     src/cc_log.c
     src/cc_mbuf.c
     src/cc_mm.c
-    src/cc_print.c
     src/cc_option.c
+    src/cc_print.c
+    src/cc_signal.c
     src/channel/cc_tcp.c
     src/hash/cc_hash.c
     src/hash/cc_lookup3.c
