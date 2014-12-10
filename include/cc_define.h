@@ -24,6 +24,11 @@ extern "C" {
 
 #include <config.h>
 
+#ifdef HAVE_SIGNAME
+# define CC_HAVE_SIGNAME 1
+#endif
+
+
 #ifdef HAVE_BIG_ENDIAN
 # define CC_BIG_ENDIAN 1
 #else

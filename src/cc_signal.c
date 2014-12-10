@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <string.h>
 
-#ifndef sys_signame
+#ifndef CC_HAVE_SIGNAME
 const char* sys_signame[SIGNAL_MAX + 1] = {
     "UNDEFINED",
     "SIGHUP",
@@ -44,7 +44,7 @@ const char* sys_signame[SIGNAL_MAX + 1] = {
     "SIGUSR1",
     "SIGUSR2"
 };
-#endif /* sys_signame */
+#endif /* CC_HAVE_SIGNAME */
 
 int
 signal_override(int signo, char *info, int flags, uint32_t mask, sig_t handler)
