@@ -28,6 +28,20 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+struct event_base {
+    int           kq;           /* kernel event queue descriptor */
+
+    struct kevent *change;      /* change[] - events we want to monitor */
+    int           nchange;      /* # change */
+
+    struct kevent *event;       /* event[] - events that were triggered */
+    int           nevent;       /* # events */
+    int           nreturned;    /* # events placed in event[] */
+    int           nprocessed;   /* # events processed from event[] */
+
+    event_cb_t    cb;           /* event callback */
+};
+
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
 {

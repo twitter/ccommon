@@ -51,12 +51,6 @@ extern "C" {
 # define CC_ASSERT_LOG 1
 #endif
 
-#ifdef HAVE_EPOLL
-# define CC_HAVE_EPOLL 1
-#elif defined HAVE_KQUEUE
-# define CC_HAVE_KQUEUE 1
-#endif
-
 #ifdef HAVE_BACKTRACE
 # define CC_BACKTRACE 1
 #endif

@@ -39,8 +39,6 @@ check_symbol_exists (sys_signame signal.h HAVE_SIGNAME)
 
 include (CheckFunctionExists)
 check_function_exists (backtrace HAVE_BACKTRACE)
-check_function_exists (epoll_wait HAVE_EPOLL)
-check_function_exists (kevent HAVE_KQUEUE)
 
 include (TestBigEndian)
 test_big_endian (HAVE_BIG_ENDIAN)

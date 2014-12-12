@@ -1,6 +1,10 @@
 #ifndef _CC_SIGNAL_H_
 #define _CC_SIGNAL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <cc_define.h>
 
 #include <inttypes.h>
@@ -38,5 +42,9 @@ int signal_pipe_ignore(void);
 int signal_segv_stacktrace(void);
 
 int signal_ttin_logrotate(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CC_SIGNAL_H_ */

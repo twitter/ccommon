@@ -38,6 +38,15 @@
 # define EPOLLRDHUP 0x2000
 #endif
 
+struct event_base {
+    int                ep;      /* epoll descriptor */
+
+    struct epoll_event *event;  /* event[] - events that were triggered */
+    int                nevent;  /* # events */
+
+    event_cb_t         cb;      /* event callback */
+};
+
 struct event_base *
 event_base_create(int nevent, event_cb_t cb)
 {
@@ -256,6 +265,7 @@ event_wait(struct event_base *evb, int timeout)
 
                 log_verb("epoll %04"PRIX32" against data %p",
                           ev->events, ev->data.ptr);
+
 
                 if (ev->events & (EPOLLERR | EPOLLHUP)) {
                     events |= EVENT_ERR;

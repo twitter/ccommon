@@ -34,36 +34,7 @@ extern "C" {
 
 typedef void (*event_cb_t)(void *, uint32_t);  /* event callback */
 
-#ifdef CC_HAVE_EPOLL
-
-struct event_base {
-    int                ep;      /* epoll descriptor */
-
-    struct epoll_event *event;  /* event[] - events that were triggered */
-    int                nevent;  /* # events */
-
-    event_cb_t         cb;      /* event callback */
-};
-
-#elif CC_HAVE_KQUEUE
-
-struct event_base {
-    int           kq;           /* kernel event queue descriptor */
-
-    struct kevent *change;      /* change[] - events we want to monitor */
-    int           nchange;      /* # change */
-
-    struct kevent *event;       /* event[] - events that were triggered */
-    int           nevent;       /* # events */
-    int           nreturned;    /* # events placed in event[] */
-    int           nprocessed;   /* # events processed from event[] */
-
-    event_cb_t    cb;           /* event callback */
-};
-
-#else
-# error missing scalable I/O event notification mechanism
-#endif
+struct event_base;
 
 /* event base */
 struct event_base *event_base_create(int size, event_cb_t cb);
