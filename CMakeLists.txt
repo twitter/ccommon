@@ -53,11 +53,11 @@ configure_file (
 # set compiler flags
 # string concat is easier in 3.0, but older versions don't have the concat subcommand
 # so we are using list as input until we move to new version
-# TODO once we add build types, we should also set flags such as "-ggdb3 -O2 "
+# TODO add build types
 add_definitions (-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64)
 set (CFLAGS_LIST
     "-std=c11 "
-    "-ggdb3 "
+    "-ggdb3 -O2 "
     "-Wall "
     "-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls "
     "-Wunused-function -Wunused-value -Wunused-variable "
