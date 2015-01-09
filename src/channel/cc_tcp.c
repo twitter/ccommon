@@ -342,7 +342,7 @@ _tcp_accept(struct conn *sc)
             }
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                log_debug("accept on s %d not ready - eagain",
+                log_debug("accept on sd %d not ready - eagain",
                         sc->sd);
                 return -1;
             }
@@ -364,8 +364,7 @@ tcp_accept(struct conn *sc, struct conn *c)
 
     sd = _tcp_accept(sc);
     if (sd < 0) {
-        log_error("accept on s %d failed: %s", sc->sd, strerror(errno));
-
+        log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
         return false;
     }
 
@@ -375,13 +374,13 @@ tcp_accept(struct conn *sc, struct conn *c)
 
     ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
-        log_warn("set nonblock on c %d failed, ignored: %s", sd,
+        log_warn("set nonblock on sd %d failed, ignored: %s", sd,
                 strerror(errno));
     }
 
     ret = tcp_set_tcpnodelay(sd);
     if (ret < 0) {
-        log_warn("set tcp nodelay on c %d failed, ignored: %s", sd,
+        log_warn("set tcp nodelay on sd %d failed, ignored: %s", sd,
                  strerror(errno));
     }
 

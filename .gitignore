@@ -38,3 +38,6 @@ _build
 # Tags
 tags
 .tags
+
+# cscope
+cscope.*
