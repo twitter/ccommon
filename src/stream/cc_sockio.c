@@ -17,10 +17,10 @@
 
 #include <stream/cc_sockio.h>
 
+#include <buffer/cc_fbuf.h>
 #include <cc_debug.h>
 #include <cc_define.h>
 #include <cc_log.h>
-#include <cc_mbuf.h>
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>
@@ -51,7 +51,7 @@ buf_tcp_read(struct buf_sock *s)
 
     struct conn *c = (struct conn *)s->ch;
     channel_handler_t *h = s->hdl;
-    struct mbuf *buf = s->rbuf;
+    struct fbuf *buf = s->rbuf;
     rstatus_t status = CC_OK;
     ssize_t cap, n;
 
@@ -59,7 +59,7 @@ buf_tcp_read(struct buf_sock *s)
     ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->recv != NULL);
 
-    cap = mbuf_wsize(buf);
+    cap = fbuf_wsize(buf);
 
     if (cap == 0) {
         return CC_ENOMEM;
@@ -96,7 +96,7 @@ buf_tcp_write(struct buf_sock *s)
 
     struct conn *c = (struct conn *)s->ch;
     channel_handler_t *h = s->hdl;
-    struct mbuf *buf = s->wbuf;
+    struct fbuf *buf = s->wbuf;
     rstatus_t status = CC_OK;
     size_t cap, n;
 
@@ -104,7 +104,7 @@ buf_tcp_write(struct buf_sock *s)
     ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->send != NULL);
 
-    cap = mbuf_rsize(buf);
+    cap = fbuf_rsize(buf);
 
     if (cap == 0) {
         log_verb("no data to send in buf at %p ", buf);
@@ -157,11 +157,11 @@ buf_sock_create(void)
     if (s->ch == NULL) {
         goto error;
     }
-    s->rbuf = mbuf_create();
+    s->rbuf = fbuf_create();
     if (s->rbuf == NULL) {
         goto error;
     }
-    s->wbuf = mbuf_create();
+    s->wbuf = fbuf_create();
     if (s->wbuf == NULL) {
         goto error;
     }
@@ -189,8 +189,8 @@ buf_sock_destroy(struct buf_sock **buf_sock)
     log_verb("destroy buffered socket %p", s);
 
     conn_destroy(&s->ch);
-    mbuf_destroy(&s->rbuf);
-    mbuf_destroy(&s->wbuf);
+    fbuf_destroy(&s->rbuf);
+    fbuf_destroy(&s->wbuf);
     cc_free(s);
 
     *buf_sock = NULL;
@@ -208,7 +208,7 @@ buf_sock_pool_create(uint32_t max)
         FREEPOOL_CREATE(&bsp, max);
         bsp_init = true;
 
-        /* preallocating, see notes in cc_mbuf.c */
+        /* preallocating, see notes in cc_fbuf.c */
         if (max == 0) {
             return;
         }
@@ -258,8 +258,8 @@ buf_sock_reset(struct buf_sock *s)
     s->hdl = NULL;
 
     conn_reset(s->ch);
-    mbuf_reset(s->rbuf);
-    mbuf_reset(s->wbuf);
+    fbuf_reset(s->rbuf);
+    fbuf_reset(s->wbuf);
 }
 
 struct buf_sock *

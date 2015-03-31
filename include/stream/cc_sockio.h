@@ -66,8 +66,8 @@ struct buf_sock {
     channel_handler_t       *hdl;   /* use can specify per-channel action */
 
     struct conn             *ch;
-    struct mbuf             *rbuf;
-    struct mbuf             *wbuf;
+    struct fbuf             *rbuf;
+    struct fbuf             *wbuf;
 };
 
 struct buf_sock *buf_sock_create(void);     /* stream_get_fn */
