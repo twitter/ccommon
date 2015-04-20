@@ -18,6 +18,7 @@
 #ifndef _CC_DBUF_H_
 #define _CC_DBUF_H_
 
+#include <buffer/cc_buf.h>
 #include <cc_define.h>
 #include <cc_log.h>
 #include <cc_util.h>
@@ -25,46 +26,33 @@
 #include <stdbool.h>
 
 #define DBUF_OPTION(ACTION) \
-    ACTION( buffer_init_size,     OPTION_TYPE_UINT,   str(DBUF_DEFAULT_SIZE),     "initial/minimum buffer size"      ) \
-    ACTION( buffer_max_size,      OPTION_TYPE_UINT,   str(DBUF_DEFAULT_MAX_SIZE), "max buffer size"                  ) \
-    ACTION( buffer_shrink_factor, OPTION_TYPE_UINT,   str(DBUF_DEFAULT_SHRINK),   "fill factor for shrinking buffer" ) \
+    ACTION( dbuf_max_size,      OPTION_TYPE_UINT,   str(DBUF_DEFAULT_MAX_SIZE), "max buffer size"                  ) \
+    ACTION( dbuf_shrink_factor, OPTION_TYPE_UINT,   str(DBUF_DEFAULT_SHRINK),   "fill factor for shrinking buffer" )
 
-struct dbuf {
-    uint8_t *begin;
-    uint8_t *end;
-    uint8_t *rpos;
-    uint8_t *wpos;
-};
-
-#define DBUF_DEFAULT_SIZE           (16 * KiB)
 #define DBUF_DEFAULT_MAX_SIZE       (MiB)
 #define DBUF_DEFAULT_SHRINK         4
 
-static inline bool
-dbuf_empty(const struct dbuf *buf)
-{
-    return buf->rpos == buf->wpos;
-}
-
-static inline bool
-dbuf_full(const struct dbuf *buf)
-{
-    return buf->wpos == buf->end;
-}
-
-void dbuf_setup(uint32_t size, uint32_t max_size);
+/* Setup/teardown doubling buffer module */
+void dbuf_setup(uint32_t max_size, uint32_t shrink_factor);
 void dbuf_teardown(void);
 
-struct dbuf *dbuf_create(void);
-void dbuf_destroy(struct dbuf *buf);
+/* Return buf to pool. You MUST use this version (not buf_return) if you used
+   any of the dbuf functions with this buffer! */
+void dbuf_return(struct buf **buf);
 
-/* Shift unread bytes to the beginning of buf */
-void dbuf_shift(struct dbuf *buf);
+/* Buffer resizing functions */
+rstatus_t dbuf_resize(struct buf *buf, uint32_t new_size);
+rstatus_t dbuf_fit(struct buf *buf, uint32_t count);
+rstatus_t dbuf_double(struct buf *buf);
 
-rstatus_t dbuf_resize(struct dbuf *buf, uint32_t new_size);
-rstatus_t dbuf_fit(struct dbuf *buf, uint32_t count);
+/* Read from doubling buffer. Returns # bytes read */
+uint32_t dbuf_read(uint8_t *dst, uint32_t count, struct buf *buf);
 
-uint32_t dbuf_read(uint8_t *dst, uint32_t count, struct dbuf *buf);
-rstatus_t dbuf_write(uint8_t *src, uint32_t count, struct dbuf *buf);
+/* Write to doubling buffer. Returns # bytes written */
+uint32_t dbuf_write(uint8_t *src, uint32_t count, struct buf *buf);
+
+/* Read/write with bstring */
+uint32_t dbuf_read_bstring(struct buf *buf, struct bstring *bstr);
+uint32_t dbuf_write_bstring(struct buf *buf, const struct bstring *bstr);
 
 #endif /* _CC_DBUF_H_ */

@@ -17,7 +17,8 @@
 
 #include <stream/cc_sockio.h>
 
-#include <buffer/cc_fbuf.h>
+#include <buffer/cc_buf.h>
+#include <buffer/cc_dbuf.h>
 #include <cc_debug.h>
 #include <cc_define.h>
 #include <cc_log.h>
@@ -51,7 +52,7 @@ buf_tcp_read(struct buf_sock *s)
 
     struct conn *c = (struct conn *)s->ch;
     channel_handler_t *h = s->hdl;
-    struct fbuf *buf = s->rbuf;
+    struct buf *buf = s->rbuf;
     rstatus_t status = CC_OK;
     ssize_t cap, n;
 
@@ -59,7 +60,7 @@ buf_tcp_read(struct buf_sock *s)
     ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->recv != NULL);
 
-    cap = fbuf_wsize(buf);
+    cap = buf_wsize(buf);
 
     if (cap == 0) {
         return CC_ENOMEM;
@@ -96,7 +97,7 @@ buf_tcp_write(struct buf_sock *s)
 
     struct conn *c = (struct conn *)s->ch;
     channel_handler_t *h = s->hdl;
-    struct fbuf *buf = s->wbuf;
+    struct buf *buf = s->wbuf;
     rstatus_t status = CC_OK;
     size_t cap, n;
 
@@ -104,7 +105,7 @@ buf_tcp_write(struct buf_sock *s)
     ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->send != NULL);
 
-    cap = fbuf_rsize(buf);
+    cap = buf_rsize(buf);
 
     if (cap == 0) {
         log_verb("no data to send in buf at %p ", buf);
@@ -136,6 +137,75 @@ buf_tcp_write(struct buf_sock *s)
     return status;
 }
 
+rstatus_t
+dbuf_tcp_read(struct buf_sock *s)
+{
+    ASSERT(s != NULL);
+
+    struct conn *c = (struct conn *)s->ch;
+    channel_handler_t *h = s->hdl;
+    struct buf *buf = s->rbuf;
+    rstatus_t status = CC_OK;
+    ssize_t cap, n, total_n = 0;
+
+    ASSERT(c != NULL && h != NULL && buf != NULL);
+    ASSERT(c->type == CHANNEL_TCP);
+    ASSERT(h->recv != NULL);
+
+    /*
+     * Try to recv:
+     * 1. if cap == 0, double
+     *   - if double fails, return CC_ERETRY
+     * 2. Call recv w/ cap
+     *   - if n < 0, check status and return
+     *   - if n == 0, set EOF and return
+     *   - otherwise, increment wpos, total_n and loop again
+     *     if n == cap
+     */
+
+    do {
+        if ((cap = buf_wsize(buf)) == 0) {
+            status = dbuf_double(buf);
+            if (status == CC_ERROR) {
+                log_verb("rbuf on buf_sock %p reached max buffer size", s);
+                status = CC_ERETRY;
+                goto tcp_read_d_done;
+            } else if (status == CC_ENOMEM) {
+                log_verb("rbuf on buf_sock %p could not expand due to oom", s);
+                status = CC_ERETRY;
+                goto tcp_read_d_done;
+            }
+            cap = buf_wsize(buf);
+            ASSERT(cap != 0);
+        }
+
+        n = h->recv(c, buf->wpos, cap);
+
+        if (n < 0) {
+            if (n == CC_EAGAIN) {
+                status = CC_OK;
+            } else {
+                status = CC_ERROR;
+            }
+            goto tcp_read_d_done;
+        } else if (n == 0) {
+            status = CC_ERDHUP;
+            c->state = CONN_EOF;
+            goto tcp_read_d_done;
+        } else {
+            buf->wpos += n;
+            total_n += n;
+        }
+    } while (n == cap);
+
+tcp_read_d_done:
+    if (total_n > 0) {
+        log_verb("recv %zd bytes on conn %p", total_n, c);
+    }
+
+    return status;
+}
+
 struct buf_sock *
 buf_sock_create(void)
 {
@@ -157,11 +227,11 @@ buf_sock_create(void)
     if (s->ch == NULL) {
         goto error;
     }
-    s->rbuf = fbuf_create();
+    s->rbuf = buf_create();
     if (s->rbuf == NULL) {
         goto error;
     }
-    s->wbuf = fbuf_create();
+    s->wbuf = buf_create();
     if (s->wbuf == NULL) {
         goto error;
     }
@@ -189,8 +259,8 @@ buf_sock_destroy(struct buf_sock **buf_sock)
     log_verb("destroy buffered socket %p", s);
 
     conn_destroy(&s->ch);
-    fbuf_destroy(&s->rbuf);
-    fbuf_destroy(&s->wbuf);
+    buf_destroy(&s->rbuf);
+    buf_destroy(&s->wbuf);
     cc_free(s);
 
     *buf_sock = NULL;
@@ -208,7 +278,7 @@ buf_sock_pool_create(uint32_t max)
         FREEPOOL_CREATE(&bsp, max);
         bsp_init = true;
 
-        /* preallocating, see notes in cc_fbuf.c */
+        /* preallocating, see notes in cc_buf.c */
         if (max == 0) {
             return;
         }
@@ -258,8 +328,8 @@ buf_sock_reset(struct buf_sock *s)
     s->hdl = NULL;
 
     conn_reset(s->ch);
-    fbuf_reset(s->rbuf);
-    fbuf_reset(s->wbuf);
+    buf_reset(s->rbuf);
+    buf_reset(s->wbuf);
 }
 
 struct buf_sock *

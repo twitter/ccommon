@@ -66,8 +66,8 @@ struct buf_sock {
     channel_handler_t       *hdl;   /* use can specify per-channel action */
 
     struct conn             *ch;
-    struct fbuf             *rbuf;
-    struct fbuf             *wbuf;
+    struct buf              *rbuf;
+    struct buf              *wbuf;
 };
 
 struct buf_sock *buf_sock_create(void);     /* stream_get_fn */
@@ -82,6 +82,9 @@ void buf_sock_reset(struct buf_sock *);
 
 rstatus_t buf_tcp_read(struct buf_sock *);
 rstatus_t buf_tcp_write(struct buf_sock *);
+
+rstatus_t dbuf_tcp_read(struct buf_sock *); /* buf_tcp_read with
+                                               doubling buffer */
 
 #ifdef __cplusplus
 }

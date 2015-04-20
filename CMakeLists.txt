@@ -81,7 +81,7 @@ set (SOURCE
     src/cc_option.c
     src/cc_print.c
     src/cc_signal.c
-    src/buffer/cc_fbuf.c
+    src/buffer/cc_buf.c
     src/buffer/cc_dbuf.c
     src/channel/cc_tcp.c
     src/hash/cc_hash.c
