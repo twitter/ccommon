@@ -29,7 +29,7 @@
     ACTION( dbuf_max_size,      OPTION_TYPE_UINT,   str(DBUF_DEFAULT_MAX_SIZE), "max buffer size"                  ) \
     ACTION( dbuf_shrink_factor, OPTION_TYPE_UINT,   str(DBUF_DEFAULT_SHRINK),   "fill factor for shrinking buffer" )
 
-#define DBUF_DEFAULT_MAX_SIZE       (MiB)
+#define DBUF_DEFAULT_MAX_SIZE       MiB
 #define DBUF_DEFAULT_SHRINK         4
 
 /* Setup/teardown doubling buffer module */

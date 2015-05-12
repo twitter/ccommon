@@ -23,7 +23,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 char * option_type_str[] = {
@@ -53,25 +55,257 @@ _option_parse_bool(struct option *opt, const char *val_str)
     return status;
 }
 
-static rstatus_t
-_option_parse_uint(struct option *opt, const char *val_str)
+/* returns true if op1's precedence > op2's precedence, false otherwise */
+static inline bool
+_option_comp_op_precedence(char op1, char op2)
 {
-    uintmax_t val;
-    char *endptr;
+    return ((op1 == '*' || op1 == '/') && (op2 == '+' || op2 == '-'));
+}
 
-    val = strtoumax(val_str, &endptr, 0); /* 0 auto detects among base 8/10/16 */
+/* Convert a traditional notation mathematical expression to reverse Polish
+ * notation (RPN). This is done using Dijkstra's shunting-yard algorithm:
+ *
+ * While there are tokens left to be read:
+ *  - Read a token
+ *    1. If token is a number, add it to the end of the output str
+ *    2. If the token is an operator o_1:
+ *       a. While there is an operator token o_2 on the operator stack:
+ *          - If o_2's precedence is > that of o_1, pop it off the stack and
+ *            onto the output
+ *          - Else, break
+ *       b. Push o_1 onto the stack
+ *    3. If the token is an open parenthesis, push it onto the operator stack
+ *    4. If the token is a close parenthesis:
+ *       a. Pop operators on the stack onto the output until open parenthesis
+ *          is encountered
+ *       b. Pop the open parenthesis from the stack, but not onto the output
+ *       c. If the stack runs out, there is a mismatched parenthesis error
+ *  - When there are no more tokens to be read:
+ *    While there are operators on the operator stack:
+ *       a. If the operator is a parenthesis, there is a mismatched parenthesis
+ *          error
+ *       b. Otherwise, pop the operator onto the output
+ */
+static rstatus_t
+_option_convert_rpn(const char *val_str, char *rpn)
+{
+    const char *read_ptr = val_str;
+    char op_stack[OPTLINE_MAXLEN];
+    uint16_t op_stack_len = 0;
 
-    if (val == UINTMAX_MAX) {
-        log_error("unsigned integer option value overflows: %s", strerror(errno));
+    while (*read_ptr) {
+        switch (*read_ptr) {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            /* number, add it to the output and advance read_ptr */
+            *(rpn++) = *(read_ptr++);
+            break;
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+            /* operator */
+            *(rpn++) = ' ';
 
+            while (op_stack_len > 0 && op_stack[op_stack_len - 1] != '(' &&
+                   _option_comp_op_precedence(op_stack[op_stack_len - 1], *read_ptr)) {
+                /* stack not empty and o_2 > o_1 (see above) */
+
+                /* pop operator off stack */
+                *(rpn++) = op_stack[--op_stack_len];
+            }
+
+            /* push operator onto stack, advance read_ptr */
+            op_stack[op_stack_len++] = *(read_ptr++);
+
+            break;
+        case '(':
+            /* push parenthesis onto stack */
+            op_stack[op_stack_len++] = *(read_ptr++);
+
+            break;
+        case ')':
+            /* Pop operators until ( is encountered */
+            while (op_stack_len > 0 && op_stack[op_stack_len - 1] != '(') {
+                *(rpn++) = ' ';
+                *(rpn++) = op_stack[--op_stack_len];
+            }
+
+            if (op_stack_len == 0) {
+                /* parenthesis mismatch */
+                log_warn("option load failed: parenthesis mismatch");
+                return CC_ERROR;
+            }
+
+            ASSERT(op_stack[op_stack_len - 1] == '(');
+            --op_stack_len;
+            ++read_ptr;
+
+            break;
+        case ' ':
+        case '\t':
+            /* white space, ignore */
+            ++read_ptr;
+            break;
+        default:
+            /* unrecognized character */
+            log_warn("option load failed: unrecognized char %c in int expression",
+                     *read_ptr);
+            return CC_ERROR;
+        }
+    }
+
+    /* Pop all operators on the stack */
+    while (op_stack_len > 0) {
+        if (op_stack[op_stack_len - 1] == '(') {
+            /* mismatched parenthesis */
+            log_warn("option load failed: parenthesis mismatch");
+            return CC_ERROR;
+        }
+
+        *(rpn++) = ' ';
+        *(rpn++) = op_stack[--op_stack_len];
+    }
+
+    /* Null terminate */
+    *rpn = '\0';
+    return CC_OK;
+}
+
+/* Evaluate given reverse Polish notation expression:
+ *
+ * While there are tokens to be read:
+ *  - Read token
+ *    1. If token is a number, push onto the stack
+ *    2. Else, token is an operator
+ *       a. All valid operators take 2 operands
+ *       b. If there are fewer than 2 operands on stack, the expression is erroneous
+ *       c. Pop 2 values from the stack, evaluate the operator, then push the value
+ *          back onto the stack
+ *  - Look at the stack. If there is more than 1 value, too many values were provided
+ */
+static rstatus_t
+_option_eval_rpn(char *rpn, uintmax_t *val)
+{
+    uintmax_t stack[OPTLINE_MAXLEN];
+    uint16_t stack_len = 0;
+    char *token;
+
+    /* tokenize rpn */
+    for (token = strtok(rpn, " "); token; token = strtok(NULL, " ")) {
+        if (isdigit(token[0])) {
+            /* token is number */
+            stack[stack_len++] = atoll(token);
+        } else {
+            /* token is operand */
+            uintmax_t first, second, result;
+
+            if (stack_len < 2) {
+                log_error("RPN expression %s malformed; not enough operands.", rpn);
+                return CC_ERROR;
+            }
+
+            second = stack[--stack_len];
+            first = stack[--stack_len];
+
+            switch (token[0]) {
+            case '+':
+                result = first + second;
+
+                if (result < first) {
+                    /* integer overflow */
+                    log_warn("integer expression causes overflow when evaluated");
+                    return CC_ERROR;
+                }
+
+                break;
+            case '-':
+                result = first - second;
+
+                if (result > first) {
+                    /* subtraction causes op2 to be negative */
+                    log_warn("unsigned integer expression contains negative number");
+                    return CC_ERROR;
+                }
+
+                break;
+            case '*':
+                result = first * second;
+
+                if (first != 0 && result / first != second) {
+                    /* overflow */
+                    log_warn("integer expression causes overflow when evaluated");
+                    return CC_ERROR;
+                }
+
+                break;
+            case '/':
+                if (second == 0) {
+                    /* divide by zero */
+                    log_warn("integer expression causes divide by zero when evaluated");
+                    return CC_ERROR;
+                }
+
+                result = first / second;
+                break;
+            default:
+                NOT_REACHED();
+                result = 0;
+            }
+
+            stack[stack_len++] = result;
+        }
+    }
+
+    if (stack_len != 1) {
+        log_error("RPN expression %s malformed; too many operands.", rpn);
         return CC_ERROR;
     }
 
-    if ((size_t)(endptr - val_str) < strlen(val_str)) {
-        log_error("unsigned int option value %s cannot be parsed completely: "
-                "%s, stopped at position %zu", val_str, strerror(errno),
-                endptr - val_str);
+    *val = stack[0];
+    return CC_OK;
+}
 
+/* Evaluate integer expression. We do this by taking the following steps:
+ *  1. convert val_str to reverse Polish notation (RPN)
+ *  2. evaluate RPN expression
+ */
+static rstatus_t
+_option_eval_int_expr(const char *val_str, uintmax_t *val)
+{
+    char rpn[OPTLINE_MAXLEN];
+    rstatus_t ret;
+
+    ASSERT(val_str != NULL);
+    ASSERT(val != NULL);
+
+    ret = _option_convert_rpn(val_str, rpn);
+
+    if (ret != CC_OK) {
+        log_warn("invalid integer expression %s", val_str);
+        return ret;
+    }
+
+    ret = _option_eval_rpn(rpn, val);
+    return ret;
+}
+
+static rstatus_t
+_option_parse_uint(struct option *opt, const char *val_str)
+{
+    uintmax_t val = 0;
+
+    if (_option_eval_int_expr(val_str, &val) != CC_OK) {
+        log_error("option value %s could not be parsed as an integer expression",
+                  val_str);
         return CC_ERROR;
     }
 
@@ -261,7 +495,7 @@ option_load_default(struct option options[], unsigned int nopt)
     for (i = 0; i < nopt; i++, opt++) {
         status = option_set(opt, opt->default_val_str);
         if (status != CC_OK) {
-            log_error("error loading default value %s into option type %d",
+            loga("error loading default value %s into option type %d",
                     opt->default_val_str, opt->type);
 
             return CC_ERROR;
@@ -327,4 +561,3 @@ option_load_file(FILE *fp, struct option options[], unsigned int nopt)
 
     return CC_OK;
 }
-

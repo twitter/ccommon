@@ -44,7 +44,7 @@ extern "C" {
 #define CRLF_LEN        (uint32_t) (sizeof(CRLF) - 1)
 
 /* unit */
-#define KiB             (1024)
+#define KiB             1024
 #define MiB             (1024 * KiB)
 #define GiB             (1024 * MiB)
 
