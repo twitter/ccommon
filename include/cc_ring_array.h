@@ -32,7 +32,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct ring_array;
+struct ring_array {
+    size_t      elem_size;         /* element size */
+    uint32_t    cap;               /* total capacity (# items stored + 1) */
+    uint32_t    rpos;              /* read offset */
+    uint32_t    wpos;              /* write offset */
+    union {
+        size_t  pad;               /* using a size_t member to force alignment at
+                                      native word boundary */
+        uint8_t data[1];           /* beginning of array */
+    };
+};
+
 
 /* push an element into the array */
 rstatus_t ring_array_push(const void *elem, struct ring_array *arr);
@@ -41,7 +52,7 @@ rstatus_t ring_array_push(const void *elem, struct ring_array *arr);
 rstatus_t ring_array_pop(void *elem, struct ring_array *arr);
 
 /* creation/destruction */
-struct ring_array *ring_array_create(size_t elem_size, uint32_t size);
+struct ring_array *ring_array_create(size_t elem_size, uint32_t cap);
 void ring_array_destroy(struct ring_array *arr);
 
 #endif /* _CC_RING_ARRAY_H_ */
