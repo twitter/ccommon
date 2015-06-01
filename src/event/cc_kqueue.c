@@ -28,6 +28,8 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+#include "cc_shared.h"
+
 struct event_base {
     int           kq;           /* kernel event queue descriptor */
 
@@ -143,9 +145,11 @@ event_add_read(struct event_base *evb, int fd, void *data)
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, data);
     kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
-    evb->nchange = 0;
 
     log_verb("adding read event at %p, nchange %d", event, evb->nchange);
+
+    evb->nchange = 0;
+    INCR(event_metrics, event_read);
 
     return 0;
 }
@@ -163,9 +167,11 @@ event_add_write(struct event_base *evb, int fd, void *data)
     event = &evb->change[evb->nchange++];
     EV_SET(event, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, data);
     kevent(evb->kq, evb->change, evb->nchange, NULL, 0, NULL);
-    evb->nchange = 0;
 
     log_verb("adding write event at %p, nchange %d", event, evb->nchange);
+
+    evb->nchange = 0;
+    INCR(event_metrics, event_write);
 
     return 0;
 }
@@ -236,8 +242,10 @@ event_wait(struct event_base *evb, int timeout)
          */
         evb->nreturned = kevent(kq, evb->change, evb->nchange, evb->event,
                                 evb->nevent, tsp);
+        INCR(event_metrics, event_loop);
         evb->nchange = 0;
         if (evb->nreturned > 0) {
+            INCR_N(event_metrics, event_total, evb->nreturned);
             for (evb->nprocessed = 0; evb->nprocessed < evb->nreturned;
                 evb->nprocessed++) {
                 struct kevent *ev = &evb->event[evb->nprocessed];

@@ -30,6 +30,8 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+#include "cc_shared.h"
+
 /*
  * glibc added EPOLLRDHUP much later than the kernel support,
  * so we may need to define it ourselves
@@ -143,6 +145,7 @@ int event_add_read(struct event_base *evb, int fd, void *data)
                 strerror(errno));
     }
 
+    INCR(event_metrics, event_read);
     log_verb("add read event to epoll fd %d on fd %d", ep, fd);
 
     return status;
@@ -173,6 +176,7 @@ event_add_write(struct event_base *evb, int fd, void *data)
                 status, strerror(errno));
     }
 
+    INCR(event_metrics, event_write);
     log_verb("add write event to epoll fd %d on fd %d", ep, fd);
 
     return status;
@@ -258,7 +262,9 @@ event_wait(struct event_base *evb, int timeout)
         int i, nreturned;
 
         nreturned = epoll_wait(ep, ev_arr, nevent, timeout);
+        INCR(event_metrics, event_loop);
         if (nreturned > 0) {
+            INCR_N(event_metrics, event_total);
             for (i = 0; i < nreturned; i++) {
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;

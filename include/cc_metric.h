@@ -25,27 +25,42 @@ extern "C" {
 #include <cc_define.h>
 
 #include <inttypes.h>
+#include <stddef.h>
 
 #if defined CC_STATS && CC_STATS == 1
 
-#define metric_incr_n(_c, _d) do {                                  \
-    if ((_c)->type == METRIC_COUNTER) {                             \
-         __atomic_add_fetch(&(_c)->counter, (_d), __ATOMIC_RELAXED);\
-    } else if ((_c)->type == METRIC_GAUGE) {                        \
-         __atomic_add_fetch(&(_c)->gauge, (_d), __ATOMIC_RELAXED);  \
-    } else { /* error  */                                           \
-    }                                                               \
+#define metric_incr_n(_metric, _delta) do {                                 \
+    if ((_metric).type == METRIC_COUNTER) {                                 \
+         __atomic_add_fetch(&(_metric).counter, (_delta), __ATOMIC_RELAXED);\
+    } else if ((_metric).type == METRIC_GAUGE) {                            \
+         __atomic_add_fetch(&(_metric).gauge, (_delta), __ATOMIC_RELAXED);  \
+    } else { /* error  */                                                   \
+    }                                                                       \
 } while(0)
-#define metric_incr(_c) metric_incr_n(_c, 1)
+#define metric_incr(_metric) metric_incr_n(_metric, 1)
 
-
-#define metric_decr_n(_c, _d) do {                                  \
-    if ((_c)->type == METRIC_GAUGE) {                               \
-         __atomic_sub_fetch(&(_c)->gauge, (_d), __ATOMIC_RELAXED);  \
-    } else { /* error  */                                           \
-    }                                                               \
+#define INCR_N(_base, _metric, _delta) do {                                 \
+    if ((_base) != NULL) {                                                  \
+         metric_incr_n((_base)->_metric, _delta);                           \
+    }                                                                       \
 } while(0)
-#define metric_decr(_c) metric_decr_n(_c, 1)
+#define INCR(_base, _metric) INCR_N(_base, _metric, 1)
+
+#define metric_decr_n(_metric, _delta) do {                                 \
+    if ((_metric).type == METRIC_GAUGE) {                                   \
+         __atomic_sub_fetch(&(_metric).gauge, (_delta), __ATOMIC_RELAXED);  \
+    } else { /* error  */                                                   \
+    }                                                                       \
+} while(0)
+#define metric_decr(_metric) metric_decr_n(_metric, 1)
+
+#define DECR_N(_base, _metric, _delta) do {                                 \
+    if ((_base) != NULL) {                                                  \
+         metric_decr_n((_base)->_metric, _delta);                           \
+    }                                                                       \
+} while(0)
+#define DECR(_base, _metric) INCR_N(_base, _metric, 1)
+
 
 #define METRIC_DECLARE(_name, _type, _description)   \
     struct metric _name;
@@ -58,10 +73,10 @@ extern "C" {
 
 #else
 
-#define metric_incr(_c)
-#define metric_incr_n(_c, _d)
-#define metric_decr(_c)
-#define metric_decr_n(_c, _d)
+#define metric_incr(_metric)
+#define metric_incr_n(_metric, _delta)
+#define metric_decr(_metric)
+#define metric_decr_n(_metric, _delta)
 
 #define METRIC_DECLARE(_name, _type, _description)
 #define METRIC_INIT(_name, _type, _description)

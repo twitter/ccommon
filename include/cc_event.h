@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include <cc_define.h>
+#include <cc_metric.h>
 
 #include <inttypes.h>
 
@@ -32,9 +33,23 @@ extern "C" {
 #define EVENT_WRITE 0x00ff00
 #define EVENT_ERR   0xff0000
 
+/*          name                type            description */
+#define EVENT_METRIC(ACTION)                                            \
+    ACTION( event_total,        METRIC_COUNTER, "# events returned"    )\
+    ACTION( event_loop,         METRIC_COUNTER, "# event loop returns" )\
+    ACTION( event_read,         METRIC_COUNTER, "# reads registered"   )\
+    ACTION( event_write,        METRIC_COUNTER, "# writes registered"  )
+
+typedef struct {
+    EVENT_METRIC(METRIC_DECLARE)
+} event_metric_st;
+
 typedef void (*event_cb_t)(void *, uint32_t);  /* event callback */
 
 struct event_base;
+
+void event_setup(event_metric_st *metrics);
+void event_teardown(void);
 
 /* event base */
 struct event_base *event_base_create(int size, event_cb_t cb);

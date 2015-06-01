@@ -85,6 +85,7 @@ set (SOURCE
     src/buffer/cc_buf.c
     src/buffer/cc_dbuf.c
     src/channel/cc_tcp.c
+    src/event/cc_shared.c
     src/hash/cc_hash.c
     src/hash/cc_lookup3.c
     src/stats/cc_metric.c

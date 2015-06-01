@@ -42,6 +42,35 @@ extern "C" {
 #define TCP_BACKLOG  128
 #define TCP_POOLSIZE 0 /* unlimited */
 
+/*          name                type            description */
+#define TCP_METRIC(ACTION)                                                      \
+    ACTION( tcp_conn_created,   METRIC_COUNTER, "# tcp connections created"    )\
+    ACTION( tcp_conn_create_ex, METRIC_COUNTER, "# tcp conn create exceptions" )\
+    ACTION( tcp_conn_destroyed, METRIC_COUNTER, "# tcp connections destroyed"  )\
+    ACTION( tcp_conn_total,     METRIC_GAUGE,   "# tcp conn allocated"         )\
+    ACTION( tcp_conn_borrowed,  METRIC_COUNTER, "# tcp connections borrowed"   )\
+    ACTION( tcp_conn_borrow_ex, METRIC_COUNTER, "# tcp conn borrow exceptions" )\
+    ACTION( tcp_conn_returned,  METRIC_COUNTER, "# tcp connections returned"   )\
+    ACTION( tcp_conn_active,    METRIC_GAUGE,   "# tcp conn being borrowed"    )\
+    ACTION( tcp_accept,         METRIC_COUNTER, "# tcp connection accepts"     )\
+    ACTION( tcp_accept_ex,      METRIC_COUNTER, "# tcp accept exceptions"      )\
+    ACTION( tcp_reject,         METRIC_COUNTER, "# tcp connection rejects"     )\
+    ACTION( tcp_reject_ex,      METRIC_COUNTER, "# tcp reject exceptions"      )\
+    ACTION( tcp_connect,        METRIC_COUNTER, "# tcp connects made"          )\
+    ACTION( tcp_connect_ex,     METRIC_COUNTER, "# tcp connect exceptions "    )\
+    ACTION( tcp_close,          METRIC_COUNTER, "# tcp connection closed"      )\
+    ACTION( tcp_recv,           METRIC_COUNTER, "# recv attempted"             )\
+    ACTION( tcp_recv_ex,        METRIC_COUNTER, "# recv exceptions"            )\
+    ACTION( tcp_recv_byte,      METRIC_COUNTER, "# bytes received"             )\
+    ACTION( tcp_send,           METRIC_COUNTER, "# send attempted"             )\
+    ACTION( tcp_send_ex,        METRIC_COUNTER, "# send exceptions"            )\
+    ACTION( tcp_send_byte,      METRIC_COUNTER, "# bytes sent"                 )
+
+typedef struct {
+    TCP_METRIC(METRIC_DECLARE)
+} tcp_metric_st;
+
+
 /*          name            type                default             description */
 #define TCP_OPTION(ACTION)                                                                  \
     ACTION( tcp_backlog,   OPTION_TYPE_UINT,   str(TCP_BACKLOG),  "tcp conn backlog limit" )\
@@ -55,7 +84,7 @@ extern "C" {
 #define CONN_CLOSING    4
 #define CONN_LISTEN     5
 
-/* struct conn is subjected to code refactoring when we implement more channels */
+/* TODO(yao): make struct conn tcp specific */
 struct conn {
     STAILQ_ENTRY(conn)  next;           /* for conn pool */
     bool                free;           /* in use? */
@@ -73,10 +102,11 @@ struct conn {
     err_t               err;            /* errno */
 };
 
-void tcp_setup(int backlog);
+void tcp_setup(int backlog, tcp_metric_st *metrics);
 void tcp_teardown(void);
 
 void conn_reset(struct conn *c);
+
 /* resource management */
 struct conn *conn_create(void);     /* channel_get_fn, with allocation */
 void conn_destroy(struct conn **c); /* channel_put_fn, with deallocation  */

@@ -41,15 +41,17 @@ static struct conn_pool cp;
 
 static bool tcp_init = false;
 static bool cp_init = false;
+static tcp_metric_st *tcp_metrics = NULL;
 static int max_backlog = TCP_BACKLOG;
 
 void
-tcp_setup(int backlog)
+tcp_setup(int backlog, tcp_metric_st *metrics)
 {
     log_info("set up the %s module", TCP_MODULE_NAME);
     log_debug("conn size %zu", sizeof(struct conn));
 
     max_backlog = backlog;
+    tcp_metrics = metrics;
     if (tcp_init) {
         log_warn("%s has already been setup, overwrite", TCP_MODULE_NAME);
     }
@@ -64,6 +66,7 @@ tcp_teardown(void)
     if (!tcp_init) {
         log_warn("%s has never been setup", TCP_MODULE_NAME);
     }
+    tcp_metrics = NULL;
     tcp_init = false;
 }
 
@@ -93,11 +96,14 @@ conn_create(void)
 
     if (c == NULL) {
         log_info("connection creation failed due to OOM");
+        INCR(tcp_metrics, tcp_conn_create_ex);
     } else {
         log_verb("created conn %p", c);
     }
 
     conn_reset(c);
+    INCR(tcp_metrics, tcp_conn_created);
+    INCR(tcp_metrics, tcp_conn_total);
 
     return c;
 }
@@ -116,6 +122,8 @@ conn_destroy(struct conn **conn)
     cc_free(c);
 
     *conn = NULL;
+    INCR(tcp_metrics, tcp_conn_destroyed);
+    DECR(tcp_metrics, tcp_conn_total);
 }
 
 void
@@ -173,11 +181,14 @@ conn_borrow(void)
     FREEPOOL_BORROW(c, &cp, next, conn_create);
 
     if (c == NULL) {
+        INCR(tcp_metrics, tcp_conn_borrow_ex);
         log_debug("borrow conn failed: OOM or over limit");
         return NULL;
     }
 
     conn_reset(c);
+    INCR(tcp_metrics, tcp_conn_borrowed);
+    INCR(tcp_metrics, tcp_conn_active);
 
     log_verb("borrow conn %p", c);
 
@@ -199,6 +210,8 @@ conn_return(struct conn **conn)
     FREEPOOL_RETURN(&cp, c, next);
 
     *conn = NULL;
+    INCR(tcp_metrics, tcp_conn_returned);
+    DECR(tcp_metrics, tcp_conn_active);
 }
 
 bool
@@ -209,6 +222,7 @@ tcp_connect(struct addrinfo *ai, struct conn *c)
     ASSERT(c != NULL);
 
     c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    INCR(tcp_metrics, tcp_connect);
     if (c->sd < 0) {
 	log_error("socket create for conn %p failed: %s", c, strerror(errno));
 
@@ -233,6 +247,9 @@ tcp_connect(struct addrinfo *ai, struct conn *c)
         }
 
         c->state = CONN_CONNECT;
+        /* TODO(yao): if connect fails we should get an event with error mask,
+         * figure out how to update metrics properly in that case.
+         */
         log_info("connecting on c %p sd %d", c, c->sd);
     } else {
         c->state = CONN_CONNECTED;
@@ -255,6 +272,7 @@ error:
     if (c->sd > 0) {
         close(c->sd);
     }
+    INCR(tcp_metrics, tcp_connect_ex);
 
     return false;
 }
@@ -314,14 +332,18 @@ error:
 void
 tcp_close(struct conn *c)
 {
+    int ret;
+
     if (c == NULL) {
         return;
     }
 
     log_info("closing conn %p sd %d", c, c->sd);
 
-    if (c->sd >= 0) {
-        close(c->sd);
+    INCR(tcp_metrics, tcp_close);
+    ret = close(c->sd);
+    if (ret < 0) {
+        log_warn("close c %d failed, ignored: %s", c->sd, strerror(errno));
     }
 }
 
@@ -336,14 +358,12 @@ _tcp_accept(struct conn *sc)
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
             if (errno == EINTR) {
-                log_debug("accept on sd %d not ready: eintr",
-                        sc->sd);
+                log_debug("accept on sd %d not ready: eintr", sc->sd);
                 continue;
             }
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                log_debug("accept on sd %d not ready - eagain",
-                        sc->sd);
+                log_debug("accept on sd %d not ready: eagain", sc->sd);
                 return -1;
             }
 
@@ -363,8 +383,11 @@ tcp_accept(struct conn *sc, struct conn *c)
     int sd;
 
     sd = _tcp_accept(sc);
+    INCR(tcp_metrics, tcp_accept);
     if (sd < 0) {
         log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
+        INCR(tcp_metrics, tcp_accept_ex);
+
         return false;
     }
 
@@ -395,14 +418,17 @@ tcp_reject(struct conn *sc)
     int ret;
     int sd;
 
+    INCR(tcp_metrics, tcp_reject);
     sd = _tcp_accept(sc);
     if (sd < 0) {
+        INCR(tcp_metrics, tcp_reject_ex);
         return;
     }
 
     ret = close(sd);
     if (ret < 0) {
-        log_error("close c %d failed, ignored: %s", sd, strerror(errno));
+        INCR(tcp_metrics, tcp_reject_ex);
+        log_warn("close c %d failed, ignored: %s", sd, strerror(errno));
     }
 }
 
@@ -618,12 +644,14 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
 
     for (;;) {
         n = read(c->sd, buf, nbyte);
+        INCR(tcp_metrics, tcp_recv);
 
         log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
             log_verb("%zu bytes recv'd on sd %d", n, c->sd);
             c->recv_nbyte += (size_t)n;
+            INCR_N(tcp_metrics, tcp_recv_byte, n);
             return n;
         }
 
@@ -635,6 +663,7 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
         }
 
         /* n < 0 */
+        INCR(tcp_metrics, tcp_recv_ex);
         if (errno == EINTR) {
             log_debug("recv on sd %d not ready - EINTR", c->sd);
             continue;
@@ -671,13 +700,14 @@ tcp_recvv(struct conn *c, struct array *bufv, size_t nbyte)
 
     for (;;) {
         n = readv(c->sd, (const struct iovec *)bufv->data, bufv->nelem);
+        INCR(tcp_metrics, tcp_recv);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
             c->recv_nbyte += (size_t)n;
-
+            INCR_N(tcp_metrics, tcp_recv, n);
             return n;
         }
 
@@ -687,6 +717,8 @@ tcp_recvv(struct conn *c, struct array *bufv, size_t nbyte)
             return 0;
         }
 
+        /* n < 0 */
+        INCR(tcp_metrics, tcp_recv_ex);
         if (errno == EINTR) {
             log_verb("recvv on sd %d not ready - eintr", c->sd);
             continue;
@@ -724,29 +756,32 @@ tcp_send(struct conn *c, void *buf, size_t nbyte)
 
     for (;;) {
         n = write(c->sd, buf, nbyte);
+        INCR(tcp_metrics, tcp_send);
 
         log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
+            INCR_N(tcp_metrics, tcp_send_byte, n);
             c->send_nbyte += (size_t)n;
             return n;
         }
 
         if (n == 0) {
-            log_warn("sendv on sd %d returned zero", c->sd);
+            log_warn("write on sd %d returned zero", c->sd);
             return 0;
         }
 
         /* n < 0 */
+        INCR(tcp_metrics, tcp_send_ex);
         if (errno == EINTR) {
-            log_verb("send on sd %d not ready - EINTR", c->sd);
+            log_verb("write on sd %d not ready - EINTR", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_verb("send on sd %d not ready - EAGAIN", c->sd);
+            log_verb("write on sd %d not ready - EAGAIN", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;
-            log_error("sendv on sd %d failed: %s", c->sd, strerror(errno));
+            log_error("write on sd %d failed: %s", c->sd, strerror(errno));
             return CC_ERROR;
         }
     }
@@ -775,12 +810,14 @@ tcp_sendv(struct conn *c, struct array *bufv, size_t nbyte)
 
     for (;;) {
         n = writev(c->sd, (const struct iovec *)bufv->data, bufv->nelem);
+        INCR(tcp_metrics, tcp_send_ex);
 
-        log_verb("sendv on sd %d %zd of %zu in %"PRIu32" buffers",
+        log_verb("writev on sd %d %zd of %zu in %"PRIu32" buffers",
                   c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
             c->send_nbyte += (size_t)n;
+            INCR_N(tcp_metrics, tcp_send_byte, n);
             return n;
         }
 
@@ -789,6 +826,8 @@ tcp_sendv(struct conn *c, struct array *bufv, size_t nbyte)
             return 0;
         }
 
+        /* n < 0, error */
+        INCR(tcp_metrics, tcp_send_ex);
         if (errno == EINTR) {
             log_verb("sendv on sd %d not ready - eintr", c->sd);
             continue;
