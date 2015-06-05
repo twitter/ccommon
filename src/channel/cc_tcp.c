@@ -36,8 +36,8 @@
 
 #define TCP_MODULE_NAME "ccommon::tcp"
 
-FREEPOOL(conn_pool, cq, conn);
-static struct conn_pool cp;
+FREEPOOL(tcp_conn_pool, cq, tcp_conn);
+static struct tcp_conn_pool cp;
 
 static bool tcp_init = false;
 static bool cp_init = false;
@@ -48,7 +48,7 @@ void
 tcp_setup(int backlog, tcp_metric_st *metrics)
 {
     log_info("set up the %s module", TCP_MODULE_NAME);
-    log_debug("conn size %zu", sizeof(struct conn));
+    log_debug("tcp_conn size %zu", sizeof(struct tcp_conn));
 
     max_backlog = backlog;
     tcp_metrics = metrics;
@@ -71,37 +71,36 @@ tcp_teardown(void)
 }
 
 void
-conn_reset(struct conn *c)
+tcp_conn_reset(struct tcp_conn *c)
 {
     STAILQ_NEXT(c, next) = NULL;
     c->free = false;
 
-    c->type = CHANNEL_TCP;
     c->level = CHANNEL_INVALID;
     c->sd = 0;
 
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->state = CONN_UNKNOWN;
+    c->state = TCP_UNKNOWN;
     c->flags = 0;
 
     c->err = 0;
 }
 
-struct conn *
-conn_create(void)
+struct tcp_conn *
+tcp_conn_create(void)
 {
-    struct conn *c = (struct conn *)cc_alloc(sizeof(struct conn));
+    struct tcp_conn *c = (struct tcp_conn *)cc_alloc(sizeof(struct tcp_conn));
 
     if (c == NULL) {
         log_info("connection creation failed due to OOM");
         INCR(tcp_metrics, tcp_conn_create_ex);
     } else {
-        log_verb("created conn %p", c);
+        log_verb("created tcp_conn %p", c);
     }
 
-    conn_reset(c);
+    tcp_conn_reset(c);
     INCR(tcp_metrics, tcp_conn_created);
     INCR(tcp_metrics, tcp_conn_total);
 
@@ -109,15 +108,15 @@ conn_create(void)
 }
 
 void
-conn_destroy(struct conn **conn)
+tcp_conn_destroy(struct tcp_conn **conn)
 {
-    struct conn *c = *conn;
+    struct tcp_conn *c = *conn;
 
     if (c == NULL) {
         return;
     }
 
-    log_verb("destroy conn %p", c);
+    log_verb("destroy tcp_conn %p", c);
 
     cc_free(c);
 
@@ -127,13 +126,13 @@ conn_destroy(struct conn **conn)
 }
 
 void
-conn_pool_create(uint32_t max)
+tcp_conn_pool_create(uint32_t max)
 {
     if (!cp_init) {
         uint32_t i;
-        struct conn *c;
+        struct tcp_conn *c;
 
-        log_info("creating conn pool: max %"PRIu32, max);
+        log_info("creating tcp_conn pool: max %"PRIu32, max);
 
         FREEPOOL_CREATE(&cp, max);
         cp_init = true;
@@ -144,67 +143,67 @@ conn_pool_create(uint32_t max)
         }
 
         for (i = 0; i < max; ++i) {
-            c = conn_create();
+            c = tcp_conn_create();
             if (c == NULL) {
-                log_crit("cannot preallocate conn pool due to OOM, abort");
+                log_crit("cannot preallocate tcp_conn pool due to OOM, abort");
                 exit(EXIT_FAILURE);
             }
             c->free = true;
             FREEPOOL_RETURN(&cp, c, next);
         }
     } else {
-        log_warn("conn pool has already been created, ignore");
+        log_warn("tcp_conn pool has already been created, ignore");
     }
 }
 
 void
-conn_pool_destroy(void)
+tcp_conn_pool_destroy(void)
 {
-    struct conn *c, *tc;
+    struct tcp_conn *c, *tc;
 
     if (cp_init) {
-        log_info("destroying conn pool: free %"PRIu32, cp.nfree);
+        log_info("destroying tcp_conn pool: free %"PRIu32, cp.nfree);
 
-        FREEPOOL_DESTROY(c, tc, &cp, next, conn_destroy);
+        FREEPOOL_DESTROY(c, tc, &cp, next, tcp_conn_destroy);
         cp_init = false;
     } else {
-        log_warn("conn pool was never created, ignore");
+        log_warn("tcp_conn pool was never created, ignore");
     }
 
 }
 
-struct conn *
-conn_borrow(void)
+struct tcp_conn *
+tcp_conn_borrow(void)
 {
-    struct conn *c;
+    struct tcp_conn *c;
 
-    FREEPOOL_BORROW(c, &cp, next, conn_create);
+    FREEPOOL_BORROW(c, &cp, next, tcp_conn_create);
 
     if (c == NULL) {
         INCR(tcp_metrics, tcp_conn_borrow_ex);
-        log_debug("borrow conn failed: OOM or over limit");
+        log_debug("borrow tcp_conn failed: OOM or over limit");
         return NULL;
     }
 
-    conn_reset(c);
+    tcp_conn_reset(c);
     INCR(tcp_metrics, tcp_conn_borrowed);
     INCR(tcp_metrics, tcp_conn_active);
 
-    log_verb("borrow conn %p", c);
+    log_verb("borrow tcp_conn %p", c);
 
     return c;
 }
 
 void
-conn_return(struct conn **conn)
+tcp_conn_return(struct tcp_conn **conn)
 {
-    struct conn *c = *conn;
+    struct tcp_conn *c = *conn;
 
     if (c == NULL || c->free) {
         return;
     }
 
-    log_verb("return conn %p", c);
+    log_verb("return tcp_conn %p", c);
 
     c->free = true;
     FREEPOOL_RETURN(&cp, c, next);
@@ -215,7 +214,7 @@ conn_return(struct conn **conn)
 }
 
 bool
-tcp_connect(struct addrinfo *ai, struct conn *c)
+tcp_connect(struct addrinfo *ai, struct tcp_conn *c)
 {
     int ret;
 
@@ -224,7 +223,7 @@ tcp_connect(struct addrinfo *ai, struct conn *c)
     c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     INCR(tcp_metrics, tcp_connect);
     if (c->sd < 0) {
-	log_error("socket create for conn %p failed: %s", c, strerror(errno));
+	log_error("socket create for tcp_conn %p failed: %s", c, strerror(errno));
 
         goto error;
     }
@@ -246,13 +245,13 @@ tcp_connect(struct addrinfo *ai, struct conn *c)
             goto error;
         }
 
-        c->state = CONN_CONNECT;
-        /* TODO(yao): if connect fails we should get an event with error mask,
+        c->state = TCP_CONNECT;
+        /* TODO(yao): if tcp_connect fails we should get an event with error mask,
          * figure out how to update metrics properly in that case.
          */
         log_info("connecting on c %p sd %d", c, c->sd);
     } else {
-        c->state = CONN_CONNECTED;
+        c->state = TCP_CONNECTED;
         log_info("connected on c %p sd %d", c, c->sd);
     }
 
@@ -278,10 +277,10 @@ error:
 }
 
 bool
-tcp_listen(struct addrinfo *ai, struct conn *c)
+tcp_listen(struct addrinfo *ai, struct tcp_conn *c)
 {
     int ret;
-    ch_id_t sd;
+    int sd;
 
     c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (c->sd < 0) {
@@ -316,7 +315,7 @@ tcp_listen(struct addrinfo *ai, struct conn *c)
     }
 
     c->level = CHANNEL_META;
-    c->state = CONN_LISTEN;
+    c->state = TCP_LISTEN;
     log_info("server listen setup on socket descriptor %d", c->sd);
 
     return true;
@@ -330,7 +329,7 @@ error:
 }
 
 void
-tcp_close(struct conn *c)
+tcp_close(struct tcp_conn *c)
 {
     int ret;
 
@@ -338,7 +337,7 @@ tcp_close(struct conn *c)
         return;
     }
 
-    log_info("closing conn %p sd %d", c, c->sd);
+    log_info("closing tcp_conn %p sd %d", c, c->sd);
 
     INCR(tcp_metrics, tcp_close);
     ret = close(c->sd);
@@ -348,13 +347,13 @@ tcp_close(struct conn *c)
 }
 
 static inline int
-_tcp_accept(struct conn *sc)
+_tcp_accept(struct tcp_conn *sc)
 {
     int sd;
 
     ASSERT(sc->sd > 0);
 
-    for (;;) { /* we accept at most one conn with the 'break' at the end */
+    for (;;) { /* we accept at most one tcp_conn with the 'break' at the end */
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
             if (errno == EINTR) {
@@ -377,7 +376,7 @@ _tcp_accept(struct conn *sc)
 }
 
 bool
-tcp_accept(struct conn *sc, struct conn *c)
+tcp_accept(struct tcp_conn *sc, struct tcp_conn *c)
 {
     int ret;
     int sd;
@@ -393,7 +392,7 @@ tcp_accept(struct conn *sc, struct conn *c)
 
     c->sd = sd;
     c->level = CHANNEL_BASE;
-    c->state = CONN_CONNECTED;
+    c->state = TCP_CONNECTED;
 
     ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
@@ -413,7 +412,7 @@ tcp_accept(struct conn *sc, struct conn *c)
 }
 
 void
-tcp_reject(struct conn *sc)
+tcp_reject(struct tcp_conn *sc)
 {
     int ret;
     int sd;
@@ -628,12 +627,12 @@ tcp_get_soerror(int sd)
 
 
 /*
- * try reading nbyte bytes from conn and place the data in buf
+ * try reading nbyte bytes from tcp_conn and place the data in buf
  * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
  * returned as a generic error/failure.
  */
 ssize_t
-tcp_recv(struct conn *c, void *buf, size_t nbyte)
+tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
 {
     ssize_t n;
 
@@ -656,7 +655,7 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            c->state = CONN_EOF;
+            c->state = TCP_EOF;
             log_debug("eof recv'd on sd %d, total: rb %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;
@@ -686,7 +685,7 @@ tcp_recv(struct conn *c, void *buf, size_t nbyte)
  * vector version of tcp_recv, using readv to read into a mbuf array
  */
 ssize_t
-tcp_recvv(struct conn *c, struct array *bufv, size_t nbyte)
+tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with tcp_recv except for the call
      * to readv. Consolidate the two?
@@ -740,12 +739,12 @@ tcp_recvv(struct conn *c, struct array *bufv, size_t nbyte)
 }
 
 /*
- * try writing nbyte to conn and store the data in buf
+ * try writing nbyte to tcp_conn and store the data in buf
  * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
  * returned as a generic error/failure.
  */
 ssize_t
-tcp_send(struct conn *c, void *buf, size_t nbyte)
+tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
 {
     ssize_t n;
 
@@ -795,7 +794,7 @@ tcp_send(struct conn *c, void *buf, size_t nbyte)
  * vector version of tcp_send, using writev to send an array of bufs
  */
 ssize_t
-tcp_sendv(struct conn *c, struct array *bufv, size_t nbyte)
+tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
 {
     /* TODO(yao): this is almost identical with tcp_send except for the call
      * to writev. Consolidate the two? Revisit these functions when we build

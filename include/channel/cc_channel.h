@@ -58,24 +58,16 @@ extern "C" {
  * request from a client.
  */
 
+/* channel related data types */
+typedef void * channel_t;
+typedef void * address_t;
+typedef void * ch_id_t;
+
 typedef enum channel_level {
     CHANNEL_INVALID,
     CHANNEL_META,
     CHANNEL_BASE
 } ch_level_t;
-
-typedef enum channel_type {
-    CHANNEL_TCP,
-    CHANNEL_UDP,  /* not implemented */
-    CHANNEL_UDS,  /* not implemented */
-    CHANNEL_PIPE, /* not implemented */
-    CHANNEL_SHM   /* not implemented */
-} ch_type_t;
-
-/* channel related data types */
-typedef void * channel_t;
-typedef void * address_t;
-typedef int ch_id_t;
 
 /**
  * To give implementation a chance to explicitly manage memory, we separate out

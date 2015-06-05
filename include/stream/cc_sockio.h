@@ -38,6 +38,10 @@
  * driven framework.
  */
 
+
+/* NOTE(kyang): until we figure out a common conn interface, cc_sockio and buf_sock
+   will be for TCP connections only */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,7 +69,7 @@ struct buf_sock {
     void                    *data;  /* generic data field to be used by app */
     channel_handler_t       *hdl;   /* use can specify per-channel action */
 
-    struct conn             *ch;
+    struct tcp_conn         *ch;
     struct buf              *rbuf;
     struct buf              *wbuf;
 };

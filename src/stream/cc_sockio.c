@@ -50,14 +50,13 @@ buf_tcp_read(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct conn *c = (struct conn *)s->ch;
+    struct tcp_conn *c = (struct tcp_conn *)s->ch;
     channel_handler_t *h = s->hdl;
     struct buf *buf = s->rbuf;
     rstatus_t status = CC_OK;
     ssize_t cap, n;
 
     ASSERT(c != NULL && h != NULL && buf != NULL);
-    ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->recv != NULL);
 
     cap = buf_wsize(buf);
@@ -75,7 +74,7 @@ buf_tcp_read(struct buf_sock *s)
         }
     } else if (n == 0) {
         status = CC_ERDHUP;
-        c->state = CONN_EOF;
+        c->state = TCP_EOF;
     } else if (n == cap) {
         status = CC_ERETRY;
     } else {
@@ -95,14 +94,13 @@ buf_tcp_write(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct conn *c = (struct conn *)s->ch;
+    struct tcp_conn *c = (struct tcp_conn *)s->ch;
     channel_handler_t *h = s->hdl;
     struct buf *buf = s->wbuf;
     rstatus_t status = CC_OK;
     size_t cap, n;
 
     ASSERT(c != NULL && h != NULL && buf != NULL);
-    ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->send != NULL);
 
     cap = buf_rsize(buf);
@@ -142,14 +140,13 @@ dbuf_tcp_read(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct conn *c = (struct conn *)s->ch;
+    struct tcp_conn *c = (struct tcp_conn *)s->ch;
     channel_handler_t *h = s->hdl;
     struct buf *buf = s->rbuf;
     rstatus_t status = CC_OK;
     ssize_t cap, n, total_n = 0;
 
     ASSERT(c != NULL && h != NULL && buf != NULL);
-    ASSERT(c->type == CHANNEL_TCP);
     ASSERT(h->recv != NULL);
 
     /*
@@ -190,7 +187,7 @@ dbuf_tcp_read(struct buf_sock *s)
             goto tcp_read_d_done;
         } else if (n == 0) {
             status = CC_ERDHUP;
-            c->state = CONN_EOF;
+            c->state = TCP_EOF;
             goto tcp_read_d_done;
         } else {
             buf->wpos += n;
@@ -223,7 +220,7 @@ buf_sock_create(void)
     s->rbuf = NULL;
     s->wbuf = NULL;
 
-    s->ch = conn_create();
+    s->ch = tcp_conn_create();
     if (s->ch == NULL) {
         goto error;
     }
@@ -258,7 +255,7 @@ buf_sock_destroy(struct buf_sock **buf_sock)
 
     log_verb("destroy buffered socket %p", s);
 
-    conn_destroy(&s->ch);
+    tcp_conn_destroy(&s->ch);
     buf_destroy(&s->rbuf);
     buf_destroy(&s->wbuf);
     cc_free(s);
@@ -327,7 +324,7 @@ buf_sock_reset(struct buf_sock *s)
     s->data = NULL;
     s->hdl = NULL;
 
-    conn_reset(s->ch);
+    tcp_conn_reset(s->ch);
     buf_reset(s->rbuf);
     buf_reset(s->wbuf);
 }

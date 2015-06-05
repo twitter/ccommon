@@ -42,7 +42,7 @@
 extern "C" {
 #endif
 
-#include <cc_channel.h>
+#include <channel/cc_channel.h>
 
 #include <inttypes.h>
 
