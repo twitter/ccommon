@@ -41,17 +41,19 @@ static struct tcp_conn_pool cp;
 
 static bool tcp_init = false;
 static bool cp_init = false;
-static tcp_metric_st *tcp_metrics = NULL;
+static tcp_metrics_st *tcp_metrics = NULL;
 static int max_backlog = TCP_BACKLOG;
 
 void
-tcp_setup(int backlog, tcp_metric_st *metrics)
+tcp_setup(int backlog, tcp_metrics_st *metrics)
 {
     log_info("set up the %s module", TCP_MODULE_NAME);
     log_debug("tcp_conn size %zu", sizeof(struct tcp_conn));
 
     max_backlog = backlog;
     tcp_metrics = metrics;
+    TCP_METRIC_INIT(tcp_metrics);
+
     if (tcp_init) {
         log_warn("%s has already been setup, overwrite", TCP_MODULE_NAME);
     }

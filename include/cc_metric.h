@@ -102,8 +102,8 @@ typedef int64_t gauge_t;
  * during init. The benefit is we don't have to allocate the same amount of
  * memory for different types of values, potentially wasting space. */
 struct metric {
-    const char *name;
-    const metric_type_t type;
+    char *name;
+    metric_type_t type;
     union {
         counter_t counter;
         gauge_t gauge;

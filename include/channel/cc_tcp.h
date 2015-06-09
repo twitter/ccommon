@@ -68,8 +68,12 @@ extern "C" {
 
 typedef struct {
     TCP_METRIC(METRIC_DECLARE)
-} tcp_metric_st;
+} tcp_metrics_st;
 
+
+#define TCP_METRIC_INIT(_metrics) do {                          \
+    *(_metrics) = (tcp_metrics_st) { TCP_METRIC(METRIC_INIT) }; \
+} while(0)
 
 /*          name            type                default             description */
 #define TCP_OPTION(ACTION)                                                                  \
@@ -100,7 +104,7 @@ struct tcp_conn {
     err_t                   err;            /* errno */
 };
 
-void tcp_setup(int backlog, tcp_metric_st *metrics);
+void tcp_setup(int backlog, tcp_metrics_st *metrics);
 void tcp_teardown(void);
 
 void tcp_conn_reset(struct tcp_conn *c);

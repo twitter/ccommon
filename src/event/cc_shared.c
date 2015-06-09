@@ -20,17 +20,19 @@
 #include <cc_log.h>
 
 static bool event_init = false;
-event_metric_st *event_metrics = NULL;
+event_metrics_st *event_metrics = NULL;
 
 void
-event_setup(event_metric_st *metrics)
+event_setup(event_metrics_st *metrics)
 {
     log_info("set up the %s module", EVENT_MODULE_NAME);
+
+    event_metrics = metrics;
+    EVENT_METRIC_INIT(event_metrics);
 
     if (event_init) {
         log_warn("%s has already been setup, overwrite", EVENT_MODULE_NAME);
     }
-    event_metrics = metrics;
     event_init = true;
 }
 

@@ -28,7 +28,7 @@ extern "C" {
 
 #define EVENT_MODULE_NAME "ccommon::event"
 
-extern event_metric_st *event_metrics;
+extern event_metrics_st *event_metrics;
 
 #ifdef __cplusplus
 }

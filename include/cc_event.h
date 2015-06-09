@@ -42,13 +42,17 @@ extern "C" {
 
 typedef struct {
     EVENT_METRIC(METRIC_DECLARE)
-} event_metric_st;
+} event_metrics_st;
+
+#define EVENT_METRIC_INIT(_metrics) do {                            \
+    *(_metrics) = (event_metrics_st) { EVENT_METRIC(METRIC_INIT) }; \
+} while(0)
 
 typedef void (*event_cb_t)(void *, uint32_t);  /* event callback */
 
 struct event_base;
 
-void event_setup(event_metric_st *metrics);
+void event_setup(event_metrics_st *metrics);
 void event_teardown(void);
 
 /* event base */
