@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_UTIL_H_
-#define _CC_UTIL_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -146,6 +145,4 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

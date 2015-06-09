@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_OPTION_H_
-#define _CC_OPTION_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +100,4 @@ option_empty(struct option *opt)
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

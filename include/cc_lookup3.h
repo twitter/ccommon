@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_LOOKUP3_H_
-#define _CC_LOOKUP3_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,5 +36,3 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_LOOKUP3_H_ */

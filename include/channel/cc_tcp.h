@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef __CC_TCP_H_
-#define __CC_TCP_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -152,6 +151,4 @@ void tcp_maximize_sndbuf(int sd);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

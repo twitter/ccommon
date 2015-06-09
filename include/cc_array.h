@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_ARRAY_H_
-#define _CC_ARRAY_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,5 +105,3 @@ void array_teardown(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_ARRAY_H_ */

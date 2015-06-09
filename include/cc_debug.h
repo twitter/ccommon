@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_DEBUG_H_
-#define _CC_DEBUG_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,5 +62,3 @@ void debug_stacktrace(int skip_count);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_DEBUG_H_ */

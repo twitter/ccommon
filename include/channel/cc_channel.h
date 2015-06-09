@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef __CC_CHANNEL_H_
-#define __CC_CHANNEL_H_
+#pragma once
 
 /**
  * Note(yao): a channel is an abstration of stream-oriented transport. In
@@ -104,6 +103,4 @@ typedef struct channel_handler {
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

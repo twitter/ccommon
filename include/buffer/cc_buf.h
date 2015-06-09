@@ -19,8 +19,7 @@
  * buf: a buffer base for contiguous buffers that can be pooled together
  */
 
-#ifndef _CC_BUF_H_
-#define _CC_BUF_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,5 +105,3 @@ uint32_t buf_write_bstring(struct buf *buf, const struct bstring *bstr);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_BUF_H_ */

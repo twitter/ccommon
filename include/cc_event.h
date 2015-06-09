@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_EVENT_H_
-#define _CC_EVENT_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,5 +70,3 @@ int event_wait(struct event_base *evb, int timeout);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_EVENT_H */

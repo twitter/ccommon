@@ -47,8 +47,7 @@
  * $FreeBSD: src/sys/sys/queue.h,v 1.73 2010/02/20 01:05:30 emaste Exp $
  */
 
-#ifndef _CC_QUEUE_H_
-#define _CC_QUEUE_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -793,6 +792,4 @@ struct {                                                                \
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

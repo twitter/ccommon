@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_POOL_H_
-#define _CC_POOL_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,5 +84,3 @@ struct pool {                                                       \
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_POOL_H_ */

@@ -15,8 +15,11 @@
  * limitations under the License.
  */
 
-#ifndef _CC_DBUF_H_
-#define _CC_DBUF_H_
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <buffer/cc_buf.h>
 #include <cc_define.h>
@@ -55,4 +58,6 @@ uint32_t dbuf_write(uint8_t *src, uint32_t count, struct buf *buf);
 uint32_t dbuf_read_bstring(struct buf *buf, struct bstring *bstr);
 uint32_t dbuf_write_bstring(struct buf *buf, const struct bstring *bstr);
 
-#endif /* _CC_DBUF_H_ */
+#ifdef __cplusplus
+}
+#endif

@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_MM_H_
-#define _CC_MM_H_
+#pragma once
 
 #include <stddef.h>
 
@@ -63,5 +62,3 @@ void * _cc_realloc(void *ptr, size_t size, const char *name, int line);
 void _cc_free(void *ptr, const char *name, int line);
 void * _cc_mmap(size_t size, const char *name, int line);
 int _cc_munmap(void *p, size_t size, const char *name, int line);
-
-#endif /* _CC_MM_H_ */

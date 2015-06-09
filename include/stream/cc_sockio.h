@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_SOCKIO_H_
-#define _CC_SOCKIO_H_
+#pragma once
 
 /**
  * Stream, short for data stream, defines the data IO interface.
@@ -93,5 +92,3 @@ rstatus_t dbuf_tcp_read(struct buf_sock *); /* buf_tcp_read with
 #ifdef __cplusplus
 }
 #endif
-
-#endif // _CC_SOCKIO_H_

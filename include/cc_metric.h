@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_METRIC_H_
-#define _CC_METRIC_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,5 +118,3 @@ void metric_teardown(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_METRIC_H_ */

@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_TIMER_H_
-#define _CC_TIMER_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,5 +45,3 @@ double timer_duration_sec(struct timer *t);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_TIMER_H */

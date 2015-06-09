@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_HASH_H_
-#define _CC_HASH_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,5 +31,3 @@ uint32_t hash(const void *key, size_t length, const uint32_t initval);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _CC_HASH_H_ */

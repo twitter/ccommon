@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_PRINT_H_
-#define _CC_PRINT_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,6 +50,4 @@ size_t _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

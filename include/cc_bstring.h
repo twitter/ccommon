@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef _CC_BSTRING_H_
-#define _CC_BSTRING_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,6 +163,4 @@ rstatus_t bstring_atou64(uint64_t *u64, struct bstring *str);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

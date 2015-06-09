@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#ifndef __CC_STREAM_H_
-#define __CC_STREAM_H_
+#pragma once
 
 /**
  * Stream, short for data stream, defines the data IO interface.
@@ -74,6 +73,4 @@ struct stream {
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -24,8 +24,7 @@
  * array in a valid state.
  */
 
-#ifndef _CC_RING_ARRAY_H_
-#define _CC_RING_ARRAY_H_
+#pragma once
 
 #include <cc_define.h>
 
@@ -60,5 +59,3 @@ rstatus_t ring_array_pop(void *elem, struct ring_array *arr);
 /* creation/destruction */
 struct ring_array *ring_array_create(size_t elem_size, uint32_t cap);
 void ring_array_destroy(struct ring_array *arr);
-
-#endif /* _CC_RING_ARRAY_H_ */

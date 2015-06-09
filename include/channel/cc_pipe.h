@@ -15,8 +15,11 @@
  * limitations under the License.
  */
 
-#ifndef __CC_PIPE_H_
-#define __CC_PIPE_H_
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <cc_debug.h>
 #include <channel/cc_channel.h>
@@ -104,4 +107,6 @@ int pipe_rset_nonblocking(struct pipe_conn *c);
 int pipe_wset_blocking(struct pipe_conn *c);
 int pipe_wset_nonblocking(struct pipe_conn *c);
 
-#endif /* __CC_PIPE_H_ */
+#ifdef __cplusplus
+}
+#endif
