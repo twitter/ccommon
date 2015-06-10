@@ -28,9 +28,42 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PIPE_MODULE_NAME "ccommon::pipe"
+
 FREEPOOL(pipe_conn_pool, cq, pipe_conn);
 static struct pipe_conn_pool cp;
 static bool cp_init = false;
+
+static bool pipe_init = false;
+static pipe_metrics_st *pipe_metrics = NULL;
+
+void
+pipe_setup(pipe_metrics_st *metrics)
+{
+    log_info("set up the %s module", PIPE_MODULE_NAME);
+    log_debug("pipe_conn size %zu", sizeof(struct pipe_conn));
+
+    pipe_metrics = metrics;
+    PIPE_METRIC_INIT(pipe_metrics);
+
+    if (pipe_init) {
+        log_warn("%s has already been setup, overwrite", PIPE_MODULE_NAME);
+    }
+    pipe_init = true;
+}
+
+void
+pipe_teardown(void)
+{
+    log_info("tear down the %s module", PIPE_MODULE_NAME);
+
+    if (!pipe_init) {
+        log_warn("%s has never been setup", PIPE_MODULE_NAME);
+    }
+
+    pipe_metrics = NULL;
+    pipe_init = false;
+}
 
 struct pipe_conn *
 pipe_conn_create(void)
@@ -39,12 +72,16 @@ pipe_conn_create(void)
 
     if (c == NULL) {
         log_info("pipe connection creation failed due to OOM");
+        INCR(pipe_metrics, pipe_conn_create_ex);
         return NULL;
     }
 
     log_verb("created pipe conn %p", c);
 
     pipe_conn_reset(c);
+
+    INCR(pipe_metrics, pipe_conn_create);
+    INCR(pipe_metrics, pipe_conn_curr);
 
     return c;
 }
@@ -60,6 +97,9 @@ pipe_conn_destroy(struct pipe_conn **c)
 
     cc_free(*c);
     c = NULL;
+
+    INCR(pipe_metrics, pipe_conn_destroy);
+    DECR(pipe_metrics, pipe_conn_curr);
 }
 
 void
@@ -133,11 +173,14 @@ pipe_conn_borrow(void)
     FREEPOOL_BORROW(c, &cp, next, pipe_conn_create);
 
     if (c == NULL) {
+        INCR(pipe_metrics, pipe_conn_borrow_ex);
         log_debug("borrow pipe conn failed: OOM or over limit");
         return NULL;
     }
 
     pipe_conn_reset(c);
+    INCR(pipe_metrics, pipe_conn_borrow);
+    INCR(pipe_metrics, pipe_conn_active);
 
     log_verb("borrow conn %p", c);
 
@@ -157,6 +200,8 @@ pipe_conn_return(struct pipe_conn **c)
     FREEPOOL_RETURN(&cp, *c, next);
 
     *c = NULL;
+    INCR(pipe_metrics, pipe_conn_return);
+    DECR(pipe_metrics, pipe_conn_active);
 }
 
 bool
@@ -173,12 +218,13 @@ pipe_open(void *addr, struct pipe_conn *c)
     }
 
     c->state = PIPE_OPEN;
+    INCR(pipe_metrics, pipe_open);
     return true;
 
 error:
     c->err = errno;
 
-    pipe_close(c);
+    INCR(pipe_metrics, pipe_open_ex);
 
     return false;
 }
@@ -199,6 +245,8 @@ pipe_close(struct pipe_conn *c)
     if (c->fd[1] >= 0) {
         close(c->fd[1]);
     }
+
+    INCR(pipe_metrics, pipe_close);
 }
 
 ssize_t
@@ -216,12 +264,14 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
        w/ cc_tcp */
     for (;;) {
         n = read(c->fd[0], buf, nbyte);
+        INCR(pipe_metrics, pipe_recv);
 
         log_verb("read on fd %d %zd of %zu", c->fd[0], n, nbyte);
 
         if (n > 0) {
             log_verb("%zu bytes recv'd on fd %d", n, c->fd[0]);
             c->recv_nbyte += (size_t)n;
+            INCR_N(pipe_metrics, pipe_recv_byte, n);
             return n;
         }
 
@@ -233,6 +283,7 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
         }
 
         /* n < 0 */
+        INCR(pipe_metrics, pipe_recv_ex);
         if (errno == EINTR) {
             log_debug("recv on fd %d not ready - EINTR", c->fd[0]);
             continue;
@@ -263,12 +314,14 @@ ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte)
 
     for (;;) {
         n = write(c->fd[1], buf, nbyte);
+        INCR(pipe_metrics, pipe_send);
 
         log_verb("write on fd %d %zd of %zu", c->fd, n, nbyte);
 
         if (n > 0) {
             log_verb("%zu bytes sent on fd %d", n, c->fd[1]);
             c->send_nbyte += (size_t)n;
+            INCR_N(pipe_metrics, pipe_send_byte, n);
             return n;
         }
 
@@ -278,6 +331,7 @@ ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte)
         }
 
         /* n < 0 */
+        INCR(pipe_metrics, pipe_send_ex);
         if (errno == EINTR) {
             log_verb("send on fd %d not ready - EINTR", c->fd[1]);
             continue;
@@ -296,54 +350,44 @@ ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte)
     return CC_ERROR;
 }
 
-static int
-pipe_set_blocking(int fd)
+static void
+_pipe_set_blocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);
 
     if (flags < 0) {
-        return flags;
+        log_error("pipe set blocking flag resulted in error");
+        INCR(pipe_metrics, pipe_flag_ex);
+    } else {
+        fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
     }
-
-    return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
 }
 
-int
-pipe_rset_blocking(struct pipe_conn *c)
+void
+pipe_set_blocking(struct pipe_conn *c)
 {
     ASSERT(c != NULL);
-    return pipe_set_blocking(c->fd[0]);
+    _pipe_set_blocking(pipe_read_id(c));
+    _pipe_set_blocking(pipe_write_id(c));
 }
 
-int
-pipe_wset_blocking(struct pipe_conn *c)
-{
-    ASSERT(c != NULL);
-    return pipe_set_blocking(c->fd[1]);
-}
-
-static int
-pipe_set_nonblocking(int fd)
+static void
+_pipe_set_nonblocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);
 
     if (flags < 0) {
-        return flags;
+        log_error("pipe set nonblocking flag resulted in error");
+        INCR(pipe_metrics, pipe_flag_ex);
+    } else {
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
-
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-int
-pipe_rset_nonblocking(struct pipe_conn *c)
+void
+pipe_set_nonblocking(struct pipe_conn *c)
 {
     ASSERT(c != NULL);
-    return pipe_set_nonblocking(c->fd[0]);
-}
-
-int
-pipe_wset_nonblocking(struct pipe_conn *c)
-{
-    ASSERT(c != NULL);
-    return pipe_set_nonblocking(c->fd[1]);
+    _pipe_set_nonblocking(pipe_read_id(c));
+    _pipe_set_nonblocking(pipe_write_id(c));
 }

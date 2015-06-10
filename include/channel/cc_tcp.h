@@ -43,13 +43,13 @@ extern "C" {
 
 /*          name                type            description */
 #define TCP_METRIC(ACTION)                                                      \
-    ACTION( tcp_conn_created,   METRIC_COUNTER, "# tcp connections created"    )\
+    ACTION( tcp_conn_create,    METRIC_COUNTER, "# tcp connections created"    )\
     ACTION( tcp_conn_create_ex, METRIC_COUNTER, "# tcp conn create exceptions" )\
-    ACTION( tcp_conn_destroyed, METRIC_COUNTER, "# tcp connections destroyed"  )\
-    ACTION( tcp_conn_total,     METRIC_GAUGE,   "# tcp conn allocated"         )\
-    ACTION( tcp_conn_borrowed,  METRIC_COUNTER, "# tcp connections borrowed"   )\
+    ACTION( tcp_conn_destroy,   METRIC_COUNTER, "# tcp connections destroyed"  )\
+    ACTION( tcp_conn_curr,      METRIC_GAUGE,   "# tcp conn allocated"         )\
+    ACTION( tcp_conn_borrow,    METRIC_COUNTER, "# tcp connections borrowed"   )\
     ACTION( tcp_conn_borrow_ex, METRIC_COUNTER, "# tcp conn borrow exceptions" )\
-    ACTION( tcp_conn_returned,  METRIC_COUNTER, "# tcp connections returned"   )\
+    ACTION( tcp_conn_return,    METRIC_COUNTER, "# tcp connections returned"   )\
     ACTION( tcp_conn_active,    METRIC_GAUGE,   "# tcp conn being borrowed"    )\
     ACTION( tcp_accept,         METRIC_COUNTER, "# tcp connection accepts"     )\
     ACTION( tcp_accept_ex,      METRIC_COUNTER, "# tcp accept exceptions"      )\
@@ -117,9 +117,14 @@ void tcp_conn_pool_destroy(void);
 struct tcp_conn *tcp_conn_borrow(void);     /* channel_get_fn, with resource pool */
 void tcp_conn_return(struct tcp_conn **c);  /* channel_put_fn, with resource pool */
 
-static inline ch_id_t tcp_conn_id(struct tcp_conn *c)
+static inline ch_id_t tcp_read_id(struct tcp_conn *c)
 {
-    return &(c->sd);
+    return c->sd;
+}
+
+static inline ch_id_t tcp_write_id(struct tcp_conn *c)
+{
+    return c->sd;
 }
 
 /* basic channel maintenance */

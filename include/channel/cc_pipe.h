@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include <cc_debug.h>
+#include <cc_metric.h>
 #include <channel/cc_channel.h>
 
 #include <stdbool.h>
@@ -32,6 +33,35 @@ extern "C" {
  */
 
 #define PIPE_POOLSIZE 1         /* Currently our applications only use 1 pipe conn */
+
+/*          name                 type            description */
+#define PIPE_METRIC(ACTION) \
+    ACTION( pipe_conn_create,    METRIC_COUNTER, "# pipe connections created"    )\
+    ACTION( pipe_conn_create_ex, METRIC_COUNTER, "# pipe conn create exceptions" )\
+    ACTION( pipe_conn_destroy,   METRIC_COUNTER, "# pipe connections destroyed"  )\
+    ACTION( pipe_conn_curr ,     METRIC_GAUGE,   "# pipe conn allocated"         )\
+    ACTION( pipe_conn_borrow,    METRIC_COUNTER, "# pipe connections borrowed"   )\
+    ACTION( pipe_conn_borrow_ex, METRIC_COUNTER, "# pipe conn borrow exceptions" )\
+    ACTION( pipe_conn_return,    METRIC_COUNTER, "# pipe connections returned"   )\
+    ACTION( pipe_conn_active,    METRIC_GAUGE,   "# pipe conn being borrowed"    )\
+    ACTION( pipe_open,           METRIC_COUNTER, "# pipe connects made"          )\
+    ACTION( pipe_open_ex,        METRIC_COUNTER, "# pipe connect exceptions"     )\
+    ACTION( pipe_close,          METRIC_COUNTER, "# pipe connection closed"      )\
+    ACTION( pipe_recv,           METRIC_COUNTER, "# recv attempted"              )\
+    ACTION( pipe_recv_ex,        METRIC_COUNTER, "# recv exceptions"             )\
+    ACTION( pipe_recv_byte,      METRIC_COUNTER, "# bytes received"              )\
+    ACTION( pipe_send,           METRIC_COUNTER, "# send attempted"              )\
+    ACTION( pipe_send_ex,        METRIC_COUNTER, "# send exceptions"             )\
+    ACTION( pipe_send_byte,      METRIC_COUNTER, "# bytes sent"                  )\
+    ACTION( pipe_flag_ex,        METRIC_COUNTER, "# pipe flag exceptions"        )
+
+typedef struct {
+    PIPE_METRIC(METRIC_DECLARE)
+} pipe_metrics_st;
+
+#define PIPE_METRIC_INIT(_metrics) do {                           \
+    *(_metrics) = (pipe_metrics_st) { PIPE_METRIC(METRIC_INIT) }; \
+} while (0)
 
 #define PIPE_OPTION(ACTION) \
     ACTION( pipe_poolsize, OPTION_TYPE_UINT, str(PIPE_POOLSIZE), "pipe conn pool size" )
@@ -55,6 +85,9 @@ struct pipe_conn {
 
     err_t                   err;        /* errno */
 };
+
+void pipe_setup(pipe_metrics_st *metrics);
+void pipe_teardown(void);
 
 /* functions for managing pipe connection structs */
 
@@ -81,31 +114,19 @@ void pipe_close(struct pipe_conn *c);
 ssize_t pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte);
 ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte);
 
-/* file descriptor access */
-static inline ch_id_t pipe_conn_id(struct pipe_conn *c)
+static inline ch_id_t pipe_read_id(struct pipe_conn *c)
 {
-    return c->fd;
-}
-
-static inline int pipe_read_fd(struct pipe_conn *c)
-{
-    ASSERT(c != NULL);
     return c->fd[0];
 }
 
-static inline int pipe_write_fd(struct pipe_conn *c)
+static inline ch_id_t pipe_write_id(struct pipe_conn *c)
 {
-    ASSERT(c != NULL);
     return c->fd[1];
 }
 
-/* functions for getting/setting pipe read flags */
-int pipe_rset_blocking(struct pipe_conn *c);
-int pipe_rset_nonblocking(struct pipe_conn *c);
-
-/* functions for getting/setting pipe write flags */
-int pipe_wset_blocking(struct pipe_conn *c);
-int pipe_wset_nonblocking(struct pipe_conn *c);
+/* set pipe flags */
+void pipe_set_blocking(struct pipe_conn *c);
+void pipe_set_nonblocking(struct pipe_conn *c);
 
 #ifdef __cplusplus
 }

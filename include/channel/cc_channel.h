@@ -60,7 +60,7 @@ extern "C" {
 /* channel related data types */
 typedef void * channel_t;
 typedef void * address_t;
-typedef void * ch_id_t;
+typedef int ch_id_t;
 
 typedef enum channel_level {
     CHANNEL_INVALID,
@@ -98,7 +98,8 @@ typedef struct channel_handler {
     channel_term_fn     term;
     channel_recv_fn     recv;
     channel_send_fn     send;
-    channel_id_fn       id;
+    channel_id_fn       rid;
+    channel_id_fn       wid;
 } channel_handler_t;
 
 #ifdef __cplusplus

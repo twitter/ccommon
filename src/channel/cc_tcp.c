@@ -103,8 +103,8 @@ tcp_conn_create(void)
     }
 
     tcp_conn_reset(c);
-    INCR(tcp_metrics, tcp_conn_created);
-    INCR(tcp_metrics, tcp_conn_total);
+    INCR(tcp_metrics, tcp_conn_create);
+    INCR(tcp_metrics, tcp_conn_curr);
 
     return c;
 }
@@ -123,8 +123,8 @@ tcp_conn_destroy(struct tcp_conn **conn)
     cc_free(c);
 
     *conn = NULL;
-    INCR(tcp_metrics, tcp_conn_destroyed);
-    DECR(tcp_metrics, tcp_conn_total);
+    INCR(tcp_metrics, tcp_conn_destroy);
+    DECR(tcp_metrics, tcp_conn_curr);
 }
 
 void
@@ -188,7 +188,7 @@ tcp_conn_borrow(void)
     }
 
     tcp_conn_reset(c);
-    INCR(tcp_metrics, tcp_conn_borrowed);
+    INCR(tcp_metrics, tcp_conn_borrow);
     INCR(tcp_metrics, tcp_conn_active);
 
     log_verb("borrow tcp_conn %p", c);
@@ -211,7 +211,7 @@ tcp_conn_return(struct tcp_conn **conn)
     FREEPOOL_RETURN(&cp, c, next);
 
     *conn = NULL;
-    INCR(tcp_metrics, tcp_conn_returned);
+    INCR(tcp_metrics, tcp_conn_return);
     DECR(tcp_metrics, tcp_conn_active);
 }
 
