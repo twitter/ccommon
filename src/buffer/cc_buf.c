@@ -20,22 +20,25 @@
 #include <cc_mm.h>
 #include <cc_pool.h>
 
-#define BUF_MODULE_NAME "ccommon::buf"
 
-uint32_t buf_size = BUF_SIZE;
+#define BUF_MODULE_NAME "ccommon::buffer:buf"
 
 FREEPOOL(buf_pool, bufq, buf);
 static struct buf_pool bufp;
 
 static bool buf_init = false;
 static bool bufp_init = false;
+uint32_t buf_init_size = BUF_INIT_SIZE;
+buf_metrics_st *buf_metrics = NULL;
+
 
 void
-buf_setup(uint32_t size)
+buf_setup(uint32_t size, buf_metrics_st *metrics)
 {
     log_info("setting up the %s module", BUF_MODULE_NAME);
 
-    buf_size = size;
+    buf_init_size = size;
+    buf_metrics = metrics;
 
     if (buf_init) {
         log_warn("%s was already setup, overwriting", BUF_MODULE_NAME);
@@ -55,6 +58,7 @@ buf_teardown(void)
         log_warn("%s was not setup but is being torn down", BUF_MODULE_NAME);
     }
 
+    buf_metrics = NULL;
     buf_init = false;
 }
 
@@ -118,10 +122,14 @@ buf_borrow(void)
 
     if (buf == NULL) {
         log_warn("borrow buf failed, OOM or over limit");
+        INCR(buf_metrics, buf_borrow_ex);
+
         return NULL;
     }
 
     buf_reset(buf);
+    INCR(buf_metrics, buf_borrow);
+    INCR(buf_metrics, buf_active);
 
     log_verb("borrow buf %p", buf);
 
@@ -139,7 +147,6 @@ buf_return(struct buf **buf)
 
     ASSERT(STAILQ_NEXT(elm, next) == NULL);
     ASSERT(elm->wpos <= elm->end);
-    ASSERT(elm->end - (uint8_t *)elm == buf_size);
 
     log_verb("return buf %p", elm);
 
@@ -147,29 +154,27 @@ buf_return(struct buf **buf)
     FREEPOOL_RETURN(&bufp, elm, next);
 
     *buf = NULL;
-}
-
-void
-buf_reset(struct buf *buf)
-{
-    STAILQ_NEXT(buf, next) = NULL;
-    buf->free = 0;
-    buf->rpos = buf->wpos = buf->begin;
+    INCR(buf_metrics, buf_return);
+    DECR(buf_metrics, buf_active);
 }
 
 struct buf *
 buf_create(void)
 {
-    struct buf *buf;
+    struct buf *buf = (struct buf *)cc_alloc(buf_init_size);
 
-    if ((buf = cc_alloc(buf_size)) == NULL) {
+    if (buf == NULL) {
         log_info("buf creation failed due to OOM");
+        INCR(buf_metrics, buf_create_ex);
+
         return NULL;
     }
 
-    buf->end = (uint8_t *)buf + buf_size;
-    STAILQ_NEXT(buf, next) = NULL;
-    buf->rpos = buf->wpos = buf->begin;
+    buf->end = (uint8_t *)buf + buf_init_size;
+    buf_reset(buf);
+    INCR(buf_metrics, buf_create);
+    INCR(buf_metrics, buf_curr);
+    INCR_N(buf_metrics, buf_memory, buf_init_size);
 
     log_verb("created buf %p capacity %"PRIu32, buf, buf_capacity(buf));
 
@@ -179,114 +184,18 @@ buf_create(void)
 void
 buf_destroy(struct buf **buf)
 {
+    uint32_t cap;
+
     if (buf == NULL || *buf == NULL) {
         return;
     }
 
-    log_verb("destroy buf %p capacity %"PRIu32, *buf, buf_capacity(*buf));
+    cap = buf_capacity(*buf);
+    log_verb("destroy buf %p capacity %"PRIu32, *buf, cap);
 
     cc_free(*buf);
-
     *buf = NULL;
-}
-
-uint32_t
-buf_rsize(struct buf *buf)
-{
-    ASSERT(buf != NULL);
-    ASSERT(buf->rpos <= buf->wpos);
-
-    return (uint32_t)(buf->wpos - buf->rpos);
-}
-
-uint32_t
-buf_wsize(struct buf *buf)
-{
-    ASSERT(buf != NULL);
-    ASSERT(buf->wpos <= buf->end);
-
-    return (uint32_t)(buf->end - buf->wpos);
-}
-
-uint32_t
-buf_capacity(struct buf *buf)
-{
-    ASSERT(buf != NULL);
-    ASSERT(buf->begin <= buf->end);
-
-    return (uint32_t)(buf->end - buf->begin);
-}
-
-void
-buf_lshift(struct buf *buf)
-{
-    ASSERT(buf != NULL);
-
-    uint32_t size = buf_rsize(buf);
-
-    if (size > 0) {
-        cc_memmove(buf->begin, buf->rpos, size);
-    }
-
-    buf->rpos = buf->begin;
-    buf->wpos = buf->begin + size;
-}
-
-void
-buf_rshift(struct buf *buf)
-{
-    ASSERT(buf != NULL);
-
-    uint32_t size = buf_rsize(buf);
-
-    if (size > 0) {
-        cc_memmove(buf->end - size, buf->rpos, size);
-    }
-
-    buf->rpos = buf->end - size;
-    buf->wpos = buf->end;
-}
-
-uint32_t
-buf_read(uint8_t *dst, uint32_t count, struct buf *buf)
-{
-    ASSERT(buf != NULL && dst != NULL);
-
-    uint32_t read_len;
-
-    read_len = buf_rsize(buf) < count ? buf_rsize(buf) : count;
-
-    cc_memmove(dst, buf->rpos, read_len);
-    buf->rpos += read_len;
-
-    if (buf_rsize(buf) == 0) {
-        buf_lshift(buf);
-    }
-
-    return read_len;
-}
-
-uint32_t
-buf_write(uint8_t *src, uint32_t count, struct buf *buf)
-{
-    ASSERT(buf != NULL && src != NULL);
-
-    uint32_t write_len = buf_wsize(buf) < count ? buf_wsize(buf) : count;
-
-    cc_memcpy(buf->wpos, src, write_len);
-    buf->wpos += write_len;
-
-    return write_len;
-}
-
-uint32_t
-buf_read_bstring(struct buf *buf, struct bstring *bstr)
-{
-    return buf_read(bstr->data, bstr->len, buf);
-}
-
-uint32_t
-buf_write_bstring(struct buf *buf, const struct bstring *bstr)
-{
-    return buf_write(bstr->data, bstr->len, buf);
+    INCR(buf_metrics, buf_destroy);
+    DECR(buf_metrics, buf_curr);
+    DECR_N(buf_metrics, buf_memory, cap);
 }

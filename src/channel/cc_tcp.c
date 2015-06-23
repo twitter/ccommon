@@ -98,13 +98,15 @@ tcp_conn_create(void)
     if (c == NULL) {
         log_info("connection creation failed due to OOM");
         INCR(tcp_metrics, tcp_conn_create_ex);
-    } else {
-        log_verb("created tcp_conn %p", c);
+
+        return NULL;
     }
 
     tcp_conn_reset(c);
     INCR(tcp_metrics, tcp_conn_create);
     INCR(tcp_metrics, tcp_conn_curr);
+
+    log_verb("created tcp_conn %p", c);
 
     return c;
 }
@@ -121,7 +123,6 @@ tcp_conn_destroy(struct tcp_conn **conn)
     log_verb("destroy tcp_conn %p", c);
 
     cc_free(c);
-
     *conn = NULL;
     INCR(tcp_metrics, tcp_conn_destroy);
     DECR(tcp_metrics, tcp_conn_curr);
@@ -182,8 +183,9 @@ tcp_conn_borrow(void)
     FREEPOOL_BORROW(c, &cp, next, tcp_conn_create);
 
     if (c == NULL) {
-        INCR(tcp_metrics, tcp_conn_borrow_ex);
         log_debug("borrow tcp_conn failed: OOM or over limit");
+        INCR(tcp_metrics, tcp_conn_borrow_ex);
+
         return NULL;
     }
 

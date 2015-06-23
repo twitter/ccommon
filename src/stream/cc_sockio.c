@@ -142,41 +142,38 @@ dbuf_tcp_read(struct buf_sock *s)
 
     struct tcp_conn *c = (struct tcp_conn *)s->ch;
     channel_handler_t *h = s->hdl;
-    struct buf *buf = s->rbuf;
     rstatus_t status = CC_OK;
-    ssize_t cap, n, total_n = 0;
+    uint32_t cap;
+    ssize_t n, total_n = 0;
 
-    ASSERT(c != NULL && h != NULL && buf != NULL);
+    ASSERT(c != NULL && h != NULL && s->rbuf != NULL);
     ASSERT(h->recv != NULL);
 
-    /*
-     * Try to recv:
-     * 1. if cap == 0, double
-     *   - if double fails, return CC_ERETRY
-     * 2. Call recv w/ cap
-     *   - if n < 0, check status and return
-     *   - if n == 0, set EOF and return
-     *   - otherwise, increment wpos, total_n and loop again
-     *     if n == cap
-     */
 
     do {
-        if ((cap = buf_wsize(buf)) == 0) {
-            status = dbuf_double(buf);
-            if (status == CC_ERROR) {
-                log_verb("rbuf on buf_sock %p reached max buffer size", s);
+        /*
+         * Try to recv:
+         * 1. if remaining cap is zero, double
+         *   - if double fails, return CC_ERETRY
+         * 2. Call recv w/ cap
+         *   - if n < 0, check status and return
+         *   - if n == 0, set EOF and return
+         *   - otherwise, increment wpos, total_n and loop again
+         *     if n == cap
+         */
+        cap = buf_wsize(s->rbuf);
+        if (cap == 0) {
+            status = dbuf_double(&s->rbuf);
+            if (status != CC_OK) {
+                log_verb("doubling rbuf on buf_sock %p failed: %d", s, status);
                 status = CC_ERETRY;
-                goto tcp_read_d_done;
-            } else if (status == CC_ENOMEM) {
-                log_verb("rbuf on buf_sock %p could not expand due to oom", s);
-                status = CC_ERETRY;
-                goto tcp_read_d_done;
+
+                goto done;
             }
-            cap = buf_wsize(buf);
-            ASSERT(cap != 0);
+            cap = buf_wsize(s->rbuf);
         }
 
-        n = h->recv(c, buf->wpos, cap);
+        n = h->recv(c, s->rbuf->wpos, cap);
 
         if (n < 0) {
             if (n == CC_EAGAIN) {
@@ -184,18 +181,19 @@ dbuf_tcp_read(struct buf_sock *s)
             } else {
                 status = CC_ERROR;
             }
-            goto tcp_read_d_done;
+            goto done;
         } else if (n == 0) {
             status = CC_ERDHUP;
             c->state = TCP_EOF;
-            goto tcp_read_d_done;
+
+            goto done;
         } else {
-            buf->wpos += n;
+            s->rbuf->wpos += n;
             total_n += n;
         }
     } while (n == cap);
 
-tcp_read_d_done:
+done:
     if (total_n > 0) {
         log_verb("recv %zd bytes on conn %p", total_n, c);
     }

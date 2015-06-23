@@ -6,23 +6,22 @@
 
 #include <stddef.h>
 
-#define DBUF_MODULE_NAME "ccommon::buffer/dbuf"
+#define DBUF_MODULE_NAME "ccommon::buffer::dbuf"
 
 static bool dbuf_init = false;
 
 /* Maximum size of the buffer */
-static uint32_t dbuf_max_size = DBUF_DEFAULT_MAX_SIZE;
-
-/* When the buffer's size is >= dbuf_shrink_factor * unread bytes, it will shrink */
-static uint32_t dbuf_shrink_factor = DBUF_DEFAULT_SHRINK;
+static uint8_t max_power = DBUF_DEFAULT_MAX;
+static uint32_t max_size = BUF_INIT_SIZE << DBUF_DEFAULT_MAX;
 
 void
-dbuf_setup(uint32_t max_size, uint32_t shrink_factor)
+dbuf_setup(uint8_t power)
 {
     log_info("set up the %s module", DBUF_MODULE_NAME);
 
-    dbuf_max_size = max_size;
-    dbuf_shrink_factor = shrink_factor;
+    /* TODO(yao): validate input */
+    max_power = power;
+    max_size = buf_init_size << power;
 
     if (dbuf_init) {
         log_warn("%s has already been setup, overwrite", DBUF_MODULE_NAME);
@@ -30,7 +29,7 @@ dbuf_setup(uint32_t max_size, uint32_t shrink_factor)
 
     dbuf_init = true;
 
-    log_info("buffer/dbuf: max size %zu", dbuf_max_size);
+    log_info("buffer/dbuf: max size %zu", max_size);
 }
 
 void
@@ -45,132 +44,63 @@ dbuf_teardown(void)
     dbuf_init = false;
 }
 
-void
-dbuf_return(struct buf **buf)
+static rstatus_t
+_dbuf_resize(struct buf **buf, uint32_t nsize)
 {
-    (*buf)->rpos = (*buf)->wpos = (*buf)->begin;
-    dbuf_resize(*buf, buf_size);
+    struct buf *nbuf;
+    uint32_t size = buf_size(*buf);
 
-    buf_return(buf);
-}
+    /* cc_realloc can return an address different than *buf, hence we should
+     * update *buf if allocation is successful, but leave it if failed.
+     */
+    nbuf = cc_realloc(*buf, nsize);
 
-rstatus_t
-dbuf_double(struct buf *buf)
-{
-    ASSERT(buf_capacity(buf) <= dbuf_max_size);
-
-    uint32_t new_capacity = buf_capacity(buf) * 2;
-
-    if (new_capacity > dbuf_max_size) {
-        return CC_ERROR;
-    }
-
-    buf = cc_realloc(buf, new_capacity);
-
-    if (buf == NULL) {
+    if (nbuf == NULL) {
         return CC_ENOMEM;
     }
 
-    buf->end = (uint8_t *)buf + new_capacity;
+    /* only end needs adjustment, other fields are copied by realloc */
+    nbuf->end = (uint8_t *)nbuf + nsize;
+    *buf = nbuf;
+    DECR_N(buf_metrics, buf_memory, size);
+    INCR_N(buf_metrics, buf_memory, nsize);
 
     return CC_OK;
 }
 
 rstatus_t
-dbuf_fit(struct buf *buf, uint32_t count)
+dbuf_double(struct buf **buf)
 {
-    uint32_t new_size;
+    ASSERT(buf_capacity(*buf) <= max_size);
 
-    /* Calculate new_size as the closest 2 KiB that can hold count bytes plus
-       what is already in buf */
-    new_size = ((buf_rsize(buf) + count) % (2 * KiB)) == 0 ? 2 * KiB : 0;
-    new_size += ((buf_rsize(buf) + count) / (2 * KiB)) * 2 * KiB;
+    uint32_t nsize = buf_size(*buf) * 2;
 
-    new_size = new_size >= buf_size ? new_size : buf_size;
-
-    return dbuf_resize(buf, new_size);
-}
-
-rstatus_t
-dbuf_resize(struct buf *buf, uint32_t new_size)
-{
-    if (new_size > dbuf_max_size || new_size < buf_rsize(buf) ||
-       new_size < buf_size) {
-        /* new_size is invalid */
+    if (nsize > max_size) {
         return CC_ERROR;
     }
 
-    buf = cc_realloc(buf, new_size);
-
-    if (buf == NULL) {
-        return CC_ENOMEM;
-    }
-
-    buf->end = (uint8_t *)buf + new_size;
-
-    return CC_OK;
+    return _dbuf_resize(buf, nsize);
 }
 
-uint32_t
-dbuf_read(uint8_t *dst, uint32_t count, struct buf *buf)
+rstatus_t
+dbuf_fit(struct buf **buf, uint32_t cap)
 {
-    uint32_t read_len = buf_read(dst, count, buf);
+    uint32_t nsize = buf_init_size;
 
-    if (buf_capacity(buf) > buf_size &&
-       buf_capacity(buf) > buf_rsize(buf) * dbuf_shrink_factor) {
-        /* Shrink buffer */
-        buf_lshift(buf);
-        dbuf_fit(buf, 0);
+    if (cap + BUF_HDR_SIZE > max_size) {
+        return CC_ERROR;
     }
 
-    return read_len;
+    /* cap is checked, given how max_size is initialized this is safe */
+    while (nsize < cap + BUF_HDR_SIZE) {
+        nsize *= 2;
+    }
+
+    return _dbuf_resize(buf, nsize);
 }
 
-uint32_t
-dbuf_write(uint8_t *src, uint32_t count, struct buf *buf)
+rstatus_t
+dbuf_shrink(struct buf **buf)
 {
-    rstatus_t ret = CC_OK;
-
-    if (buf_wsize(buf) < count) {
-        buf_lshift(buf);
-    }
-
-    if (buf_wsize(buf) < count) {
-        /* buf needs to be resized */
-        if (buf_capacity(buf) * 2 < buf_rsize(buf) + count) {
-            /* Doubling the buffer still won't be able to contain count bytes */
-            ret = dbuf_fit(buf, count);
-        } else {
-            /* Double the buffer */
-            ret = dbuf_double(buf);
-
-            if (ret != CC_OK) {
-                /* Doubling results in oversized buffer */
-                ret = dbuf_fit(buf, count);
-            }
-        }
-    }
-
-    if (ret == CC_ENOMEM) {
-        log_crit("Buffer expansion failed due to OOM");
-        return 0;
-    }
-
-    if (ret != CC_OK) {
-        log_warn("dbuf: write request size %zu too large to fit in max size dbuf", count);
-    }
-
-    return buf_write(src, count, buf);
-}
-
-uint32_t
-dbuf_read_bstring(struct buf *buf, struct bstring *bstr)
-{
-    return dbuf_read(bstr->data, bstr->len, buf);
-}
-
-uint32_t
-dbuf_write_bstring(struct buf *buf, const struct bstring *bstr)
-{
-    return dbuf_write(bstr->data, bstr->len, buf);
+    return _dbuf_resize(buf, buf_init_size);
 }
