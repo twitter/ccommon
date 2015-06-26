@@ -79,14 +79,6 @@ typedef struct {
     ACTION( tcp_backlog,   OPTION_TYPE_UINT,   str(TCP_BACKLOG),  "tcp conn backlog limit" )\
     ACTION( tcp_poolsize,  OPTION_TYPE_UINT,   str(TCP_POOLSIZE), "tcp conn pool size"     )
 
-/* possible states */
-#define TCP_UNKNOWN    0
-#define TCP_CONNECT    1
-#define TCP_CONNECTED  2
-#define TCP_EOF        3
-#define TCP_CLOSING    4
-#define TCP_LISTEN     5
-
 struct tcp_conn {
     STAILQ_ENTRY(tcp_conn)  next;           /* for conn pool */
     bool                    free;           /* in use? */
@@ -97,7 +89,7 @@ struct tcp_conn {
     size_t                  recv_nbyte;     /* received (read) bytes */
     size_t                  send_nbyte;     /* sent (written) bytes */
 
-    unsigned                state:4;        /* defined as TCP_ above */
+    unsigned                state:4;        /* channel state */
     unsigned                flags:12;       /* annotation fields */
 
     err_t                   err;            /* errno */

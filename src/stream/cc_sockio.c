@@ -70,11 +70,13 @@ buf_tcp_read(struct buf_sock *s)
         if (n == CC_EAGAIN) {
             status = CC_OK;
         } else {
+            log_info("recv on conn %p returns other error: %d", c, n);
             status = CC_ERROR;
+            c->state = CHANNEL_ERROR;
         }
     } else if (n == 0) {
         status = CC_ERDHUP;
-        c->state = TCP_EOF;
+        c->state = CHANNEL_TERM;
     } else if (n == cap) {
         status = CC_ERETRY;
     } else {
@@ -119,6 +121,7 @@ buf_tcp_write(struct buf_sock *s)
         } else {
             log_info("send on conn %p returns other error: %d", c, n);
             status = CC_ERROR;
+            c->state = CHANNEL_ERROR;
         }
     } else if (n < cap) {
         log_debug("unwritten data remain on conn %p, should retry", c);
@@ -157,7 +160,7 @@ dbuf_tcp_read(struct buf_sock *s)
          *   - if double fails, return CC_ERETRY
          * 2. Call recv w/ cap
          *   - if n < 0, check status and return
-         *   - if n == 0, set EOF and return
+         *   - if n == 0, set to close and return
          *   - otherwise, increment wpos, total_n and loop again
          *     if n == cap
          */
@@ -179,12 +182,14 @@ dbuf_tcp_read(struct buf_sock *s)
             if (n == CC_EAGAIN) {
                 status = CC_OK;
             } else {
+                log_info("recv on conn %p returns other error: %d", c, n);
                 status = CC_ERROR;
+                c->state = CHANNEL_ERROR;
             }
             goto done;
         } else if (n == 0) {
             status = CC_ERDHUP;
-            c->state = TCP_EOF;
+            c->state = CHANNEL_TERM;
 
             goto done;
         } else {

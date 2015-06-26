@@ -102,6 +102,18 @@ typedef struct channel_handler {
     channel_id_fn       wid;
 } channel_handler_t;
 
+/* channel states, this is to be revised later (yao) */
+enum {
+    CHANNEL_UNKNOWN = 0,
+    CHANNEL_LISTEN,         /* listening */
+    CHANNEL_OPEN,           /* opening */
+    CHANNEL_ESTABLISHED,
+    CHANNEL_TERM,           /* to be closed, don't need a closing state yet */
+    CHANNEL_ERROR,          /* unrecoverable error occurred */
+
+    CHANNEL_SENTINEL
+};
+
 #ifdef __cplusplus
 }
 #endif

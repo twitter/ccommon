@@ -84,7 +84,7 @@ tcp_conn_reset(struct tcp_conn *c)
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->state = TCP_UNKNOWN;
+    c->state = CHANNEL_UNKNOWN;
     c->flags = 0;
 
     c->err = 0;
@@ -249,13 +249,13 @@ tcp_connect(struct addrinfo *ai, struct tcp_conn *c)
             goto error;
         }
 
-        c->state = TCP_CONNECT;
-        /* TODO(yao): if tcp_connect fails we should get an event with error mask,
+        c->state = CHANNEL_OPEN;
+        /* TODO(yao): if connect fails we should get an event with error mask,
          * figure out how to update metrics properly in that case.
          */
         log_info("connecting on c %p sd %d", c, c->sd);
     } else {
-        c->state = TCP_CONNECTED;
+        c->state = CHANNEL_ESTABLISHED;
         log_info("connected on c %p sd %d", c, c->sd);
     }
 
@@ -319,7 +319,7 @@ tcp_listen(struct addrinfo *ai, struct tcp_conn *c)
     }
 
     c->level = CHANNEL_META;
-    c->state = TCP_LISTEN;
+    c->state = CHANNEL_LISTEN;
     log_info("server listen setup on socket descriptor %d", c->sd);
 
     return true;
@@ -396,7 +396,7 @@ tcp_accept(struct tcp_conn *sc, struct tcp_conn *c)
 
     c->sd = sd;
     c->level = CHANNEL_BASE;
-    c->state = TCP_CONNECTED;
+    c->state = CHANNEL_ESTABLISHED;
 
     ret = tcp_set_nonblocking(sd);
     if (ret < 0) {
@@ -659,7 +659,7 @@ tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            c->state = TCP_EOF;
+            c->state = CHANNEL_TERM;
             log_debug("eof recv'd on sd %d, total: rb %zu sb %zu", c->sd,
                       c->recv_nbyte, c->send_nbyte);
             return n;

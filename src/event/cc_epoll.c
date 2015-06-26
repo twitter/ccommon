@@ -264,7 +264,7 @@ event_wait(struct event_base *evb, int timeout)
         nreturned = epoll_wait(ep, ev_arr, nevent, timeout);
         INCR(event_metrics, event_loop);
         if (nreturned > 0) {
-            INCR_N(event_metrics, event_total);
+            INCR_N(event_metrics, event_total, nreturned);
             for (i = 0; i < nreturned; i++) {
                 struct epoll_event *ev = ev_arr + i;
                 uint32_t events = 0;
