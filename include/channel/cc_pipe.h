@@ -66,11 +66,6 @@ typedef struct {
 #define PIPE_OPTION(ACTION) \
     ACTION( pipe_poolsize, OPTION_TYPE_UINT, str(PIPE_POOLSIZE), "pipe conn pool size" )
 
-/* pipe_conn states */
-#define PIPE_CLOSED  0
-#define PIPE_OPEN    1
-#define PIPE_EOF     2
-
 struct pipe_conn {
     STAILQ_ENTRY(pipe_conn) next;       /* for pool */
     bool                    free;       /* in use? */

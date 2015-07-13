@@ -113,7 +113,7 @@ pipe_conn_reset(struct pipe_conn *c)
     c->recv_nbyte = 0;
     c->send_nbyte = 0;
 
-    c->state = PIPE_CLOSED;
+    c->state = CHANNEL_TERM;
     c->flags = 0;
 
     c->err = 0;
@@ -217,7 +217,7 @@ pipe_open(void *addr, struct pipe_conn *c)
         goto error;
     }
 
-    c->state = PIPE_OPEN;
+    c->state = CHANNEL_LISTEN;
     INCR(pipe_metrics, pipe_open);
     return true;
 
@@ -276,7 +276,6 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            c->state = PIPE_EOF;
             log_debug("eof recv'd on fd %d, total: rb %zu sb %zu", c->fd[0],
                       c->recv_nbyte, c->send_nbyte);
             return n;
