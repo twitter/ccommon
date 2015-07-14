@@ -69,7 +69,9 @@ struct buf {
     uint8_t           begin[1]; /* beginning of buffer */
 };
 
-#define BUF_HDR_SIZE offsetof(struct buf, begin)
+#define BUF_HDR_SIZE       offsetof(struct buf, begin)
+#define BUF_DEFAULT_SIZE   16 * KiB
+#define BUF_POOLSIZE       0    /* unlimited */
 
 STAILQ_HEAD(buf_q, buf);
 
