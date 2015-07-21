@@ -53,7 +53,7 @@
 extern "C" {
 #endif
 
-#include <cc_log.h>
+#include <cc_debug.h>
 
 #ifndef __offsetof
 #define __offsetof(type, field) ((size_t)(&((type *)NULL)->field))

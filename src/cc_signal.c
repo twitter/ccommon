@@ -3,7 +3,6 @@
 #include <cc_bstring.h>
 #include <cc_define.h>
 #include <cc_debug.h>
-#include <cc_log.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -71,7 +70,7 @@ signal_override(int signo, char *info, int flags, uint32_t mask, sig_t handler)
     status = sigaction(signo, &sa, NULL);
     if (status < 0) {
         log_error("sigaction(%s) failed: %s", sys_signame[signo],
-                strerror(errno));
+                  strerror(errno));
     } else {
         log_info("override handler for %s", sys_signame[signo]);
     }
@@ -103,7 +102,7 @@ signal_segv_stacktrace(void)
 static void
 _handler_logrotate(int signo)
 {
-    log_reopen();
+    log_reopen(debug_logger);
 }
 
 int

@@ -21,7 +21,6 @@
 #include <buffer/cc_dbuf.h>
 #include <cc_debug.h>
 #include <cc_define.h>
-#include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>

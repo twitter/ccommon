@@ -18,7 +18,6 @@
 #include <channel/cc_tcp.h>
 
 #include <cc_debug.h>
-#include <cc_log.h>
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>

@@ -1,5 +1,5 @@
 /*
- * ccommon - a cache common library.
+ * ccommon cache common library.
  * Copyright (C) 2013 Twitter, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,9 @@
 
 #include <cc_log.h>
 
+#include <cc_mm.h>
 #include <cc_print.h>
+#include <cc_rbuf.h>
 #include <cc_util.h>
 
 #include <ctype.h>
@@ -27,166 +29,174 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
 #define LOG_MODULE_NAME "ccommon::log"
 
+static log_metrics_st *log_metrics = NULL;
 static bool log_init = false;
 
-static char * level_str[] = {
-    "ALWAYS",
-    "CRIT",
-    "ERROR",
-    "WARN",
-    "INFO",
-    "DEBUG",
-    "VERB",
-    "VVERB"
-};
-
-struct logger {
-    char *name;  /* log file name */
-    int  level;  /* log level */
-    int  fd; /* log file descriptor */
-    int  nerror; /* # log error */
-} logger = {
-    .name = NULL, /* stderr if name is NULL */
-    .level = LOG_LEVEL,
-    .fd = STDERR_FILENO,
-    .nerror = 0
-};
-
-static inline bool
-log_loggable(int level)
+void
+log_setup(log_metrics_st *metrics)
 {
-    struct logger *l = &logger;
+    log_stderr("set up the %s module", LOG_MODULE_NAME);
 
-    if (level > l->level) {
-        return false;
-    }
+    log_metrics = metrics;
+    LOG_METRIC_INIT(log_metrics);
 
-    return true;
-}
-
-int
-log_setup(int level, char *name)
-{
-    struct logger *l = &logger;
-
-    log_info("set up the %s module", LOG_MODULE_NAME);
-
-    l->level = MAX(LOG_CRIT, MIN(level, LOG_VVERB));
-    l->name = name;
-    if (name == NULL || !strlen(name)) {
-        l->fd = STDERR_FILENO;
-    } else {
-        l->fd = open(name, O_WRONLY | O_APPEND | O_CREAT, 0644);
-        if (l->fd < 0) {
-            log_stderr("opening log file '%s' failed: %s", name,
-                       strerror(errno));
-
-            return -1;
-        }
-    }
     if (log_init) {
-        log_warn("%s has already been setup, overwrite", LOG_MODULE_NAME);
+        log_stderr("%s has already been setup, overwrite", LOG_MODULE_NAME);
     }
     log_init = true;
-    log_level = l->level;
-
-    return 0;
 }
 
 void
 log_teardown(void)
 {
-    struct logger *l = &logger;
+    log_stderr("tear down the %s module", LOG_MODULE_NAME);
 
-    log_info("tear down the %s module", LOG_MODULE_NAME);
-
-    if (l->fd != STDERR_FILENO) {
-        close(l->fd);
-    }
     if (!log_init) {
-        log_warn("%s has never been setup", LOG_MODULE_NAME);
+        log_stderr("%s has never been setup", LOG_MODULE_NAME);
     }
+
+    log_metrics = NULL;
     log_init = false;
 }
 
-void
-log_reopen(void)
+struct logger *
+log_create(int level, char *filename, uint32_t buf_cap)
 {
-    struct logger *l = &logger;
+    struct logger *logger;
 
-    if (l->fd != STDERR_FILENO) {
-        close(l->fd);
-        l->fd = open(l->name, O_WRONLY | O_APPEND | O_CREAT, 0644);
-        if (l->fd < 0) {
-            log_stderr("reopening log file '%s' failed, ignored: %s", l->name,
-                       strerror(errno));
+    logger = cc_alloc(sizeof(struct logger));
+
+    if (logger == NULL) {
+        log_stderr("Could not create logger due to OOM");
+        INCR(log_metrics, log_create_ex);
+        return NULL;
+    }
+
+    logger->name = filename;
+    logger->level = level;
+
+    if (buf_cap > 0) {
+        logger->buf = rbuf_create(buf_cap);
+
+        if (logger->buf == NULL) {
+            cc_free(logger);
+            log_stderr("Could not create logger - buffer not allocated due to OOM");
+            INCR(log_metrics, log_create_ex);
+            return NULL;
+        }
+    } else {
+        logger->buf = NULL;
+    }
+
+    if (filename != NULL) {
+        logger->fd = open(filename, O_WRONLY | O_APPEND | O_CREAT, 0644);
+        if (logger->fd < 0) {
+            cc_free(logger);
+            log_stderr("Could not create logger - cannot open file");
+            INCR(log_metrics, log_open_ex);
+            INCR(log_metrics, log_create_ex);
+            return NULL;
+        } else {
+            INCR(log_metrics, log_open);
         }
     }
+
+    INCR(log_metrics, log_create);
+    INCR(log_metrics, log_curr);
+
+    return logger;
 }
 
 void
-log_level_set(int level)
+log_destroy(struct logger **l)
 {
-    struct logger *l = &logger;
+    struct logger *logger = *l;
 
-    l->level = MAX(LOG_CRIT, MIN(level, LOG_VVERB));
-    loga("set log level to %d", l->level);
+    if (logger == NULL) {
+        return;
+    }
+
+    if (logger->buf != NULL) {
+        rbuf_destroy(logger->buf);
+    }
+
+    if (logger->fd >= 0 && logger->fd != STDERR_FILENO
+        && logger->fd != STDOUT_FILENO) {
+        close(logger->fd);
+    }
+
+    cc_free(logger);
+    *l = NULL;
+
+    INCR(log_metrics, log_destroy);
+    DECR(log_metrics, log_curr);
+}
+
+rstatus_t
+log_reopen(struct logger *logger)
+{
+    if (logger->fd != STDERR_FILENO && logger->fd != STDOUT_FILENO) {
+        close(logger->fd);
+        logger->fd = open(logger->name, O_WRONLY | O_APPEND | O_CREAT, 0644);
+        if (logger->fd < 0) {
+            log_stderr("reopening log file '%s' failed, ignored: %s", logger->name,
+                       strerror(errno));
+            INCR(log_metrics, log_open_ex);
+            return CC_ERROR;
+        }
+    }
+
+    INCR(log_metrics, log_open);
+
+    return CC_OK;
 }
 
 void
-_log(const char *file, int line, int level, const char *fmt, ...)
+log_level_set(struct logger *logger, int level)
 {
-    struct logger *l = &logger;
-    int len, size, errno_save;
-    char buf[LOG_MAX_LEN], *timestr;
-    va_list args;
-    struct tm *local;
-    time_t t;
-    ssize_t n;
+    logger->level = level;
+}
 
-    if (!log_loggable(level)) {
-        return;
+void
+_log_write(struct logger *logger, char *buf, int len)
+{
+    int n;
+
+    if (logger->buf != NULL) {
+        n = rbuf_write(logger->buf, buf, len);
+    } else {
+        if (logger->fd < 0) {
+            INCR(log_metrics, log_write_ex);
+            return;
+        }
+
+        n = write(logger->fd, buf, len);
+
+        if (n < 0) {
+            INCR(log_metrics, log_write_ex);
+            logger->nerror++;
+            return;
+        }
     }
 
-    if (l->fd < 0) {
-        return;
+    if (n < len) {
+        INCR(log_metrics, log_skip);
+        INCR_N(log_metrics, log_skip_byte, len - n);
+        logger->nerror++;
+    } else {
+        INCR(log_metrics, log_write);
+        INCR_N(log_metrics, log_write_byte, len);
     }
-
-    errno_save = errno;
-    len = 0;            /* length of output buffer */
-    size = LOG_MAX_LEN; /* size of output buffer */
-
-    t = time(NULL);
-    local = localtime(&t);
-    timestr = asctime(local);
-
-    len += cc_scnprintf(buf + len, size - len, "[%.*s][%s] %s:%d ",
-                        strlen(timestr) - 1, timestr, level_str[level], file, line);
-
-    va_start(args, fmt);
-    len += cc_vscnprintf(buf + len, size - len, fmt, args);
-    va_end(args);
-
-    buf[len++] = '\n';
-
-    n = write(l->fd, buf, len);
-    if (n < 0) {
-        l->nerror++;
-    }
-
-    errno = errno_save;
 }
 
 void
 _log_fd(int fd, const char *fmt, ...)
 {
-    struct logger *l = &logger;
     int len, size, errno_save;
     char buf[LOG_MAX_LEN];
     va_list args;
@@ -203,8 +213,17 @@ _log_fd(int fd, const char *fmt, ...)
     buf[len++] = '\n';
 
     n = write(fd, buf, len);
+
     if (n < 0) {
-        l->nerror++;
+        INCR(log_metrics, log_write_ex);
+    }
+
+    if (n < len) {
+        INCR(log_metrics, log_skip);
+        INCR_N(log_metrics, log_skip_byte, len - n);
+    } else {
+        INCR(log_metrics, log_write);
+        INCR_N(log_metrics, log_write_byte, len);
     }
 
     errno = errno_save;
@@ -215,18 +234,12 @@ _log_fd(int fd, const char *fmt, ...)
  * See -C option in man hexdump
  */
 void
-_log_hexdump(int level, char *data, int datalen)
+_log_hexdump(struct logger *logger, int level, char *data, int datalen)
 {
-    struct logger *l = &logger;
     char buf[8 * LOG_MAX_LEN];
     int i, off, len, size, errno_save;
-    ssize_t n;
 
-    if (!log_loggable(level)) {
-        return;
-    }
-
-    if (l->fd < 0) {
+    if (!log_loggable(logger, level)) {
         return;
     }
 
@@ -270,11 +283,33 @@ _log_hexdump(int level, char *data, int datalen)
         off += 16;
     }
 
-    n = write(l->fd, buf, len);
-    if (n < 0) {
-        l->nerror++;
-    }
+    _log_write(logger, buf, len);
 
     errno = errno_save;
 }
 
+void
+log_flush(struct logger *logger)
+{
+    ssize_t n;
+    size_t buf_len;
+
+    if (logger->buf == NULL) {
+        return;
+    }
+
+    if (logger->fd < 0) {
+        log_stderr("Cannot flush logger %p; invalid file descriptor", logger);
+        INCR(log_metrics, log_flush_ex);
+        return;
+    }
+
+    buf_len = rbuf_rcap(logger->buf);
+    n = rbuf_read_fd(logger->buf, logger->fd);
+
+    if (n < buf_len) {
+        INCR(log_metrics, log_flush_ex);
+    } else {
+        INCR(log_metrics, log_flush);
+    }
+}

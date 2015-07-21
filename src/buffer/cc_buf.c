@@ -17,6 +17,7 @@
 
 #include <buffer/cc_buf.h>
 
+#include <cc_debug.h>
 #include <cc_mm.h>
 #include <cc_pool.h>
 
@@ -28,9 +29,9 @@ static struct buf_pool bufp;
 
 static bool buf_init = false;
 static bool bufp_init = false;
+
 uint32_t buf_init_size = BUF_INIT_SIZE;
 buf_metrics_st *buf_metrics = NULL;
-
 
 void
 buf_setup(uint32_t size, buf_metrics_st *metrics)
@@ -46,7 +47,7 @@ buf_setup(uint32_t size, buf_metrics_st *metrics)
 
     buf_init = true;
 
-    log_info("buf: size %zu");
+    log_info("buf: size %zu", size);
 }
 
 void

@@ -18,7 +18,6 @@
 #include <cc_metric.h>
 
 #include <cc_debug.h>
-#include <cc_log.h>
 
 #include <stdbool.h>
 

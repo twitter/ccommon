@@ -17,7 +17,7 @@
 
 #include "cc_shared.h"
 
-#include <cc_log.h>
+#include <cc_debug.h>
 
 static bool event_init = false;
 event_metrics_st *event_metrics = NULL;

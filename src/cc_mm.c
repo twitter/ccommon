@@ -18,7 +18,6 @@
 #include <cc_mm.h>
 
 #include <cc_debug.h>
-#include <cc_log.h>
 
 #include <errno.h>
 #include <stdlib.h>

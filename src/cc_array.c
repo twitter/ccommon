@@ -19,7 +19,6 @@
 
 #include <cc_debug.h>
 #include <cc_define.h>
-#include <cc_log.h>
 #include <cc_mm.h>
 
 #include <stddef.h>

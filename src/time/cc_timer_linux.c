@@ -1,7 +1,6 @@
 #include <cc_timer.h>
 
 #include <cc_debug.h>
-#include <cc_log.h>
 
 #include <errno.h>
 #include <string.h>
@@ -62,7 +61,7 @@ _timer_gettime(struct timespec *ts)
          * program due to a timer error, the purpose of these boolean fields is
          * to catch cases where people forget to start the time before stopping.
          */
-        log_warn("clock_gettime returns error, timer result undefined: %s",
+        log_error("clock_gettime returns error, timer result undefined: %s",
                 strerror(errno));
         ts->tv_sec = 0;
         ts->tv_nsec = 0;

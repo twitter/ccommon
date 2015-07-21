@@ -80,6 +80,7 @@ set (SOURCE
     src/cc_mm.c
     src/cc_option.c
     src/cc_print.c
+    src/cc_rbuf.c
     src/cc_ring_array.c
     src/cc_signal.c
     src/buffer/cc_buf.c

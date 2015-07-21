@@ -22,139 +22,75 @@ extern "C" {
 #endif
 
 #include <cc_define.h>
+#include <cc_metric.h>
 #include <cc_util.h>
 
-#define LOG_LEVEL 4 /* default log level */
-
-/*          name        type                default           description */
-#define LOG_OPTION(ACTION)                                                  \
-    ACTION( log_level,  OPTION_TYPE_UINT,   str(LOG_LEVEL),   "log level"  )\
-    ACTION( log_name,   OPTION_TYPE_STR,    NULL,             "log name"   )\
+#include <stdbool.h>
 
 #define LOG_MAX_LEN 2560 /* max length of log message */
 
-/*
- * TODO(yao): a reasonable guideline for using these different levels.
- */
-#define LOG_ALWAYS  0   /* always log, special value  */
-#define LOG_CRIT    1   /* critical: usually warrants exiting */
-#define LOG_ERROR   2   /* error: may need action */
-#define LOG_WARN    3   /* warning: may need attention */
-#define LOG_INFO    4   /* informational: important but normal */
-#define LOG_DEBUG   5   /* debug: abnormal behavior that's not an error */
-#define LOG_VERB    6   /* verbose: showing normal logic flow */
-#define LOG_VVERB   7   /* verbose on crack, for annoying msg e.g. timer */
+struct logger {
+    char *name;                 /* log file name */
+    int  level;                 /* log level */
+    int  fd;                    /* log file descriptor */
+    int  nerror;                /* # log error */
+    struct rbuf *buf;           /* buffer for pausless logging */
+};
 
-int log_level;
+/*          name            type            description */
+#define LOG_METRIC(ACTION)                                                      \
+    ACTION( log_create,     METRIC_COUNTER, "# loggers created"                )\
+    ACTION( log_create_ex,  METRIC_COUNTER, "# log create errors"              )\
+    ACTION( log_destroy,    METRIC_COUNTER, "# loggers destroyed"              )\
+    ACTION( log_curr,       METRIC_GAUGE,   "current # loggers"                )\
+    ACTION( log_open,       METRIC_COUNTER, "# files opened by loggers"        )\
+    ACTION( log_open_ex,    METRIC_COUNTER, "# logger open file errors"        )\
+    ACTION( log_write,      METRIC_COUNTER, "# log messages written"           )\
+    ACTION( log_write_byte, METRIC_COUNTER, "# bytes written by log"           )\
+    ACTION( log_write_ex,   METRIC_COUNTER, "# log write errors"               )\
+    ACTION( log_skip,       METRIC_COUNTER, "# messages not completely logged" )\
+    ACTION( log_skip_byte,  METRIC_COUNTER, "# bytes unable to be logged"      )\
+    ACTION( log_flush,      METRIC_COUNTER, "# log flushes to disk"            )\
+    ACTION( log_flush_ex,   METRIC_COUNTER, "# errors flushing to disk"        )
 
-/* NOTE(yao): it may be useful to have a sampled log func for bursty events */
+typedef struct {
+    LOG_METRIC(METRIC_DECLARE)
+} log_metrics_st;
 
-/*
- * log_stderr   - log to stderr
- *
- * loga         - log always
- * loga_hexdump - log hexdump always
- *
- * log_panic    - log messages followed by a panic, when LOG_CRIT is met
- * log_error    - error log messages
- * log_warn     - warning log messages
- * ...
- *
- * log          - debug log messages based on a log level (subject to config)
- * log_hexdump  - hexadump -C of a log buffer (subject to config)
- */
-
-#define loga(...) _log(__FILE__, __LINE__, LOG_ALWAYS, __VA_ARGS__)
-
-#define loga_hexdump(_data, _datalen, ...) do {                             \
-    _log(__FILE__,__LINE__, LOG_ALWAYS, __VA_ARGS__);                       \
-    _log_hexdump(-1, (char *)(_data), (int)(_datalen));                     \
-} while (0)                                                                 \
-
-#define log_panic(...) do {                                                 \
-    _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__);                        \
-    abort();                                                                \
-} while (0)
-
-#if defined CC_LOGGING && CC_LOGGING == 1
-
-#define log_crit(...) do {                                                  \
-    if (log_level >= LOG_CRIT) {                                            \
-        _log(__FILE__, __LINE__, LOG_CRIT, __VA_ARGS__);                    \
-    }                                                                       \
-} while (0)
-
-#define log_error(...) do {                                                 \
-    if (log_level >= LOG_ERROR) {                                           \
-        _log(__FILE__, __LINE__, LOG_ERROR, __VA_ARGS__);                   \
-    }                                                                       \
-} while (0)
-
-#define log_warn(...) do {                                                  \
-    if (log_level >= LOG_WARN) {                                            \
-        _log(__FILE__, __LINE__, LOG_WARN, __VA_ARGS__);                    \
-    }                                                                       \
-} while (0)
-
-#define log_info(...) do {                                                  \
-    if (log_level >= LOG_INFO) {                                            \
-        _log(__FILE__, __LINE__, LOG_INFO, __VA_ARGS__);                    \
-    }                                                                       \
-} while (0)
-
-#define log_debug(...) do {                                                 \
-    if (log_level >= LOG_DEBUG) {                                           \
-        _log(__FILE__, __LINE__, LOG_DEBUG, __VA_ARGS__);                   \
-    }                                                                       \
-} while (0)
-
-#define log_verb(...) do {                                                  \
-    if (log_level >= LOG_VERB) {                                            \
-        _log(__FILE__, __LINE__, LOG_VERB, __VA_ARGS__);                    \
-    }                                                                       \
-} while (0)
-
-#define log_vverb(...) do {                                                 \
-    if (log_level >= LOG_VVERB) {                                           \
-        _log(__FILE__, __LINE__, LOG_VVERB, __VA_ARGS__);                   \
-    }                                                                       \
-} while (0)
-
-#define log(_level, ...) _log(__FILE__, __LINE__, _level, __VA_ARGS__)
-
-#define log_hexdump(_level, _data, _datalen, ...) do {                      \
-    _log(__FILE__,__LINE__, _level, __VA_ARGS__);                           \
-    _log_hexdump(_level, (char *)(_data), (int)(_datalen));                 \
-} while (0)
-
-#else
-
-#define log_crit(...)
-#define log_error(...)
-#define log_warn(...)
-#define log_info(...)
-#define log_debug(...)
-#define log_verb(...)
-#define log_vverb(...)
-
-#define log(_level, ...)
-#define log_hexdump(_level, _data, _datalen, ...)
-
-#endif
+#define LOG_METRIC_INIT(_metrics) do {                          \
+    *(_metrics) = (log_metrics_st) { LOG_METRIC(METRIC_INIT) }; \
+} while(0)
 
 #define log_stderr(...) _log_fd(STDERR_FILENO, __VA_ARGS__)
 #define log_stdout(...) _log_fd(STDOUT_FILENO, __VA_ARGS__)
 
-int log_setup(int level, char *filename);
+void log_setup(log_metrics_st *metrics);
 void log_teardown(void);
 
-void log_level_set(int level);
+/**
+ * Create a logger. If filename is NULL, created logger writes to stderr.
+ * buf_cap is the size of the buffer used for pauseless logging. specify
+ * buf_cap = 0 to disable pauseless logging.
+ */
+struct logger *log_create(int level, char *filename, uint32_t buf_cap);
 
-void log_reopen(void);
+void log_destroy(struct logger **logger);
 
-void _log(const char *file, int line, int level, const char *fmt, ...);
+void log_level_set(struct logger *logger, int level);
+
+rstatus_t log_reopen(struct logger *logger);
+
+void _log_write(struct logger *logger, char *buf, int len);
 void _log_fd(int fd, const char *fmt, ...);
-void _log_hexdump(int level, char *data, int datalen);
+void _log_hexdump(struct logger *logger, int level, char *data, int datalen);
+
+void log_flush(struct logger *logger);
+
+static inline bool
+log_loggable(struct logger *logger, int level)
+{
+    return logger != NULL && logger->level >= level;
+}
 
 #ifdef __cplusplus
 }

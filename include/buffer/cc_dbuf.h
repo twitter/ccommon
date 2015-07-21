@@ -23,7 +23,6 @@ extern "C" {
 
 #include <buffer/cc_buf.h>
 #include <cc_define.h>
-#include <cc_log.h>
 #include <cc_util.h>
 
 #include <stdbool.h>

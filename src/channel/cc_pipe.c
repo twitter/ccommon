@@ -17,6 +17,7 @@
 
 #include <channel/cc_pipe.h>
 
+#include <cc_debug.h>
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <channel/cc_channel.h>

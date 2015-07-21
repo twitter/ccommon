@@ -29,7 +29,6 @@ extern "C" {
 
 #define NELEM_DELTA 16
 
-
 /*          name                type                default             description */
 #define ARRAY_OPTION(ACTION)                                                                                    \
     ACTION( array_nelem_delta,  OPTION_TYPE_UINT,   str(NELEM_DELTA),     "max nelem delta during expansion" )
