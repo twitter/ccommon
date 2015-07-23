@@ -68,7 +68,7 @@ extern char *option_type_str[];
 typedef union option_val {
     bool vbool;
     uintmax_t vuint;
-    char vstr[OPTVAL_MAXLEN + 1];
+    char *vstr;
 } option_val_u;
 
 /* Struct containing data for one individual setting */
@@ -87,16 +87,7 @@ void option_print(struct option *opt);
 void option_printall(struct option options[], unsigned int nopt);
 rstatus_t option_load_default(struct option options[], unsigned int nopt);
 rstatus_t option_load_file(FILE *fp, struct option options[], unsigned int nopt);
-
-static inline bool
-option_empty(struct option *opt)
-{
-    if (opt->type == OPTION_TYPE_STR && opt->val.vstr[0] == '\0') {
-        return true;
-    } else {
-        return false;
-    }
-}
+void option_free(struct option options[], unsigned int nopt);
 
 #ifdef __cplusplus
 }

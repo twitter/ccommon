@@ -69,6 +69,8 @@ log_create(int level, char *filename, uint32_t buf_cap)
 {
     struct logger *logger;
 
+    log_stderr("create logger with level %d filename %p cap %u", level, filename, buf_cap);
+
     logger = cc_alloc(sizeof(struct logger));
 
     if (logger == NULL) {

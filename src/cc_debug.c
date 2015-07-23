@@ -86,8 +86,8 @@ debug_setup(int log_level, char *log_file, uint32_t log_nbuf)
     debug_logger = log_create(log_level, log_file, log_nbuf);
 
     if (debug_logger == NULL) {
-        log_stderr("Could not create debug logger due to OOM!");
-        return CC_ENOMEM;
+        log_stderr("Could not create debug logger!");
+        return CC_ERROR;
     }
 
     debug_init = true;

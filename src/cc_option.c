@@ -18,6 +18,7 @@
 #include <cc_option.h>
 
 #include <cc_debug.h>
+#include <cc_mm.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -320,10 +321,11 @@ _option_parse_str(struct option *opt, const char *val_str)
     opt->set = true;
 
     if (val_str == NULL) {
-        opt->val.vstr[0] = '\0';
+        opt->val.vstr = NULL;
         return;
     }
 
+    opt->val.vstr = cc_alloc(strlen(val_str) + 1);
     strcpy(opt->val.vstr, val_str);
 }
 
@@ -462,7 +464,7 @@ void option_print(struct option *opt)
         break;
 
     case OPTION_TYPE_STR:
-        loga("current value: %s", option_empty(opt) ? "NULL" : opt->val.vstr);
+        loga("current value: %s", opt->val.vstr == NULL ? "NULL" : opt->val.vstr);
 
         break;
 
@@ -557,4 +559,17 @@ option_load_file(FILE *fp, struct option options[], unsigned int nopt)
     }
 
     return CC_OK;
+}
+
+void
+option_free(struct option options[], unsigned int nopt)
+{
+    unsigned int i;
+    struct option *opt = options;
+
+    for (i = 0; i < nopt; ++i, ++opt) {
+        if (opt->type == OPTION_TYPE_STR && opt->val.vstr != NULL) {
+            cc_free(opt->val.vstr);
+        }
+    }
 }
