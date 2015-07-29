@@ -251,8 +251,6 @@ rbuf_read(void *dst, struct rbuf *src, size_t n)
 
     _set_rpos(src, rpos);
 
-    log_verb("Read %zu bytes from rbuf %p to %p", ret, src, dst);
-
     return ret;
 }
 
@@ -295,8 +293,6 @@ rbuf_write(struct rbuf *dst, void *src, size_t n)
     }
 
     _set_wpos(dst, wpos);
-
-    log_verb("Write %zu bytes from %p to rbuf %p", ret, src, dst);
 
     return ret;
 }
@@ -342,8 +338,6 @@ rbuf_read_fd(struct rbuf *src, int fd)
     }
 
     _set_rpos(src, rpos);
-
-    log_verb("Read %zu bytes from rbuf %p to fd %d", ret, src, fd);
 
     return ret;
 }
