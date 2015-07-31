@@ -71,14 +71,16 @@ void debug_teardown(void);
  **********************************************
  */
 
-#define LOG_DEBUG_LEVEL 4 /* default log level */
-#define LOG_DEBUG_NBUF  0 /* default log buf size (no pauseless logging) */
+#define LOG_DEBUG_LEVEL 4         /* default log level */
+#define LOG_DEBUG_NBUF  16 * KiB  /* default log buf size */
+#define LOG_DEBUG_INTVL 100000    /* flush every 100 milliseconds */
 
 /*          name             type              default               description */
 #define LOG_DEBUG_OPTION(ACTION) \
-    ACTION( log_debug_level, OPTION_TYPE_UINT, str(LOG_DEBUG_LEVEL), "debug log level"    )\
-    ACTION( log_debug_file,  OPTION_TYPE_STR,  NULL,                 "debug log file"     )\
-    ACTION( log_debug_nbuf,  OPTION_TYPE_UINT, str(LOG_DEBUG_NBUF),  "debug log buf size" )
+    ACTION( log_debug_level, OPTION_TYPE_UINT, str(LOG_DEBUG_LEVEL), "debug log level"          )\
+    ACTION( log_debug_file,  OPTION_TYPE_STR,  NULL,                 "debug log file"           )\
+    ACTION( log_debug_nbuf,  OPTION_TYPE_UINT, str(LOG_DEBUG_NBUF),  "debug log buf size"       )\
+    ACTION( log_debug_intvl, OPTION_TYPE_UINT, str(LOG_DEBUG_INTVL), "debug log flush interval" )
 
 extern struct logger *debug_logger;
 

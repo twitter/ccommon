@@ -315,8 +315,8 @@ event_wait(struct event_base *evb, int timeout)
             continue;
         }
 
-        log_error("wait on kqueue fd %d with nevent %d and tiemout %d failed: "
-                "%s", kq, evb->nevent, strerror(errno));
+        log_error("wait on kqueue fd %d with nevent %d and timeout %d failed: "
+                  "%s", kq, evb->nevent, timeout, strerror(errno));
 
         return -1;
     }
