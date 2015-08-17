@@ -151,7 +151,6 @@ dbuf_tcp_read(struct buf_sock *s)
     ASSERT(c != NULL && h != NULL && s->rbuf != NULL);
     ASSERT(h->recv != NULL);
 
-
     do {
         /*
          * Try to recv:
@@ -165,7 +164,7 @@ dbuf_tcp_read(struct buf_sock *s)
          */
         cap = buf_wsize(s->rbuf);
         if (cap == 0) {
-            status = dbuf_double(&s->rbuf);
+            status = dbuf_double(&(s->rbuf));
             if (status != CC_OK) {
                 log_verb("doubling rbuf on buf_sock %p failed: %d", s, status);
                 status = CC_ERETRY;
