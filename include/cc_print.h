@@ -42,8 +42,9 @@ extern "C" {
 #define cc_vscnprintf(_s, _n, _f, _a)                                   \
     _vscnprintf((char *)(_s), (size_t)(_n), _f, _a)
 
-#define cc_print_uint64(_s, _u)                                         \
-    (size_t)_scnprintf((char *)(_s), CC_UINT64_MAXLEN, "%"PRIu64, (_u))
+/* behavior undefined if there isn't enough space in buf */
+size_t cc_print_uint64_unsafe(char *buf, uint64_t n);
+size_t cc_print_uint64(char *buf, size_t size, uint64_t n);
 
 size_t _scnprintf(char *buf, size_t size, const char *fmt, ...);
 size_t _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
