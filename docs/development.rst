@@ -23,12 +23,13 @@ Goals
    
 #. Use abstraction to allow compile-time choice from multiple implementations of the same interface, but avoid excessive, multi-layered abstraction unless absolutely necessary.
 
-#. Work well on platforms emerging in the next 3-5 years.
-
-
 #. Production quality code that has built-in configuration, monitoring and logging support.
+
+
+#. Work well on platforms emerging in the next 3-5 years.
 
 
 Modules
 =======
+
 
