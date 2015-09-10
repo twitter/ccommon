@@ -69,4 +69,3 @@ Manager
 =======
 
 There isn't a life cycle expected for the manager. As a role it is supposed to be there for all the decisions that need to be made about system topology and policy, and monitor the whole system at a high level. When the manager goes away, topology is temporarily frozen and the system becomes vulnerable against future topological changes. A breakdown in the manager often requires human attention and fixes that are not built into the system design. As much as software developers would like to automate everything, the manager role stands as the last frontier between human operator and the system itself.
-
