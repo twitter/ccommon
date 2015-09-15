@@ -49,6 +49,23 @@ size_t cc_print_uint64(char *buf, size_t size, uint64_t n);
 size_t _scnprintf(char *buf, size_t size, const char *fmt, ...);
 size_t _vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
+static const uint64_t BASE10[CC_UINT64_MAXLEN - 1] = {
+    0, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
+    10000000000, 100000000000, 1000000000000, 10000000000000, 100000000000000,
+    1000000000000000, 10000000000000000, 100000000000000000,
+    1000000000000000000, 10000000000000000000ul};
+
+static inline size_t
+digits(int n) {
+    size_t d = 1;
+
+    while (n >= BASE10[d]) {
+        d++;
+    }
+
+    return d;
+}
+
 #ifdef __cplusplus
 }
 #endif

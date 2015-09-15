@@ -75,7 +75,7 @@ _dbuf_resize(struct buf **buf, uint32_t nsize)
     }
 
     /* end, rpos, wpos need to be adjusted for the new address of buf */
-    nbuf->end = (uint8_t *)nbuf + nsize;
+    nbuf->end = (char *)nbuf + nsize;
     nbuf->rpos = nbuf->begin + roffset;
     nbuf->wpos = nbuf->begin + woffset;
     *buf = nbuf;
