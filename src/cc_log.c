@@ -43,7 +43,9 @@ log_setup(log_metrics_st *metrics)
     log_stderr("set up the %s module", LOG_MODULE_NAME);
 
     log_metrics = metrics;
-    LOG_METRIC_INIT(log_metrics);
+    if (metrics != NULL) {
+        LOG_METRIC_INIT(log_metrics);
+    }
 
     if (log_init) {
         log_stderr("%s has already been setup, overwrite", LOG_MODULE_NAME);
@@ -123,13 +125,16 @@ log_destroy(struct logger **l)
         return;
     }
 
-    if (logger->buf != NULL) {
-        rbuf_destroy(logger->buf);
-    }
+    /* flush first in case there's data left in the buffer */
+    log_flush(logger);
 
     if (logger->fd >= 0 && logger->fd != STDERR_FILENO
         && logger->fd != STDOUT_FILENO) {
         close(logger->fd);
+    }
+
+    if (logger->buf != NULL) {
+        rbuf_destroy(logger->buf);
     }
 
     cc_free(logger);

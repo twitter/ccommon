@@ -56,7 +56,7 @@ static const uint64_t BASE10[CC_UINT64_MAXLEN - 1] = {
     1000000000000000000, 10000000000000000000ul};
 
 static inline size_t
-digits(int n) {
+digits(uint64_t n) {
     size_t d = 1;
 
     while (n >= BASE10[d]) {
