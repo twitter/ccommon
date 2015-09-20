@@ -1,7 +1,6 @@
 Cache Common Docs
 =====================
 
-Contents:
 
 **ccommon** (Cache Common) is the common C library for building extremely fast cache servers, clients and proxies. `go/ccommon <http://go/ccommon>`_ points here.
 
