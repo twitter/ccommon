@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Cache Common'
-description = u"ccommon (Cache Common) is a C library for building extremely fast cache servers, clients and proxies. http://go/ccommon"
+description = u"A C library for building extremely fast cache servers, clients and proxies. http://go/ccommon"
 copyright = u'Twitter'
 
 # The version info for the project you're documenting, acts as replacement for
