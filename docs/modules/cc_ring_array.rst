@@ -1,6 +1,5 @@
-******************
 ccommon ring array
-******************
+==================
 
 The ccommon ring array is a circular array data structure that allows elements to be pushed/popped in FIFO order. This data structure is designed to facilitate the sharing of resources between two threads with a producer/consumer relationship; that is, one thread only pushes to te ring array and the other thread only pops from the ring array.
 

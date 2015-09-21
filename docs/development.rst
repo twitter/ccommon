@@ -32,4 +32,5 @@ Goals
 Modules
 =======
 
+:doc:`modules/cc_ring_array`
 
