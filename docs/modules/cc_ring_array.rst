@@ -9,12 +9,6 @@ Synopsis
 
   #include <cc_ring_array.h>
 
-  void
-  ring_array_setup(void);
-
-  void
-  ring_array_teardown(void);
-
   struct ring_array *
   ring_array_create(size_t elem_size, uint32_t cap);
 
@@ -31,15 +25,6 @@ Description
 -----------
 
 This section contains descriptions of what the functions in the ccommon ring array module do.
-
-Setup/Teardown
-^^^^^^^^^^^^^^
-::
-
-  void ring_array_setup(void);
-  void ring_array_teardown(void);
-
-Setup/tear down the module. ``ring_array_setup()`` should be called before using the module and ``ring_array_teardown()`` should be called once the module is no longer needed.
 
 Creation/Destruction
 ^^^^^^^^^^^^^^^^^^^^
@@ -85,9 +70,6 @@ Hello World! with ccommon ``ring_array``:
                     int i, msg_len = strlen(msg);
                     rstatus_t status;
 
-                    /* Setup ring array module */
-                    ring_array_setup();
-
                     /* Create ring_array */
                     arr = ring_array_create(sizeof(char), 100);
 
@@ -115,9 +97,6 @@ Hello World! with ccommon ``ring_array``:
 
                     /* Destroy ring_array */
                     ring_array_destroy(arr);
-
-                    /* Teardown ring_array module */
-                    ring_array_teardown();
 
                     return 0;
                 }
