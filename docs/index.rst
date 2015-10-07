@@ -10,11 +10,7 @@ Subscribe to `cache-user <cache-user@twitter.com>`_ for announcement, send feedb
    :glob:
    :maxdepth: 2
 
-   history
    overview
-   anatomy
-   dataplane
-   development
    modules/*
 
 
