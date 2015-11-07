@@ -95,6 +95,40 @@ START_TEST(test_compare)
 }
 END_TEST
 
+START_TEST(test_atou64)
+{
+    uint64_t val;
+    struct bstring bstr;
+    char max_uint64[CC_UINT64_MAXLEN];
+
+    test_reset();
+
+    ck_assert_int_eq(bstring_atou64(&val, &str2bstr("foo")), CC_ERROR);
+
+    ck_assert_int_eq(bstring_atou64(&val, &str2bstr("-1")), CC_ERROR);
+
+    ck_assert_int_eq(bstring_atou64(&val, &str2bstr("123")), CC_OK);
+    ck_assert_uint_eq(val, 123);
+
+    ck_assert_int_eq(bstring_atou64(&val, &str2bstr("123")), CC_OK);
+    ck_assert_uint_eq(val, 123);
+
+    sprintf(max_uint64, "%llu", UINT64_MAX);
+    bstring_init(&bstr);
+    ck_assert_int_eq(bstring_copy(&bstr, max_uint64, strlen(max_uint64)), CC_OK);
+    ck_assert_int_eq(bstring_atou64(&val, &bstr), CC_OK);
+    ck_assert_uint_eq(val, UINT64_MAX);
+    bstring_deinit(&bstr);
+
+    sprintf(max_uint64, "%llu", UINT64_MAX);
+    max_uint64[strlen(max_uint64) - 1]++;
+    bstring_init(&bstr);
+    ck_assert_int_eq(bstring_copy(&bstr, max_uint64, strlen(max_uint64)), CC_OK);
+    ck_assert_int_eq(bstring_atou64(&val, &bstr), CC_ERROR);
+    bstring_deinit(&bstr);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -110,6 +144,7 @@ bstring_suite(void)
     tcase_add_test(tc_bstring, test_duplicate);
     tcase_add_test(tc_bstring, test_copy);
     tcase_add_test(tc_bstring, test_compare);
+    tcase_add_test(tc_bstring, test_atou64);
 
     return s;
 }
