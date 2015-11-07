@@ -80,6 +80,12 @@ START_TEST(test_expand)
 }
 END_TEST
 
+START_TEST(test_expand_max)
+{
+    _test_create_push_pop_destroy(ARRAY_MAX_NELEM_DELTA + 1, ARRAY_MAX_NELEM_DELTA + 2, ARRAY_MAX_NELEM_DELTA * 2 + 1);
+}
+END_TEST
+
 static rstatus_t sum(void *_elem, void *_agg) {
     *(uint64_t*)_agg = *(uint64_t*)_agg + *(uint64_t*)_elem;
     return CC_OK;
@@ -165,6 +171,7 @@ array_suite(void)
 
     tcase_add_test(tc_array, test_create_push_pop_destroy);
     tcase_add_test(tc_array, test_expand);
+    tcase_add_test(tc_array, test_expand_max);
     tcase_add_test(tc_array, test_each);
     tcase_add_test(tc_array, test_sort);
 
