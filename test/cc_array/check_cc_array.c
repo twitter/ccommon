@@ -74,6 +74,41 @@ START_TEST(test_expand)
 }
 END_TEST
 
+static rstatus_t sum(void *_elem, void *_agg) {
+    *(uint64_t*)_agg = *(uint64_t*)_agg + *(uint64_t*)_elem;
+    return CC_OK;
+}
+
+START_TEST(test_each)
+{
+#define SIZE 8
+#define NELEM 16
+    struct array *arr;
+    uint32_t i;
+    uint64_t *el;
+    uint64_t agg = 0;
+    uint64_t agg2 = 0;
+    err_t err = 0;
+
+    test_reset();
+
+    ck_assert_int_eq(array_create(&arr, NELEM, SIZE), CC_OK);
+
+    for (i = 0; i < NELEM; i++) {
+        el = array_push(arr);
+        *el = i;
+        agg2 += i;
+    }
+    array_each(arr, sum, &agg, &err);
+    ck_assert_int_eq(err, 0);
+    ck_assert_int_eq(agg, agg2);
+
+    array_destroy(&arr);
+#undef NELEM
+#undef SIZE
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -88,6 +123,7 @@ cc_array_suite(void)
 
     tcase_add_test(tc_array, test_create_push_pop_destroy);
     tcase_add_test(tc_array, test_expand);
+    tcase_add_test(tc_array, test_each);
 
     return s;
 }
