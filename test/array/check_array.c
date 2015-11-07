@@ -8,22 +8,28 @@
 #define SUITE_NAME "array"
 #define DEBUG_LOG  SUITE_NAME ".log"
 
+#define ARRAY_MAX_NELEM_DELTA 8
+
 /*
  * utilities
  */
 static void
 test_setup(void)
 {
-}
-
-static void
-test_reset(void)
-{
+    array_setup(ARRAY_MAX_NELEM_DELTA);
 }
 
 static void
 test_teardown(void)
 {
+    array_teardown();
+}
+
+static void
+test_reset(void)
+{
+    test_teardown();
+    test_setup();
 }
 
 START_TEST(test_create_push_pop_destroy)
