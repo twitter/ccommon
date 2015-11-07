@@ -51,6 +51,7 @@ option(HAVE_ASSERT_LOG "assert_log enabled by default" ON)
 option(HAVE_ASSERT_PANIC "assert_panic disabled by default" OFF)
 option(HAVE_LOGGING "logging enabled by default" ON)
 option(HAVE_STATS "stats enabled by default" ON)
+option(COVERAGE "code coverage" OFF)
 
 include (CheckIncludeFiles)
 if (OS_PLATFORM STREQUAL "OS_LINUX")
@@ -96,6 +97,10 @@ set(CFLAGS_LIST
     "-fstrict-aliasing ")
 string(REPLACE "" "" CFLAGS ${CFLAGS_LIST})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${CFLAGS}")
+
+if (COVERAGE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
+endif(COVERAGE)
 
 # other dependencies
 include(FindPackageHandleStandardArgs)
