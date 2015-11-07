@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SUITE_NAME "cc_array"
+#define SUITE_NAME "array"
 #define DEBUG_LOG  SUITE_NAME ".log"
 
 /*
@@ -67,7 +67,7 @@ END_TEST
  * test suite
  */
 static Suite *
-cc_array_suite(void)
+array_suite(void)
 {
     Suite *s = suite_create(SUITE_NAME);
 
@@ -91,7 +91,7 @@ main(void)
     /* setup */
     test_setup();
 
-    Suite *suite = cc_array_suite();
+    Suite *suite = array_suite();
     SRunner *srunner = srunner_create(suite);
     srunner_set_log(srunner, DEBUG_LOG);
     srunner_run_all(srunner, CK_ENV); /* set CK_VEBOSITY in ENV to customize */
