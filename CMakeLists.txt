@@ -57,6 +57,11 @@ if (OS_PLATFORM STREQUAL "OS_LINUX")
     check_include_files(linux/time64.h HAVE_TIME64)
 endif ()
 
+include (CheckIncludeFiles)
+if (OperatingSystem STREQUAL "OS_LINUX")
+    check_include_files (linux/time64.h HAVE_TIME64)
+endif ()
+
 include (CheckSymbolExists)
 check_symbol_exists(sys_signame signal.h HAVE_SIGNAME)
 
