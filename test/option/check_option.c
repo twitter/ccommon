@@ -50,6 +50,7 @@ START_TEST(test_parse_bool)
 {
     struct option opt;
     opt.type = OPTION_TYPE_BOOL;
+    opt.set = false;
 
     ck_assert_int_ne(option_set(&opt, "invalid"), CC_OK);
     ck_assert_int_eq(opt.set, false);
