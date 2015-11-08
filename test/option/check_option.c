@@ -46,6 +46,27 @@ test_reset(void)
     test_setup();
 }
 
+START_TEST(test_parse_bool)
+{
+    struct option opt;
+    opt.type = OPTION_TYPE_BOOL;
+
+    ck_assert_int_ne(option_set(&opt, "invalid"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    opt.set = false;
+    opt.val.vbool = false;
+    ck_assert_int_eq(option_set(&opt, "yes"), CC_OK);
+    ck_assert_int_eq(opt.val.vbool, true);
+    ck_assert_int_eq(opt.set, true);
+
+    opt.set = false;
+    opt.val.vbool = true;
+    ck_assert_int_eq(option_set(&opt, "no"), CC_OK);
+    ck_assert_int_eq(opt.val.vbool, false);
+    ck_assert_int_eq(opt.set, true);
+}
+END_TEST
 
 static char *
 tmpname_create(char *data)
@@ -121,6 +142,7 @@ option_suite(void)
     Suite *s = suite_create(SUITE_NAME);
 
     TCase *tc_option = tcase_create("option test");
+    tcase_add_test(tc_option, test_parse_bool);
     tcase_add_test(tc_option, test_load_file);
     suite_add_tcase(s, tc_option);
 
