@@ -218,6 +218,26 @@ START_TEST(test_write_metrics_stderr_nobuf)
 }
 END_TEST
 
+START_TEST(test_write_skip_metrics)
+{
+#define LOGSTR "foo bar baz"
+    struct logger *logger;
+    test_reset();
+
+    logger = log_create(NULL, 5);
+
+    ck_assert_uint_eq(metrics.log_skip.counter, 0);
+    ck_assert_uint_eq(metrics.log_skip_byte.counter, 0);
+
+    ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 0);
+    ck_assert_uint_eq(metrics.log_skip.counter, 1);
+    ck_assert_uint_eq(metrics.log_skip_byte.counter, sizeof(LOGSTR) - 1);
+
+    log_destroy(&logger);
+#undef LOGSTR
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -238,6 +258,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_write_metrics_stderr_buf);
     tcase_add_test(tc_log, test_write_metrics_file_nobuf);
     tcase_add_test(tc_log, test_write_metrics_stderr_nobuf);
+    tcase_add_test(tc_log, test_write_skip_metrics);
 
     return s;
 }
