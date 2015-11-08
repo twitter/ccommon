@@ -58,6 +58,10 @@ tmpname_destroy(char *path)
 static void
 assert_file_contents(const char *tmpname, const char *str, size_t len)
 {
+    if (len == 0 && access(tmpname, F_OK) != -1) {
+        return;
+    }
+
     char *filedata = malloc(sizeof(char) * len);
     FILE *fp = fopen(tmpname, "r");
     ck_assert_ptr_ne(fp, NULL);
@@ -69,7 +73,8 @@ assert_file_contents(const char *tmpname, const char *str, size_t len)
     free(filedata);
 }
 
-START_TEST(test_create_write_destroy)
+static void
+_test_create_write_destroy(uint32_t buf_cap)
 {
 #define LOGSTR "foo bar baz"
     struct logger *logger = NULL;
@@ -77,10 +82,16 @@ START_TEST(test_create_write_destroy)
 
     test_reset();
 
-    logger = log_create(tmpname, 0);
+    logger = log_create(tmpname, buf_cap);
     ck_assert_ptr_ne(logger, NULL);
 
     ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
+
+    if (buf_cap == 0) {
+        assert_file_contents(tmpname, LOGSTR, sizeof(LOGSTR) - 1);
+    } else {
+        assert_file_contents(tmpname, "", 0);
+    }
 
     log_destroy(&logger);
     ck_assert_ptr_eq(logger, NULL);
@@ -89,6 +100,17 @@ START_TEST(test_create_write_destroy)
 
     tmpname_destroy(tmpname);
 #undef LOGSTR
+}
+
+START_TEST(test_create_write_destroy)
+{
+    _test_create_write_destroy(0);
+}
+END_TEST
+
+START_TEST(test_create_large_buf_write_destroy)
+{
+    _test_create_write_destroy(100);
 }
 END_TEST
 
@@ -103,6 +125,7 @@ log_suite(void)
     suite_add_tcase(s, tc_log);
 
     tcase_add_test(tc_log, test_create_write_destroy);
+    tcase_add_test(tc_log, test_create_large_buf_write_destroy);
 
     return s;
 }
