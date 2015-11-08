@@ -104,6 +104,28 @@ START_TEST(test_parse_uinteger)
 }
 END_TEST
 
+START_TEST(test_parse_string)
+{
+    struct option opt;
+    opt.type = OPTION_TYPE_STR;
+    opt.val.vstr = NULL;
+
+    opt.set = false;
+    opt.val.vstr = NULL;
+    ck_assert_int_eq(option_set(&opt, "1"), CC_OK);
+    ck_assert_str_eq(opt.val.vstr, "1");
+    ck_assert_int_eq(opt.set, true);
+    option_free(&opt, 1);
+
+    opt.set = false;
+    opt.val.vstr = NULL;
+    ck_assert_int_eq(option_set(&opt, "a\nb"), CC_OK);
+    ck_assert_str_eq(opt.val.vstr, "a\nb");
+    ck_assert_int_eq(opt.set, true);
+    option_free(&opt, 1);
+}
+END_TEST
+
 static char *
 tmpname_create(char *data)
 {
@@ -180,6 +202,7 @@ option_suite(void)
     TCase *tc_option = tcase_create("option test");
     tcase_add_test(tc_option, test_parse_bool);
     tcase_add_test(tc_option, test_parse_uinteger);
+    tcase_add_test(tc_option, test_parse_string);
     tcase_add_test(tc_option, test_load_file);
     suite_add_tcase(s, tc_option);
 
