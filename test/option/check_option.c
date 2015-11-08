@@ -73,6 +73,7 @@ START_TEST(test_parse_uinteger)
 {
     struct option opt;
     opt.type = OPTION_TYPE_UINT;
+    opt.set = false;
 
     ck_assert_int_ne(option_set(&opt, "invalid"), CC_OK);
     ck_assert_int_eq(opt.set, false);
