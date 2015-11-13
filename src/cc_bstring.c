@@ -131,6 +131,12 @@ bstring_atou64(uint64_t *u64, struct bstring *str)
             return CC_ERROR;
         }
 
+        // overflow check
+        if (offset == CC_UINT64_MAXLEN - 2 && *u64 == UINT64_MAX / 10 &&
+                c > UINT64_MAX % 10 + '0') {
+            return CC_ERROR;
+        }
+
         *u64 = *u64 * 10ULL + (uint64_t)(c - '0');
     }
 
