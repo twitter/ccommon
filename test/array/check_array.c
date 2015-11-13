@@ -80,6 +80,13 @@ START_TEST(test_expand)
 }
 END_TEST
 
+START_TEST(test_expand_max)
+{
+    _test_create_push_pop_destroy(ARRAY_MAX_NELEM_DELTA + 1,
+            ARRAY_MAX_NELEM_DELTA + 2, ARRAY_MAX_NELEM_DELTA * 2 + 1);
+}
+END_TEST
+
 static rstatus_t
 sum(void *_elem, void *_agg)
 {
@@ -117,6 +124,40 @@ START_TEST(test_each)
 }
 END_TEST
 
+static int cmp(const void *e1, const void *e2) {
+    return memcmp(e1, e2, sizeof(uint64_t));
+}
+
+START_TEST(test_sort)
+{
+#define SIZE 8
+#define NELEM 16
+    struct array *arr;
+    uint32_t i;
+    uint64_t *el;
+
+    test_reset();
+
+    ck_assert_int_eq(array_create(&arr, NELEM, SIZE), CC_OK);
+
+    /* array: [NELEM, NELEM - 1, ...., 1] */
+    for (i = 0; i < NELEM; i++) {
+        el = array_push(arr);
+        *el = NELEM - i;
+    }
+    array_sort(arr, cmp);
+
+    for (; i > 0; i--) {
+        el = array_pop(arr);
+        ck_assert_int_eq(*el, i);
+    }
+
+    array_destroy(&arr);
+#undef NELEM
+#undef SIZE
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -131,7 +172,9 @@ array_suite(void)
 
     tcase_add_test(tc_array, test_create_push_pop_destroy);
     tcase_add_test(tc_array, test_expand);
+    tcase_add_test(tc_array, test_expand_max);
     tcase_add_test(tc_array, test_each);
+    tcase_add_test(tc_array, test_sort);
 
     return s;
 }
