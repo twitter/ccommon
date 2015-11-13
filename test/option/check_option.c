@@ -84,6 +84,12 @@ START_TEST(test_parse_uinteger)
     ck_assert_int_ne(option_set(&opt, "0 - 1"), CC_OK);
     ck_assert_int_eq(opt.set, false);
 
+    ck_assert_int_ne(option_set(&opt, "(1 + 2"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    ck_assert_int_ne(option_set(&opt, "1 + 2)"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
     opt.set = false;
     opt.val.vuint = false;
     ck_assert_int_eq(option_set(&opt, "1"), CC_OK);
@@ -100,6 +106,12 @@ START_TEST(test_parse_uinteger)
     opt.val.vuint = false;
     ck_assert_int_eq(option_set(&opt, "1 + 2 * 3"), CC_OK);
     ck_assert_int_eq(opt.val.vuint, 7);
+    ck_assert_int_eq(opt.set, true);
+
+    opt.set = false;
+    opt.val.vuint = false;
+    ck_assert_int_eq(option_set(&opt, "(1 + 2) * 3"), CC_OK);
+    ck_assert_int_eq(opt.val.vuint, 9);
     ck_assert_int_eq(opt.set, true);
 }
 END_TEST
