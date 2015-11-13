@@ -60,6 +60,29 @@ extern "C" {
 } while(0)
 #define DECR(_base, _metric) INCR_N(_base, _metric, 1)
 
+/**
+ * Note: there's no gcc built-in atomic primitives to do a straight-up store
+ * atomically. But so far we only use the UPDATE_* macros for a few metrics, so
+ * it doesn't matter much.
+ * We can also use an extra variable to store the current value and use a CAS
+ * primitive with the value read as well as the value to set, but the extra
+ * variable is a headache.
+ * Will revisit this later.
+ */
+#define UPDATE_DOUBLE(_base, _metric, _val)                                 \
+    if ((_base) != NULL) {                                                  \
+         (_base)->_metric.vdouble = _val;                                   \
+    }                                                                       \
+} while(0)
+
+#define UPDATE_INTMAX(_base, _metric, _val)                                 \
+    if ((_base) != NULL) {                                                  \
+         if ((_base)->_metric.vintmax < (_val)) {                           \
+            (_base)->_metric.vintmax = _val;                                \
+        }                                                                   \
+    }                                                                       \
+} while(0)
+
 
 #define METRIC_DECLARE(_name, _type, _description)   \
     struct metric _name;
@@ -72,10 +95,12 @@ extern "C" {
 
 #else
 
-#define metric_incr(_metric)
-#define metric_incr_n(_metric, _delta)
-#define metric_decr(_metric)
-#define metric_decr_n(_metric, _delta)
+#define INCR(_base, _metric)
+#define INCR_N(_base, _metric, _delta)
+#define DECR(_base, _metric)
+#define DECR_N(_base, _metric, _delta)
+#define UPDATE_DOUBLE(_base, _metric, _val)
+#define UPDATE_INTMAX(_base, _metric, _val)
 
 #define METRIC_DECLARE(_name, _type, _description)
 #define METRIC_INIT(_name, _type, _description)
@@ -88,7 +113,6 @@ extern "C" {
 typedef enum metric_type {
     METRIC_COUNTER,
     METRIC_GAUGE,
-    /* directly set values */
     METRIC_DDOUBLE,
     METRIC_DINTMAX
 } metric_type_t;
