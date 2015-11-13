@@ -74,7 +74,7 @@ assert_file_contents(const char *tmpname, const char *str, size_t len)
 }
 
 static void
-_test_create_write_destroy(uint32_t buf_cap)
+_test_create_write_destroy(uint32_t buf_cap, bool reopen)
 {
 #define LOGSTR "foo bar baz"
     struct logger *logger = NULL;
@@ -84,6 +84,10 @@ _test_create_write_destroy(uint32_t buf_cap)
 
     logger = log_create(tmpname, buf_cap);
     ck_assert_ptr_ne(logger, NULL);
+
+    if (reopen) {
+        log_reopen(logger);
+    }
 
     ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
 
@@ -104,13 +108,25 @@ _test_create_write_destroy(uint32_t buf_cap)
 
 START_TEST(test_create_write_destroy)
 {
-    _test_create_write_destroy(0);
+    _test_create_write_destroy(0, false);
 }
 END_TEST
 
 START_TEST(test_create_large_buf_write_destroy)
 {
-    _test_create_write_destroy(100);
+    _test_create_write_destroy(100, false);
+}
+END_TEST
+
+START_TEST(test_create_reopen_write_destroy)
+{
+    _test_create_write_destroy(0, true);
+}
+END_TEST
+
+START_TEST(test_create_large_buf_reopen_write_destroy)
+{
+    _test_create_write_destroy(100, true);
 }
 END_TEST
 
@@ -214,6 +230,8 @@ log_suite(void)
 
     tcase_add_test(tc_log, test_create_write_destroy);
     tcase_add_test(tc_log, test_create_large_buf_write_destroy);
+    tcase_add_test(tc_log, test_create_reopen_write_destroy);
+    tcase_add_test(tc_log, test_create_large_buf_reopen_write_destroy);
     tcase_add_test(tc_log, test_create_metrics_file);
     tcase_add_test(tc_log, test_create_metrics_stderr);
     tcase_add_test(tc_log, test_write_metrics_file_buf);
