@@ -80,7 +80,9 @@ START_TEST(test_expand)
 }
 END_TEST
 
-static rstatus_t sum(void *_elem, void *_agg) {
+static rstatus_t
+sum(void *_elem, void *_agg)
+{
     *(uint64_t*)_agg = *(uint64_t*)_agg + *(uint64_t*)_elem;
     return CC_OK;
 }
