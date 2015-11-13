@@ -319,6 +319,9 @@ static void
 _option_parse_str(struct option *opt, const char *val_str)
 {
     opt->set = true;
+    if (opt->val.vstr) {
+        cc_free(opt->val.vstr);
+    }
 
     if (val_str == NULL) {
         opt->val.vstr = NULL;
@@ -326,6 +329,10 @@ _option_parse_str(struct option *opt, const char *val_str)
     }
 
     opt->val.vstr = cc_alloc(strlen(val_str) + 1);
+    if (opt->val.vstr == NULL) {
+        log_crit("cannot store configuration string, OOM");
+        return;
+    }
     strcpy(opt->val.vstr, val_str);
 }
 
