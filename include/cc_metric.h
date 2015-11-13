@@ -115,10 +115,7 @@ typedef enum metric_type {
     METRIC_GAUGE,
     METRIC_DDOUBLE,
     METRIC_DINTMAX
-} metric_type_t;
-
-typedef uint64_t counter_t;
-typedef int64_t gauge_t;
+} metric_type_e;
 
 /* Note: anonymous union does not work with older (<gcc4.7) compilers */
 /* TODO(yao): determine if we should dynamically allocate the value field
@@ -126,12 +123,12 @@ typedef int64_t gauge_t;
  * memory for different types of values, potentially wasting space. */
 struct metric {
     char *name;
-    metric_type_t type;
+    metric_type_e type;
     union {
-        counter_t counter;
-        gauge_t gauge;
-        double vdouble;
-        intmax_t vintmax;
+        uint64_t    counter;
+        int64_t     gauge;
+        double      vdouble;
+        intmax_t    vintmax;
     };
 };
 
