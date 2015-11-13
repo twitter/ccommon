@@ -82,11 +82,14 @@ END_TEST
 
 START_TEST(test_expand_max)
 {
-    _test_create_push_pop_destroy(ARRAY_MAX_NELEM_DELTA + 1, ARRAY_MAX_NELEM_DELTA + 2, ARRAY_MAX_NELEM_DELTA * 2 + 1);
+    _test_create_push_pop_destroy(ARRAY_MAX_NELEM_DELTA + 1,
+            ARRAY_MAX_NELEM_DELTA + 2, ARRAY_MAX_NELEM_DELTA * 2 + 1);
 }
 END_TEST
 
-static rstatus_t sum(void *_elem, void *_agg) {
+static rstatus_t
+sum(void *_elem, void *_agg)
+{
     *(uint64_t*)_agg = *(uint64_t*)_agg + *(uint64_t*)_elem;
     return CC_OK;
 }
@@ -137,18 +140,16 @@ START_TEST(test_sort)
 
     ck_assert_int_eq(array_create(&arr, NELEM, SIZE), CC_OK);
 
+    /* array: [NELEM, NELEM - 1, ...., 1] */
     for (i = 0; i < NELEM; i++) {
         el = array_push(arr);
-        *el = i % 2 == 0 ? i : (NELEM - i);
+        *el = NELEM - i;
     }
     array_sort(arr, cmp);
 
-    for (i = NELEM - 1; ; i--) {
+    for (; i > 0; i--) {
         el = array_pop(arr);
         ck_assert_int_eq(*el, i);
-        if (i == 0) {
-            break;
-        }
     }
 
     array_destroy(&arr);
