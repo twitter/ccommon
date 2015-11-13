@@ -42,6 +42,22 @@ START_TEST(test_empty)
 }
 END_TEST
 
+START_TEST(test_duplicate)
+{
+    struct bstring bstr1 = str2bstr("foo");
+    struct bstring bstr2;
+
+    test_reset();
+
+    bstring_init(&bstr2);
+    ck_assert_int_eq(bstring_duplicate(&bstr2, &bstr1), CC_OK);
+    ck_assert_int_eq(bstr1.len, bstr2.len);
+    ck_assert_int_eq(memcmp(bstr1.data, bstr2.data, bstr1.len), 0);
+
+    bstring_deinit(&bstr2);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -54,6 +70,7 @@ bstring_suite(void)
     suite_add_tcase(s, tc_bstring);
 
     tcase_add_test(tc_bstring, test_empty);
+    tcase_add_test(tc_bstring, test_duplicate);
 
     return s;
 }
