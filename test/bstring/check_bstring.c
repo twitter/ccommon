@@ -58,6 +58,23 @@ START_TEST(test_duplicate)
 }
 END_TEST
 
+START_TEST(test_copy)
+{
+#define STR "foo"
+    struct bstring bstr;
+
+    test_reset();
+
+    bstring_init(&bstr);
+    ck_assert_int_eq(bstring_copy(&bstr, STR, sizeof(STR) - 1), CC_OK);
+    ck_assert_int_eq(sizeof(STR) - 1, bstr.len);
+    ck_assert_int_eq(memcmp(STR, bstr.data, bstr.len), 0);
+
+    bstring_deinit(&bstr);
+#undef STR
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -71,6 +88,7 @@ bstring_suite(void)
 
     tcase_add_test(tc_bstring, test_empty);
     tcase_add_test(tc_bstring, test_duplicate);
+    tcase_add_test(tc_bstring, test_copy);
 
     return s;
 }
