@@ -84,6 +84,12 @@ START_TEST(test_parse_uinteger)
     ck_assert_int_ne(option_set(&opt, "0 - 1"), CC_OK);
     ck_assert_int_eq(opt.set, false);
 
+    ck_assert_int_ne(option_set(&opt, "(1 + 2"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    ck_assert_int_ne(option_set(&opt, "1 + 2)"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
     opt.set = false;
     opt.val.vuint = false;
     ck_assert_int_eq(option_set(&opt, "1"), CC_OK);
@@ -101,6 +107,34 @@ START_TEST(test_parse_uinteger)
     ck_assert_int_eq(option_set(&opt, "1 + 2 * 3"), CC_OK);
     ck_assert_int_eq(opt.val.vuint, 7);
     ck_assert_int_eq(opt.set, true);
+
+    opt.set = false;
+    opt.val.vuint = false;
+    ck_assert_int_eq(option_set(&opt, "(1 + 2) * 3"), CC_OK);
+    ck_assert_int_eq(opt.val.vuint, 9);
+    ck_assert_int_eq(opt.set, true);
+}
+END_TEST
+
+START_TEST(test_parse_string)
+{
+    struct option opt;
+    opt.type = OPTION_TYPE_STR;
+    opt.val.vstr = NULL;
+
+    opt.set = false;
+    opt.val.vstr = NULL;
+    ck_assert_int_eq(option_set(&opt, "1"), CC_OK);
+    ck_assert_str_eq(opt.val.vstr, "1");
+    ck_assert_int_eq(opt.set, true);
+    option_free(&opt, 1);
+
+    opt.set = false;
+    opt.val.vstr = NULL;
+    ck_assert_int_eq(option_set(&opt, "a\nb"), CC_OK);
+    ck_assert_str_eq(opt.val.vstr, "a\nb");
+    ck_assert_int_eq(opt.set, true);
+    option_free(&opt, 1);
 }
 END_TEST
 
@@ -180,6 +214,7 @@ option_suite(void)
     TCase *tc_option = tcase_create("option test");
     tcase_add_test(tc_option, test_parse_bool);
     tcase_add_test(tc_option, test_parse_uinteger);
+    tcase_add_test(tc_option, test_parse_string);
     tcase_add_test(tc_option, test_load_file);
     suite_add_tcase(s, tc_option);
 
