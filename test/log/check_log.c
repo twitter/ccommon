@@ -150,6 +150,58 @@ START_TEST(test_create_metrics_stderr)
 }
 END_TEST
 
+static void
+test_write_metrics(char *tmpname, uint32_t buf_cap)
+{
+#define LOGSTR "foo"
+    struct logger *logger;
+    /**
+     * number of writes before calling _log_write
+     * log_create write to the log, which makes the initial value not 0
+     * this also makes it impossible to test log_write_bytes
+     * maybe log_* functions should not use the same logging system and metrics?
+     */
+    size_t before;
+    test_reset();
+
+    logger = log_create(tmpname, buf_cap);
+    before = metrics.log_write.counter;
+
+    ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
+    ck_assert_uint_eq(metrics.log_write.counter, before + 1);
+
+    log_destroy(&logger);
+#undef LOGSTR
+}
+
+START_TEST(test_write_metrics_file_buf)
+{
+    char *tmpname = tmpname_create();
+    test_write_metrics(tmpname, 10);
+    tmpname_destroy(tmpname);
+}
+END_TEST
+
+START_TEST(test_write_metrics_stderr_buf)
+{
+    test_write_metrics(NULL, 10);
+}
+END_TEST
+
+START_TEST(test_write_metrics_file_nobuf)
+{
+    char *tmpname = tmpname_create();
+    test_write_metrics(tmpname, 0);
+    tmpname_destroy(tmpname);
+}
+END_TEST
+
+START_TEST(test_write_metrics_stderr_nobuf)
+{
+    test_write_metrics(NULL, 0);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -164,6 +216,10 @@ log_suite(void)
     tcase_add_test(tc_log, test_create_large_buf_write_destroy);
     tcase_add_test(tc_log, test_create_metrics_file);
     tcase_add_test(tc_log, test_create_metrics_stderr);
+    tcase_add_test(tc_log, test_write_metrics_file_buf);
+    tcase_add_test(tc_log, test_write_metrics_stderr_buf);
+    tcase_add_test(tc_log, test_write_metrics_file_nobuf);
+    tcase_add_test(tc_log, test_write_metrics_stderr_nobuf);
 
     return s;
 }
