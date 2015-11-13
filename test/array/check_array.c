@@ -32,40 +32,51 @@ test_reset(void)
     test_setup();
 }
 
-START_TEST(test_create_push_pop_destroy)
+static void
+_test_create_push_pop_destroy(uint32_t initial_nalloc, uint32_t times, uint32_t expected_nalloc)
 {
-#define NALLOC 4
 #define SIZE 8
     struct array *arr;
+    uint32_t i;
     uint64_t *el;
 
     test_reset();
 
-    ck_assert_int_eq(array_create(&arr, NALLOC, SIZE), CC_OK);
+    ck_assert_int_eq(array_create(&arr, initial_nalloc, SIZE), CC_OK);
     ck_assert_ptr_ne(arr, NULL);
+    ck_assert_int_eq(array_nalloc(arr), initial_nalloc);
 
-    el = array_push(arr);
-    *el = 1;
+    for (i = 0; i < times; i++) {
+        el = array_push(arr);
+        *el = i;
+        ck_assert_int_eq(array_nelem(arr), i + 1);
+    }
 
-    el = array_push(arr);
-    *el = 2;
+    ck_assert_int_eq(array_nalloc(arr), expected_nalloc);
 
-    el = array_push(arr);
-    *el = 3;
-
-    el = array_pop(arr);
-    ck_assert_int_eq(*el, 3);
-
-    el = array_pop(arr);
-    ck_assert_int_eq(*el, 2);
-
-    el = array_pop(arr);
-    ck_assert_int_eq(*el, 1);
+    for (i = times - 1; ; i--) {
+        el = array_pop(arr);
+        ck_assert_int_eq(*el, i);
+        ck_assert_int_eq(array_nelem(arr), i);
+        if (i == 0) {
+            break;
+        }
+    }
 
     array_destroy(&arr);
     ck_assert_ptr_eq(arr, NULL);
-#undef NALLOC
 #undef SIZE
+}
+
+START_TEST(test_create_push_pop_destroy)
+{
+    _test_create_push_pop_destroy(4, 3, 4);
+}
+END_TEST
+
+START_TEST(test_expand)
+{
+    _test_create_push_pop_destroy(2, 3, 4);
 }
 END_TEST
 
@@ -82,6 +93,7 @@ array_suite(void)
     suite_add_tcase(s, tc_array);
 
     tcase_add_test(tc_array, test_create_push_pop_destroy);
+    tcase_add_test(tc_array, test_expand);
 
     return s;
 }
