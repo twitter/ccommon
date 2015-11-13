@@ -114,6 +114,42 @@ START_TEST(test_create_large_buf_write_destroy)
 }
 END_TEST
 
+static void
+test_create_metrics(char *tmpname)
+{
+    struct logger *logger = NULL;
+    test_reset();
+
+    ck_assert_uint_eq(metrics.log_create.counter, 0);
+    ck_assert_uint_eq(metrics.log_open.counter, 0);
+    ck_assert_uint_eq(metrics.log_curr.counter, 0);
+
+    logger = log_create(tmpname, 0);
+    ck_assert_uint_eq(metrics.log_open.counter, tmpname == NULL ? 0 : 1);
+    ck_assert_uint_eq(metrics.log_create.counter, 1);
+    ck_assert_uint_eq(metrics.log_curr.counter, 1);
+    ck_assert_uint_eq(metrics.log_destroy.counter, 0);
+
+    log_destroy(&logger);
+
+    ck_assert_uint_eq(metrics.log_destroy.counter, 1);
+    ck_assert_uint_eq(metrics.log_curr.counter, 0);
+}
+
+START_TEST(test_create_metrics_file)
+{
+    char *tmpname = tmpname_create();
+    test_create_metrics(tmpname);
+    tmpname_destroy(tmpname);
+}
+END_TEST
+
+START_TEST(test_create_metrics_stderr)
+{
+    test_create_metrics(NULL);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -126,6 +162,8 @@ log_suite(void)
 
     tcase_add_test(tc_log, test_create_write_destroy);
     tcase_add_test(tc_log, test_create_large_buf_write_destroy);
+    tcase_add_test(tc_log, test_create_metrics_file);
+    tcase_add_test(tc_log, test_create_metrics_stderr);
 
     return s;
 }
