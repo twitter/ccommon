@@ -75,6 +75,26 @@ START_TEST(test_copy)
 }
 END_TEST
 
+START_TEST(test_compare)
+{
+    struct bstring bstr1 = str2bstr("foo");
+    struct bstring bstr2 = str2bstr("bar");
+    struct bstring bstr3 = str2bstr("baz");
+
+    test_reset();
+
+    ck_assert_int_eq(bstring_compare(&bstr1, &bstr1), 0);
+    ck_assert_int_gt(bstring_compare(&bstr1, &bstr2), 0);
+    ck_assert_int_gt(bstring_compare(&bstr1, &bstr3), 0);
+    ck_assert_int_lt(bstring_compare(&bstr2, &bstr1), 0);
+    ck_assert_int_eq(bstring_compare(&bstr2, &bstr2), 0);
+    ck_assert_int_lt(bstring_compare(&bstr2, &bstr3), 0);
+    ck_assert_int_lt(bstring_compare(&bstr3, &bstr1), 0);
+    ck_assert_int_gt(bstring_compare(&bstr3, &bstr2), 0);
+    ck_assert_int_eq(bstring_compare(&bstr3, &bstr3), 0);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -89,6 +109,7 @@ bstring_suite(void)
     tcase_add_test(tc_bstring, test_empty);
     tcase_add_test(tc_bstring, test_duplicate);
     tcase_add_test(tc_bstring, test_copy);
+    tcase_add_test(tc_bstring, test_compare);
 
     return s;
 }
