@@ -69,6 +69,41 @@ START_TEST(test_parse_bool)
 }
 END_TEST
 
+START_TEST(test_parse_uinteger)
+{
+    struct option opt;
+    opt.type = OPTION_TYPE_UINT;
+    opt.set = false;
+
+    ck_assert_int_ne(option_set(&opt, "invalid"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    ck_assert_int_ne(option_set(&opt, "-1"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    ck_assert_int_ne(option_set(&opt, "0 - 1"), CC_OK);
+    ck_assert_int_eq(opt.set, false);
+
+    opt.set = false;
+    opt.val.vuint = false;
+    ck_assert_int_eq(option_set(&opt, "1"), CC_OK);
+    ck_assert_int_eq(opt.val.vuint, 1);
+    ck_assert_int_eq(opt.set, true);
+
+    opt.set = false;
+    opt.val.vuint = false;
+    ck_assert_int_eq(option_set(&opt, "1 + 1"), CC_OK);
+    ck_assert_int_eq(opt.val.vuint, 2);
+    ck_assert_int_eq(opt.set, true);
+
+    opt.set = false;
+    opt.val.vuint = false;
+    ck_assert_int_eq(option_set(&opt, "1 + 2 * 3"), CC_OK);
+    ck_assert_int_eq(opt.val.vuint, 7);
+    ck_assert_int_eq(opt.set, true);
+}
+END_TEST
+
 static char *
 tmpname_create(char *data)
 {
@@ -144,6 +179,7 @@ option_suite(void)
 
     TCase *tc_option = tcase_create("option test");
     tcase_add_test(tc_option, test_parse_bool);
+    tcase_add_test(tc_option, test_parse_uinteger);
     tcase_add_test(tc_option, test_load_file);
     suite_add_tcase(s, tc_option);
 
