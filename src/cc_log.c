@@ -165,7 +165,7 @@ log_reopen(struct logger *logger)
 }
 
 bool
-_log_write(struct logger *logger, char *buf, int len)
+log_write(struct logger *logger, char *buf, uint32_t len)
 {
     if (logger->buf != NULL) {
         if (rbuf_wcap(logger->buf) >= len) {
@@ -183,7 +183,7 @@ _log_write(struct logger *logger, char *buf, int len)
             return false;
         }
 
-        if (write(logger->fd, buf, len) < len) {
+        if (write(logger->fd, buf, len) < (ssize_t)len) {
             INCR(log_metrics, log_write_ex);
             logger->nerror++;
             return false;
@@ -250,7 +250,7 @@ log_flush(struct logger *logger)
     buf_len = rbuf_rcap(logger->buf);
     n = rbuf_read_fd(logger->buf, logger->fd);
 
-    if (n < buf_len) {
+    if (n < (ssize_t)buf_len) {
         INCR(log_metrics, log_flush_ex);
     } else {
         INCR(log_metrics, log_flush);

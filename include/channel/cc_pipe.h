@@ -104,6 +104,11 @@ void pipe_conn_return(struct pipe_conn **c);
 /* functions for using pipe connections */
 
 /* open/close pipe */
+/* the signature of pipe_open includes an `addr' field to conform with
+ * channel_open_fn, it should always be NULL
+ *
+ * TODO(yao): change the signature of channel_open_fn
+ */
 bool pipe_open(void *addr, struct pipe_conn *c);
 void pipe_close(struct pipe_conn *c);
 
