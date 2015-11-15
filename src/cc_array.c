@@ -171,7 +171,7 @@ array_pop(struct array *arr)
 
 /* sort array data in ascending order based on the compare comparator */
 void
-array_sort(struct array *arr, array_compare_t compare)
+array_sort(struct array *arr, array_compare_fn compare)
 {
     ASSERT(arr->nelem != 0);
 
