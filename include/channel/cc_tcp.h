@@ -124,7 +124,7 @@ static inline ch_id_t tcp_write_id(struct tcp_conn *c)
 /* basic channel maintenance */
 bool tcp_connect(struct addrinfo *ai, struct tcp_conn *c);  /* channel_open_fn, client */
 bool tcp_listen(struct addrinfo *ai, struct tcp_conn *c);   /* channel_open_fn, server */
-void tcp_close(struct tcp_conn *c);                         /* channel_term_fn */
+void tcp_close(struct tcp_conn *c);                         /* channel_perm_fn */
 ssize_t tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_recv_fn */
 ssize_t tcp_send(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_send_fn */
 ssize_t tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte);

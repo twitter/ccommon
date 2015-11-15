@@ -46,8 +46,8 @@ extern "C" {
 #include <inttypes.h>
 
 typedef void * iobuf_t; // TODO(yao): move into a generic buffer interface
-typedef ssize_t (*io_size_fn)(channel_t, iobuf_t, size_t);
-typedef ssize_t (*io_limiter_fn)(channel_t, iobuf_t, const char *);
+typedef ssize_t (*io_size_fn)(channel_p, iobuf_t, size_t);
+typedef ssize_t (*io_limiter_fn)(channel_p, iobuf_t, const char *);
 
 typedef void * stream_t;
 
@@ -63,7 +63,7 @@ struct stream {
     void                    *owner;
     bool                    free;
 
-    channel_t               ch;
+    channel_p               ch;
     iobuf_t                 rbuf;
     iocb_size_fn            read;
     iobuf_t                 wbuf;
