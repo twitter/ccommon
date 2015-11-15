@@ -61,7 +61,7 @@ typedef enum option_type {
     OPTION_TYPE_UINT,
     OPTION_TYPE_STR,
     OPTION_TYPE_SENTINEL
-} option_type_t;
+} option_type_e;
 extern char *option_type_str[];
 
 /* Union containing payload for setting */
@@ -75,7 +75,7 @@ typedef union option_val {
 struct option {
     char *name;
     bool set;
-    option_type_t type;
+    option_type_e type;
     char *default_val_str;
     option_val_u val;
     char *description;
