@@ -52,6 +52,23 @@ START_TEST(test_create_push_pop_destroy)
 }
 END_TEST
 
+START_TEST(test_pop_empty)
+{
+#define ELEM_SIZE sizeof(uint8_t)
+#define CAP 10
+    struct ring_array *arr;
+
+    test_reset();
+
+    arr = ring_array_create(ELEM_SIZE, CAP);
+    ck_assert_int_eq(ring_array_pop(NULL, arr), CC_ERROR);
+
+    ring_array_destroy(arr);
+#undef ELEM_SIZE
+#undef CAP
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -64,6 +81,7 @@ ring_array_suite(void)
     suite_add_tcase(s, tc_ring_array);
 
     tcase_add_test(tc_ring_array, test_create_push_pop_destroy);
+    tcase_add_test(tc_ring_array, test_pop_empty);
 
     return s;
 }
