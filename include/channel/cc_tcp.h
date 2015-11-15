@@ -83,7 +83,7 @@ struct tcp_conn {
     STAILQ_ENTRY(tcp_conn)  next;           /* for conn pool */
     bool                    free;           /* in use? */
 
-    ch_level_t              level;          /* meta or base */
+    ch_level_e              level;          /* meta or base */
     int                     sd;             /* socket descriptor */
 
     size_t                  recv_nbyte;     /* received (read) bytes */

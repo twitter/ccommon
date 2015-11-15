@@ -68,7 +68,7 @@ typedef enum channel_level {
     CHANNEL_INVALID,
     CHANNEL_META,
     CHANNEL_BASE
-} ch_level_t;
+} ch_level_e;
 
 /**
  * To give implementation a chance to explicitly manage memory, we separate out
