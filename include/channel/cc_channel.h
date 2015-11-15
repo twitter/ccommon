@@ -61,7 +61,7 @@ extern "C" {
 
 /* channel related data types */
 typedef void * channel_p;
-typedef void * address_t;
+typedef void * address_p;
 typedef int ch_id_t;
 
 typedef enum channel_level {
@@ -86,7 +86,7 @@ typedef void (* channel_put_fn)(channel_p *);
 typedef bool (* channel_accept_fn)(channel_p, channel_p);
 typedef void (* channel_reject_fn)(channel_p);
 
-typedef bool (* channel_open_fn)(address_t, channel_p);
+typedef bool (* channel_open_fn)(address_p, channel_p);
 typedef void (* channel_perm_fn)(channel_p);
 typedef ssize_t (* channel_recv_fn)(channel_p, void *, size_t);
 typedef ssize_t (* channel_send_fn)(channel_p, void *, size_t);
