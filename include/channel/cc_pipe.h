@@ -111,12 +111,12 @@ void pipe_close(struct pipe_conn *c);
 ssize_t pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte);
 ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte);
 
-static inline ch_id_t pipe_read_id(struct pipe_conn *c)
+static inline ch_id_i pipe_read_id(struct pipe_conn *c)
 {
     return c->fd[0];
 }
 
-static inline ch_id_t pipe_write_id(struct pipe_conn *c)
+static inline ch_id_i pipe_write_id(struct pipe_conn *c)
 {
     return c->fd[1];
 }
