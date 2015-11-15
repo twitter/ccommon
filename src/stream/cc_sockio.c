@@ -50,7 +50,7 @@ buf_tcp_read(struct buf_sock *s)
     ASSERT(s != NULL);
 
     struct tcp_conn *c = (struct tcp_conn *)s->ch;
-    channel_handler_t *h = s->hdl;
+    channel_handler_st *h = s->hdl;
     struct buf *buf = s->rbuf;
     rstatus_i status = CC_OK;
     ssize_t cap, n;
@@ -96,7 +96,7 @@ buf_tcp_write(struct buf_sock *s)
     ASSERT(s != NULL);
 
     struct tcp_conn *c = (struct tcp_conn *)s->ch;
-    channel_handler_t *h = s->hdl;
+    channel_handler_st *h = s->hdl;
     struct buf *buf = s->wbuf;
     rstatus_i status = CC_OK;
     size_t cap;
@@ -144,7 +144,7 @@ dbuf_tcp_read(struct buf_sock *s)
     ASSERT(s != NULL);
 
     struct tcp_conn *c = (struct tcp_conn *)s->ch;
-    channel_handler_t *h = s->hdl;
+    channel_handler_st *h = s->hdl;
     rstatus_i status = CC_OK;
     uint32_t cap;
     ssize_t n, total_n = 0;

@@ -102,7 +102,7 @@ typedef struct channel_handler {
     channel_send_fn     send;
     channel_id_fn       rid;
     channel_id_fn       wid;
-} channel_handler_t;
+} channel_handler_st;
 
 /* channel states, this is to be revised later (yao) */
 enum {

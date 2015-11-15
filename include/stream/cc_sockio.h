@@ -66,7 +66,7 @@ struct buf_sock {
 
     uint64_t                flag;   /* generic flag field to be used by app */
     void                    *data;  /* generic data field to be used by app */
-    channel_handler_t       *hdl;   /* use can specify per-channel action */
+    channel_handler_st       *hdl;   /* use can specify per-channel action */
 
     struct tcp_conn         *ch;
     struct buf              *rbuf;
