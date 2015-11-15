@@ -69,6 +69,28 @@ START_TEST(test_pop_empty)
 }
 END_TEST
 
+START_TEST(test_push_full)
+{
+#define ELEM_SIZE sizeof(uint8_t)
+#define CAP 10
+    return; /* FIXME: ring_array is broken */
+    struct ring_array *arr;
+    uint8_t i;
+
+    test_reset();
+
+    arr = ring_array_create(ELEM_SIZE, CAP);
+    for (i = 0; i < CAP; i++) {
+        ck_assert_int_eq(ring_array_push(&i, arr), CC_OK);
+    }
+    ck_assert_int_eq(ring_array_push(&i, arr), CC_ERROR);
+
+    ring_array_destroy(arr);
+#undef ELEM_SIZE
+#undef CAP
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -82,6 +104,7 @@ ring_array_suite(void)
 
     tcase_add_test(tc_ring_array, test_create_push_pop_destroy);
     tcase_add_test(tc_ring_array, test_pop_empty);
+    tcase_add_test(tc_ring_array, test_push_full);
 
     return s;
 }
