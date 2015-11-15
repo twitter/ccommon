@@ -123,7 +123,7 @@ buf_tcp_write(struct buf_sock *s)
             status = CC_ERROR;
             c->state = CHANNEL_ERROR;
         }
-    } else if (n < cap) {
+    } else if ((size_t)n < cap) {
         log_debug("unwritten data remain on conn %p, should retry", c);
         status = CC_ERETRY;
     } else {

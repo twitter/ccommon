@@ -117,7 +117,7 @@ rstatus_t
 bstring_atou64(uint64_t *u64, struct bstring *str)
 {
     uint32_t offset;
-    char c;
+    uint8_t c;
 
     *u64 = 0ULL;
 

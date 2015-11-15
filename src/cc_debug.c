@@ -94,6 +94,7 @@ _stacktrace(int signo)
 static void
 _logrotate(int signo)
 {
+    log_info("received signal %d, reopen log file", signo);
     log_reopen(dlog->logger);
 }
 
@@ -181,7 +182,7 @@ _log(struct debug_logger *dl, const char *file, int line, int level, const char 
 
     buf[len++] = '\n';
 
-    _log_write(dl->logger, buf, len);
+    log_write(dl->logger, buf, len);
 
     errno = errno_save;
 }
@@ -241,7 +242,7 @@ _log_hexdump(struct debug_logger *dl, int level, char *data, int datalen)
         off += 16;
     }
 
-    _log_write(dl->logger, buf, len);
+    log_write(dl->logger, buf, len);
 
     errno = errno_save;
 }
