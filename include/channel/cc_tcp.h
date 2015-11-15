@@ -92,7 +92,7 @@ struct tcp_conn {
     unsigned                state:4;        /* channel state */
     unsigned                flags:12;       /* annotation fields */
 
-    err_t                   err;            /* errno */
+    err_i                   err;            /* errno */
 };
 
 STAILQ_HEAD(tcp_conn_sqh, tcp_conn); /* corresponding header type for the STAILQ */

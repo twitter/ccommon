@@ -74,7 +74,7 @@ extern "C" {
 #define CC_UNFIN    1  /* unfinished, more data expected */
 
 typedef int rstatus_i;  /* generic function return value type */
-typedef int err_t; /* erroneous values for rstatus_i */
+typedef int err_i; /* erroneous values for rstatus_i */
 
 #ifdef __cplusplus
 }

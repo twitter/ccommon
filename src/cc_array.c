@@ -184,7 +184,7 @@ array_sort(struct array *arr, array_compare_t compare)
  * of element where the failure occurred
  */
 uint32_t
-array_each(struct array *arr, array_each_t func, void *arg, err_t *err)
+array_each(struct array *arr, array_each_t func, void *arg, err_i *err)
 {
     uint32_t i, nelem;
 

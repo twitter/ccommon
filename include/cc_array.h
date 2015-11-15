@@ -128,7 +128,7 @@ void array_destroy(struct array **arr);
 void *array_push(struct array *arr);
 void *array_pop(struct array *arr);
 void array_sort(struct array *arr, array_compare_t compare);
-uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_t *err);
+uint32_t array_each(struct array *arr, array_each_t func, void *arg, err_i *err);
 
 /* TODO(yao): refactor to use better arg names */
 void array_setup(uint32_t nelem);

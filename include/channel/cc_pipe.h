@@ -78,7 +78,7 @@ struct pipe_conn {
     unsigned                state:4;    /* defined as above */
     unsigned                flags;      /* annotation fields */
 
-    err_t                   err;        /* errno */
+    err_i                   err;        /* errno */
 };
 
 STAILQ_HEAD(pipe_conn_sqh, pipe_conn); /* corresponding header type for the STAILQ */
