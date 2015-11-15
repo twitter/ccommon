@@ -90,7 +90,7 @@ _stacktrace(int signo)
     raise(signo);
 }
 
-/* this only works on the default handler given the sig_t format */
+/* this only works on the default handler given the sig_fn format */
 static void
 _logrotate(int signo)
 {
