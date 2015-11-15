@@ -98,7 +98,7 @@ _logrotate(int signo)
 }
 
 
-rstatus_t
+rstatus_i
 debug_setup(int log_level, char *log_file, uint32_t log_nbuf)
 {
     log_stderr("Set up the %s module", DEBUG_MODULE_NAME);

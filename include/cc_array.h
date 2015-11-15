@@ -36,7 +36,7 @@ extern "C" {
 
 
 typedef int (*array_compare_t)(const void *, const void *);
-typedef rstatus_t (*array_each_t)(void *, void *);
+typedef rstatus_i (*array_each_t)(void *, void *);
 
 struct array {
     uint32_t nalloc;    /* # allocated element */
@@ -119,10 +119,10 @@ array_last(struct array *arr) {
 }
 
 
-rstatus_t array_data_create(struct array *arr, uint32_t nalloc, size_t size);
+rstatus_i array_data_create(struct array *arr, uint32_t nalloc, size_t size);
 void array_data_destroy(struct array *arr);
 
-rstatus_t array_create(struct array **arr, uint32_t nalloc, size_t size);
+rstatus_i array_create(struct array **arr, uint32_t nalloc, size_t size);
 void array_destroy(struct array **arr);
 
 void *array_push(struct array *arr);

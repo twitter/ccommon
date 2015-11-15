@@ -145,7 +145,7 @@ log_destroy(struct logger **l)
     DECR(log_metrics, log_curr);
 }
 
-rstatus_t
+rstatus_i
 log_reopen(struct logger *logger)
 {
     if (logger->fd != STDERR_FILENO && logger->fd != STDOUT_FILENO) {

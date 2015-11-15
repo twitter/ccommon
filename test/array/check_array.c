@@ -87,7 +87,7 @@ START_TEST(test_expand_max)
 }
 END_TEST
 
-static rstatus_t
+static rstatus_i
 sum(void *_elem, void *_agg)
 {
     *(uint64_t*)_agg = *(uint64_t*)_agg + *(uint64_t*)_elem;
