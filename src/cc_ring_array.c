@@ -77,7 +77,7 @@ ring_array_nelem(uint32_t rpos, uint32_t wpos, uint32_t cap)
     if (rpos <= wpos) { /* condition 1), 2) */
         return wpos - rpos;
     } else {            /* condition 3) */
-        return wpos + (cap - wpos + 1);
+        return wpos + (cap - rpos + 1);
     }
 }
 
