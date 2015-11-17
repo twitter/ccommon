@@ -77,7 +77,7 @@ ring_array_nelem(uint32_t rpos, uint32_t wpos, uint32_t cap)
     if (rpos <= wpos) { /* condition 1), 2) */
         return wpos - rpos;
     } else {            /* condition 3) */
-        return wpos + (cap - rpos + 1);
+        return wpos + (cap - wpos + 1);
     }
 }
 
@@ -113,7 +113,7 @@ ring_array_push(const void *elem, struct ring_array *arr)
     cc_memcpy(arr->data + (arr->elem_size * arr->wpos), elem, arr->elem_size);
 
     /* update wpos atomically */
-    new_wpos = (arr->wpos + 1) % arr->cap;
+    new_wpos = (arr->wpos + 1) % (arr->cap + 1);
     __atomic_store_n(&(arr->wpos), new_wpos, __ATOMIC_RELAXED);
 
     return CC_OK;
@@ -136,7 +136,7 @@ ring_array_pop(void *elem, struct ring_array *arr)
     }
 
     /* update rpos atomically */
-    new_rpos = (arr->rpos + 1) % arr->cap;
+    new_rpos = (arr->rpos + 1) % (arr->cap + 1);
     __atomic_store_n(&(arr->rpos), new_rpos, __ATOMIC_RELAXED);
 
     return CC_OK;
