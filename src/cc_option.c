@@ -34,10 +34,10 @@ char * option_type_str[] = {
     "string"
 };
 
-static rstatus_t
+static rstatus_i
 _option_parse_bool(struct option *opt, const char *val_str)
 {
-    rstatus_t status = CC_OK;
+    rstatus_i status = CC_OK;
 
     if (strlen(val_str) == 3 && str3cmp(val_str, 'y', 'e', 's')) {
         opt->set = true;
@@ -86,7 +86,7 @@ _option_comp_op_precedence(char op1, char op2)
  *          error
  *       b. Otherwise, pop the operator onto the output
  */
-static rstatus_t
+static rstatus_i
 _option_convert_rpn(const char *val_str, char *rpn)
 {
     const char *read_ptr = val_str;
@@ -192,7 +192,7 @@ _option_convert_rpn(const char *val_str, char *rpn)
  *          back onto the stack
  *  - Look at the stack. If there is more than 1 value, too many values were provided
  */
-static rstatus_t
+static rstatus_i
 _option_eval_rpn(char *rpn, uintmax_t *val)
 {
     uintmax_t stack[OPTLINE_MAXLEN];
@@ -278,11 +278,11 @@ _option_eval_rpn(char *rpn, uintmax_t *val)
  *  1. convert val_str to reverse Polish notation (RPN)
  *  2. evaluate RPN expression
  */
-static rstatus_t
+static rstatus_i
 _option_eval_int_expr(const char *val_str, uintmax_t *val)
 {
     char rpn[OPTLINE_MAXLEN];
-    rstatus_t ret;
+    rstatus_i ret;
 
     ASSERT(val_str != NULL);
     ASSERT(val != NULL);
@@ -298,7 +298,7 @@ _option_eval_int_expr(const char *val_str, uintmax_t *val)
     return ret;
 }
 
-static rstatus_t
+static rstatus_i
 _option_parse_uint(struct option *opt, const char *val_str)
 {
     uintmax_t val = 0;
@@ -336,10 +336,10 @@ _option_parse_str(struct option *opt, const char *val_str)
     strcpy(opt->val.vstr, val_str);
 }
 
-rstatus_t
+rstatus_i
 option_set(struct option *opt, char *val_str)
 {
-    rstatus_t status;
+    rstatus_i status;
 
     switch (opt->type) {
     case OPTION_TYPE_BOOL:
@@ -377,7 +377,7 @@ _allowed_in_name(char c)
     }
 }
 
-rstatus_t
+rstatus_i
 option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
 {
     char *p = line;
@@ -491,11 +491,11 @@ void option_printall(struct option options[], unsigned int nopt)
 
 }
 
-rstatus_t
+rstatus_i
 option_load_default(struct option options[], unsigned int nopt)
 {
     unsigned int i;
-    rstatus_t status;
+    rstatus_i status;
     struct option *opt = options;
 
     for (i = 0; i < nopt; i++, opt++) {
@@ -511,14 +511,14 @@ option_load_default(struct option options[], unsigned int nopt)
     return CC_OK;
 }
 
-rstatus_t
+rstatus_i
 option_load_file(FILE *fp, struct option options[], unsigned int nopt)
 {
     /* Note: when in use, all bufs are '\0' terminated if no error occurs */
     char linebuf[OPTLINE_MAXLEN + 1];
     char namebuf[OPTNAME_MAXLEN + 1];
     char valbuf[OPTVAL_MAXLEN + 1];
-    rstatus_t status;
+    rstatus_i status;
     struct option *opt;
     bool match;
     unsigned int i;

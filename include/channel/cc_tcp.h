@@ -83,7 +83,7 @@ struct tcp_conn {
     STAILQ_ENTRY(tcp_conn)  next;           /* for conn pool */
     bool                    free;           /* in use? */
 
-    ch_level_t              level;          /* meta or base */
+    ch_level_e              level;          /* meta or base */
     int                     sd;             /* socket descriptor */
 
     size_t                  recv_nbyte;     /* received (read) bytes */
@@ -92,7 +92,7 @@ struct tcp_conn {
     unsigned                state:4;        /* channel state */
     unsigned                flags:12;       /* annotation fields */
 
-    err_t                   err;            /* errno */
+    err_i                   err;            /* errno */
 };
 
 STAILQ_HEAD(tcp_conn_sqh, tcp_conn); /* corresponding header type for the STAILQ */
@@ -111,12 +111,12 @@ void tcp_conn_pool_destroy(void);
 struct tcp_conn *tcp_conn_borrow(void);     /* channel_get_fn, with resource pool */
 void tcp_conn_return(struct tcp_conn **c);  /* channel_put_fn, with resource pool */
 
-static inline ch_id_t tcp_read_id(struct tcp_conn *c)
+static inline ch_id_i tcp_read_id(struct tcp_conn *c)
 {
     return c->sd;
 }
 
-static inline ch_id_t tcp_write_id(struct tcp_conn *c)
+static inline ch_id_i tcp_write_id(struct tcp_conn *c)
 {
     return c->sd;
 }
@@ -124,7 +124,7 @@ static inline ch_id_t tcp_write_id(struct tcp_conn *c)
 /* basic channel maintenance */
 bool tcp_connect(struct addrinfo *ai, struct tcp_conn *c);  /* channel_open_fn, client */
 bool tcp_listen(struct addrinfo *ai, struct tcp_conn *c);   /* channel_open_fn, server */
-void tcp_close(struct tcp_conn *c);                         /* channel_term_fn */
+void tcp_close(struct tcp_conn *c);                         /* channel_perm_fn */
 ssize_t tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_recv_fn */
 ssize_t tcp_send(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_send_fn */
 ssize_t tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte);

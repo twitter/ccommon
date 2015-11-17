@@ -89,7 +89,7 @@ _test_create_write_destroy(uint32_t buf_cap, bool reopen)
         log_reopen(logger);
     }
 
-    ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
+    ck_assert_int_eq(log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
 
     if (buf_cap == 0) {
         assert_file_contents(tmpname, LOGSTR, sizeof(LOGSTR) - 1);
@@ -172,7 +172,7 @@ test_write_metrics(char *tmpname, uint32_t buf_cap)
 #define LOGSTR "foo"
     struct logger *logger;
     /**
-     * number of writes before calling _log_write
+     * number of writes before calling log_write
      * log_create write to the log, which makes the initial value not 0
      * this also makes it impossible to test log_write_bytes
      * maybe log_* functions should not use the same logging system and metrics?
@@ -183,7 +183,7 @@ test_write_metrics(char *tmpname, uint32_t buf_cap)
     logger = log_create(tmpname, buf_cap);
     before = metrics.log_write.counter;
 
-    ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
+    ck_assert_int_eq(log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 1);
     ck_assert_uint_eq(metrics.log_write.counter, before + 1);
 
     log_destroy(&logger);
@@ -229,7 +229,7 @@ START_TEST(test_write_skip_metrics)
     ck_assert_uint_eq(metrics.log_skip.counter, 0);
     ck_assert_uint_eq(metrics.log_skip_byte.counter, 0);
 
-    ck_assert_int_eq(_log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 0);
+    ck_assert_int_eq(log_write(logger, LOGSTR, sizeof(LOGSTR) - 1), 0);
     ck_assert_uint_eq(metrics.log_skip.counter, 1);
     ck_assert_uint_eq(metrics.log_skip_byte.counter, sizeof(LOGSTR) - 1);
 

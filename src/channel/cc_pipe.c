@@ -212,6 +212,7 @@ pipe_open(void *addr, struct pipe_conn *c)
 {
     int status;
 
+    ASSERT(addr == NULL);
     ASSERT(c != NULL);
 
     status = pipe(c->fd);
