@@ -51,7 +51,6 @@ START_TEST(test_push_full)
 {
 #define ELEM_SIZE sizeof(uint8_t)
 #define CAP 10
-    return; /* FIXME: ring_array is broken */
     struct ring_array *arr;
     uint8_t i;
 
@@ -71,7 +70,6 @@ START_TEST(test_push_pop_many)
 {
 #define ELEM_SIZE sizeof(uint8_t)
 #define CAP 10
-    return; /* FIXME: ring_array is broken */
     struct ring_array *arr;
     uint8_t i, j;
 
