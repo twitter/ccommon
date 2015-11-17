@@ -8,26 +8,6 @@
 #define SUITE_NAME "ring_array"
 #define DEBUG_LOG  SUITE_NAME ".log"
 
-/*
- * utilities
- */
-static void
-test_setup(void)
-{
-}
-
-static void
-test_teardown(void)
-{
-}
-
-static void
-test_reset(void)
-{
-    test_setup();
-    test_teardown();
-}
-
 START_TEST(test_create_push_pop_destroy)
 {
 #define ELEM_SIZE sizeof(uint8_t)
@@ -36,7 +16,6 @@ START_TEST(test_create_push_pop_destroy)
     struct ring_array *arr;
     uint8_t elem[1], test_elem[1];
 
-    test_reset();
     *elem = ELEM_VALUE;
     *test_elem = ELEM_VALUE + 1; /* make sure it is not equal to ELEM_VALUE */
 
@@ -49,6 +28,7 @@ START_TEST(test_create_push_pop_destroy)
     ring_array_destroy(arr);
 #undef ELEM_SIZE
 #undef CAP
+#undef ELEM_VALUE
 }
 END_TEST
 
@@ -57,8 +37,6 @@ START_TEST(test_pop_empty)
 #define ELEM_SIZE sizeof(uint8_t)
 #define CAP 10
     struct ring_array *arr;
-
-    test_reset();
 
     arr = ring_array_create(ELEM_SIZE, CAP);
     ck_assert_int_eq(ring_array_pop(NULL, arr), CC_ERROR);
@@ -76,8 +54,6 @@ START_TEST(test_push_full)
     return; /* FIXME: ring_array is broken */
     struct ring_array *arr;
     uint8_t i;
-
-    test_reset();
 
     arr = ring_array_create(ELEM_SIZE, CAP);
     for (i = 0; i < CAP; i++) {
@@ -98,8 +74,6 @@ START_TEST(test_push_pop_many)
     return; /* FIXME: ring_array is broken */
     struct ring_array *arr;
     uint8_t i, j;
-
-    test_reset();
 
     arr = ring_array_create(ELEM_SIZE, CAP);
     for (i = 0; i < CAP; i++) {
@@ -144,18 +118,12 @@ main(void)
 {
     int nfail;
 
-    /* setup */
-    test_setup();
-
     Suite *suite = ring_array_suite();
     SRunner *srunner = srunner_create(suite);
     srunner_set_log(srunner, DEBUG_LOG);
     srunner_run_all(srunner, CK_ENV); /* set CK_VEBOSITY in ENV to customize */
     nfail = srunner_ntests_failed(srunner);
     srunner_free(srunner);
-
-    /* teardown */
-    test_teardown();
 
     return (nfail == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
