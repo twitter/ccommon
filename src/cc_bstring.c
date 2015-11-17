@@ -65,7 +65,7 @@ bstring_empty(const struct bstring *str)
     return str->len == 0 ? true : false;
 }
 
-rstatus_t
+rstatus_i
 bstring_duplicate(struct bstring *dst, const struct bstring *src)
 {
     ASSERT(dst->len == 0 && dst->data == NULL);
@@ -82,7 +82,7 @@ bstring_duplicate(struct bstring *dst, const struct bstring *src)
     return CC_OK;
 }
 
-rstatus_t
+rstatus_i
 bstring_copy(struct bstring *dst, const char *src, uint32_t srclen)
 {
     ASSERT(dst->len == 0 && dst->data == NULL);
@@ -113,7 +113,7 @@ bstring_compare(const struct bstring *s1, const struct bstring *s2)
     return cc_bcmp(s1->data, s2->data, s1->len);
 }
 
-rstatus_t
+rstatus_i
 bstring_atou64(uint64_t *u64, struct bstring *str)
 {
     uint32_t offset;

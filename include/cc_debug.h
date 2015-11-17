@@ -80,7 +80,7 @@ extern "C" {
 
 void debug_assert(const char *cond, const char *file, int line, int panic);
 
-rstatus_t debug_setup(int level, char *filename, uint32_t buf_cap);
+rstatus_i debug_setup(int level, char *filename, uint32_t buf_cap);
 void debug_teardown(void);
 
 /**

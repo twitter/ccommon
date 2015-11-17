@@ -61,7 +61,7 @@ typedef enum option_type {
     OPTION_TYPE_UINT,
     OPTION_TYPE_STR,
     OPTION_TYPE_SENTINEL
-} option_type_t;
+} option_type_e;
 extern char *option_type_str[];
 
 /* Union containing payload for setting */
@@ -75,18 +75,18 @@ typedef union option_val {
 struct option {
     char *name;
     bool set;
-    option_type_t type;
+    option_type_e type;
     char *default_val_str;
     option_val_u val;
     char *description;
 };
 
-rstatus_t option_set(struct option *opt, char *val_str);
-rstatus_t option_parse(char *line, char *name, char *val);
+rstatus_i option_set(struct option *opt, char *val_str);
+rstatus_i option_parse(char *line, char *name, char *val);
 void option_print(struct option *opt);
 void option_printall(struct option options[], unsigned int nopt);
-rstatus_t option_load_default(struct option options[], unsigned int nopt);
-rstatus_t option_load_file(FILE *fp, struct option options[], unsigned int nopt);
+rstatus_i option_load_default(struct option options[], unsigned int nopt);
+rstatus_i option_load_file(FILE *fp, struct option options[], unsigned int nopt);
 void option_free(struct option options[], unsigned int nopt);
 
 #ifdef __cplusplus

@@ -37,9 +37,9 @@ void dbuf_setup(uint8_t power);
 void dbuf_teardown(void);
 
 /* Buffer resizing functions */
-rstatus_t dbuf_double(struct buf **buf); /* 2x size, slightly >2x capacity */
-rstatus_t dbuf_shrink(struct buf **buf); /* reset to initial size */
-rstatus_t dbuf_fit(struct buf **buf, uint32_t cap); /* resize to fit cap */
+rstatus_i dbuf_double(struct buf **buf); /* 2x size, slightly >2x capacity */
+rstatus_i dbuf_shrink(struct buf **buf); /* reset to initial size */
+rstatus_i dbuf_fit(struct buf **buf, uint32_t cap); /* resize to fit cap */
 
 #ifdef __cplusplus
 }

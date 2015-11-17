@@ -93,7 +93,7 @@ ring_array_full(uint32_t rpos, uint32_t wpos, uint32_t cap)
     return ring_array_nelem(rpos, wpos, cap) == cap;
 }
 
-rstatus_t
+rstatus_i
 ring_array_push(const void *elem, struct ring_array *arr)
 {
     /**
@@ -119,7 +119,7 @@ ring_array_push(const void *elem, struct ring_array *arr)
     return CC_OK;
 }
 
-rstatus_t
+rstatus_i
 ring_array_pop(void *elem, struct ring_array *arr)
 {
     /* take snapshot of wpos, since another thread might be pushing */
