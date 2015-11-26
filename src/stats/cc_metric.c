@@ -30,6 +30,11 @@ void
 metric_reset(struct metric sarr[], unsigned int n)
 {
     unsigned int i;
+
+    if (sarr == NULL) {
+        return;
+    }
+
     for (i = 0; i < n; i++) {
         switch (sarr[i].type) {
         case METRIC_COUNTER:
