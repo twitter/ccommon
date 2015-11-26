@@ -75,12 +75,12 @@ extern "C" {
     } else if ((_metric).type == METRIC_GAUGE) {                            \
          (_metric).gauge = (int64_t)_val;                                   \
     } else if ((_metric).type == METRIC_FPN) {                              \
-         (_metric).gauge = (double)_val;                                    \
+         (_metric).fpn = (double)_val;                                      \
     } else { /* error  */                                                   \
     }                                                                       \
 } while(0)
 
-#define UPDATE_VAL(_base, _metric, _val)                                    \
+#define UPDATE_VAL(_base, _metric, _val) do {                               \
     if ((_base) != NULL) {                                                  \
          metric_update_val((_base)->_metric, _val);                         \
     }                                                                       \
