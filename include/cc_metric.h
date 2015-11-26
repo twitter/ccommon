@@ -70,12 +70,12 @@ extern "C" {
  * Will revisit this later.
  */
 #define metric_update_val(_metric, _val) do {                               \
-    if ((_metric).type == METRIC_COUNTER) {                                 \
+    if ((_metric).type == METRIC_COUNTER)) {                                \
          (_metric).counter = (uint64_t)_val;                                \
-    } else if ((_metric).type == METRIC_GAUGE) {                            \
+    } else if ((_metric).type == METRIC_GAUGE)) {                           \
          (_metric).gauge = (int64_t)_val;                                   \
-    } else if ((_metric).type == METRIC_FPN) {                              \
-         (_metric).gauge = (double)_val;                                    \
+    } else if ((_metric).type == METRIC_FPN)) {                             \
+         (_metric).fpn = (double)_val;                                      \
     } else { /* error  */                                                   \
     }                                                                       \
 } while(0)
