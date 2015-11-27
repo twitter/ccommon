@@ -123,6 +123,39 @@ START_TEST(test_read_blocking)
 #undef TOLERANCE_TIME
 }
 END_TEST
+
+START_TEST(test_read_nonblocking)
+{
+    struct pipe_conn *pipe;
+    const char *write_message = "foo bar baz";
+    struct write_task task;
+#define READ_MESSAGE_LENGTH 12
+    char read_message[READ_MESSAGE_LENGTH];
+    test_reset();
+
+    pipe = pipe_conn_create();
+    ck_assert_ptr_ne(pipe, NULL);
+
+    ck_assert_int_eq(pipe_open(NULL, pipe), true);
+    pipe_set_nonblocking(pipe);
+
+    ck_assert_int_lt(pipe_recv(pipe, read_message, READ_MESSAGE_LENGTH), 0);
+    task.pipe = pipe;
+    task.buf = (void *)write_message;
+    task.nbytes = READ_MESSAGE_LENGTH;
+    task.usleep = 0;
+    do_write(&task);
+
+    ck_assert_int_eq(pipe_recv(pipe, read_message, READ_MESSAGE_LENGTH), READ_MESSAGE_LENGTH);
+
+    ck_assert_str_eq(write_message, read_message);
+
+    pipe_close(pipe);
+    pipe_conn_destroy(&pipe);
+#undef READ_MESSAGE_LENGTH
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -134,6 +167,7 @@ pipe_suite(void)
     TCase *tc_pipe = tcase_create("pipe test");
     tcase_add_test(tc_pipe, test_send_recv);
     tcase_add_test(tc_pipe, test_read_blocking);
+    tcase_add_test(tc_pipe, test_read_nonblocking);
     suite_add_tcase(s, tc_pipe);
 
     return s;
