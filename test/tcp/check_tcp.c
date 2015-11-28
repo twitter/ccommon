@@ -30,10 +30,10 @@ test_reset(void)
     test_setup();
 }
 
-START_TEST(test_listen_connect)
+static void
+find_port_listen(struct tcp_conn **_conn_listen, struct addrinfo **_ai, uint16_t *_port)
 {
-    uint32_t port = 9001;
-    bool listen;
+    uint16_t port = 9001;
     char servname[CC_UINTMAX_MAXLEN + 1];
     struct tcp_conn *conn_listen, *conn_client;
     struct addrinfo hints, *ai;
@@ -62,9 +62,35 @@ START_TEST(test_listen_connect)
         }
 
         ck_assert_int_eq(getaddrinfo("localhost", servname, &hints, &ai), 0);
-        listen = tcp_listen(ai, conn_listen);
-        break;
+        if (tcp_listen(ai, conn_listen)) {
+            break;
+        }
     }
+    /* for some reason this line is needed, I would appreciate some insight */
+    ck_assert_int_eq(tcp_connect(ai, conn_client), true);
+
+    if (_conn_listen) {
+        *_conn_listen = conn_listen;
+    }
+    if (_ai) {
+        *_ai = ai;
+    }
+    if (_port) {
+        *_port = port;
+    }
+    tcp_close(conn_client);
+    tcp_conn_destroy(&conn_client);
+}
+
+START_TEST(test_listen_connect)
+{
+    struct tcp_conn *conn_listen, *conn_client;
+    struct addrinfo *ai;
+
+    find_port_listen(&conn_listen, &ai, NULL);
+
+    conn_client = tcp_conn_create();
+    ck_assert_ptr_ne(conn_client, NULL);
 
     ck_assert_int_eq(tcp_connect(ai, conn_client), true);
 
