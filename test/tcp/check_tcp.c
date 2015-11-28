@@ -102,6 +102,27 @@ START_TEST(test_listen_connect)
 }
 END_TEST
 
+START_TEST(test_listen_listen)
+{
+    struct tcp_conn *conn_listen1, *conn_listen2;
+    struct addrinfo *ai;
+
+    test_reset();
+
+    find_port_listen(&conn_listen1, &ai, NULL);
+
+    conn_listen2 = tcp_conn_create();
+    ck_assert_ptr_ne(conn_listen2, NULL);
+
+    ck_assert_int_eq(tcp_listen(ai, conn_listen2), false);
+
+    tcp_close(conn_listen1);
+
+    tcp_conn_destroy(&conn_listen1);
+    tcp_conn_destroy(&conn_listen2);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -113,6 +134,7 @@ log_suite(void)
     suite_add_tcase(s, tc_log);
 
     tcase_add_test(tc_log, test_listen_connect);
+    tcase_add_test(tc_log, test_listen_listen);
 
     return s;
 }
