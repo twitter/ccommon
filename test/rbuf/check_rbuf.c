@@ -112,7 +112,7 @@ START_TEST(test_create_write_read_wrap_around_destroy)
     buffer = rbuf_create(CAP);
     ck_assert_ptr_ne(buffer, NULL);
 
-    // writting and reading to force a wrap around
+    /* writting and reading to force a wrap around */
     written = rbuf_write(buffer, write_data, CAP - 1);
     ck_assert_int_eq(written, CAP - 1);
     read = rbuf_read(read_data, buffer, CAP - 1);
