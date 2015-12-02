@@ -87,7 +87,7 @@ START_TEST(test_create_write_read_destroy)
 
     write_read_rbuf(buffer, write_data, W1_LEN, W2_LEN);
 
-    rbuf_destroy(buffer);
+    rbuf_destroy(&buffer);
 #undef CAP
 #undef W2_LEN
 #undef W1_LEN
@@ -120,7 +120,7 @@ START_TEST(test_create_write_read_wrap_around_destroy)
 
     write_read_rbuf(buffer, write_data, W1_LEN, W2_LEN);
 
-    rbuf_destroy(buffer);
+    rbuf_destroy(&buffer);
 #undef CAP
 #undef W2_LEN
 #undef W1_LEN
