@@ -130,14 +130,14 @@ timeout_event_return(struct timeout_event **tev)
 {
     struct timeout_event *t = *tev;
 
-    if (t == NULL || t->free) {
+    if (tev == NULL || t == NULL || t->free) {
         return;
     }
 
     log_verb("return timeout_event %p", t);
 
     t->free = true;
-    FREEPOOL_RETURN(&teventp, t, next);
+    FREEPOOL_RETURN(t, &teventp, next);
 
     *tev = NULL;
     INCR(timing_wheel_metrics, timeout_event_return);
@@ -161,13 +161,8 @@ timeout_event_pool_create(uint32_t max)
     teventp_init = true;
 
     /* preallocating, see notes in buffer/cc_buf.c */
-
-    if (max == 0) { /* do not preallocate if pool size is not specified */
-        return;
-    }
-
     FREEPOOL_PREALLOC(t, &teventp, max, next, timeout_event_create);
-    if (t == NULL) {
+    if (teventp.nfree < max) {
         log_crit("cannot preallocate timeout_event pool due to OOM, abort");
         exit(EXIT_FAILURE);
     }
