@@ -134,9 +134,7 @@ log_destroy(struct logger **l)
         close(logger->fd);
     }
 
-    if (logger->buf != NULL) {
-        rbuf_destroy(logger->buf);
-    }
+    rbuf_destroy(&logger->buf);
 
     cc_free(logger);
     *l = NULL;
