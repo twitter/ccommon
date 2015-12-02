@@ -247,22 +247,20 @@ error:
 }
 
 void
-buf_sock_destroy(struct buf_sock **buf_sock)
+buf_sock_destroy(struct buf_sock **s)
 {
-    struct buf_sock *s = *buf_sock;
-
-    if (s == NULL) {
+    if (s == NULL || *s == NULL) {
         return;
     }
 
-    log_verb("destroy buffered socket %p", s);
+    log_verb("destroy buffered socket %p", *s);
 
-    tcp_conn_destroy(&s->ch);
-    buf_destroy(&s->rbuf);
-    buf_destroy(&s->wbuf);
-    cc_free(s);
+    tcp_conn_destroy(&(*s)->ch);
+    buf_destroy(&(*s)->rbuf);
+    buf_destroy(&(*s)->wbuf);
+    cc_free(*s);
 
-    *buf_sock = NULL;
+    *s = NULL;
 }
 
 void
@@ -344,18 +342,16 @@ buf_sock_borrow(void)
 }
 
 void
-buf_sock_return(struct buf_sock **buf_sock)
+buf_sock_return(struct buf_sock **s)
 {
-    struct buf_sock *s = *buf_sock;
-
-    if (buf_sock == NULL || s == NULL || s->free) {
+    if (s == NULL || *s == NULL || (*s)->free) {
         return;
     }
 
-    log_verb("return buffered socket %p", s);
+    log_verb("return buffered socket %p", *s);
 
-    s->free = true;
-    FREEPOOL_RETURN(s, &bsp, next);
+    (*s)->free = true;
+    FREEPOOL_RETURN(*s, &bsp, next);
 
-    *buf_sock = NULL;
+    *s = NULL;
 }
