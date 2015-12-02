@@ -64,7 +64,7 @@ struct pool {                                                       \
     while ((pool)->nfree < size) {                                  \
         (var) = create();                                           \
         if ((var) != NULL) {                                        \
-            STAILQ_INSERT_HEAD(&(pool)->freeq, var, next);          \
+            STAILQ_INSERT_HEAD(&(pool)->freeq, var, field);         \
             (pool)->nfree++;                                        \
         } else {                                                    \
             break;                                                  \
