@@ -132,6 +132,7 @@ START_TEST(test_client_write_server_read)
     char write_data[LEN];
     char read_data[LEN + 1];
     size_t i;
+    ssize_t recv;
 
     for (i = 0; i < LEN; i++) {
         write_data[i] = i % CHAR_MAX;
@@ -149,7 +150,8 @@ START_TEST(test_client_write_server_read)
 
     ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
     ck_assert_int_eq(tcp_send(conn_client, write_data, LEN), LEN);
-    ck_assert_int_eq(tcp_recv(conn_server, read_data, LEN + 1), LEN);
+    while ((recv = tcp_recv(conn_server, read_data, LEN + 1)) == CC_EAGAIN) {}
+    ck_assert_int_eq(recv, LEN);
     ck_assert_int_eq(memcmp(write_data, read_data, LEN), 0);
 
     tcp_close(conn_listen);
@@ -171,6 +173,7 @@ START_TEST(test_server_write_client_read)
     char write_data[LEN];
     char read_data[LEN + 1];
     size_t i;
+    ssize_t recv;
 
     for (i = 0; i < LEN; i++) {
         write_data[i] = i % CHAR_MAX;
@@ -188,7 +191,8 @@ START_TEST(test_server_write_client_read)
 
     ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
     ck_assert_int_eq(tcp_send(conn_server, write_data, LEN), LEN);
-    ck_assert_int_eq(tcp_recv(conn_client, read_data, LEN + 1), LEN);
+    while ((recv = tcp_recv(conn_client, read_data, LEN + 1)) == CC_EAGAIN) {}
+    ck_assert_int_eq(recv, LEN);
     ck_assert_int_eq(memcmp(write_data, read_data, LEN), 0);
 
     tcp_close(conn_listen);
