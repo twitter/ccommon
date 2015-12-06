@@ -206,6 +206,61 @@ START_TEST(test_server_send_client_recv)
 }
 END_TEST
 
+START_TEST(test_client_sendv_server_recvv)
+{
+#define LEN 20
+    struct tcp_conn *conn_listen, *conn_client, *conn_server;
+    struct addrinfo *ai;
+    char send_data[LEN];
+    char recv_data[LEN + 1];
+    size_t i;
+    ssize_t recv;
+    struct array *send_array, *recv_array;
+    struct iovec *sendv, *recvv;
+
+    array_create(&send_array, 1, sizeof(struct iovec));
+    array_create(&recv_array, 1, sizeof(struct iovec));
+    sendv = array_push(send_array);
+    recvv = array_push(recv_array);
+    sendv->iov_base = send_data;
+    sendv->iov_len = LEN;
+    recvv->iov_base = recv_data;
+    recvv->iov_len = LEN;
+
+    for (i = 0; i < LEN; i++) {
+        send_data[i] = i % CHAR_MAX;
+    }
+
+    find_port_listen(&conn_listen, &ai, NULL);
+
+    conn_client = tcp_conn_create();
+    ck_assert_ptr_ne(conn_client, NULL);
+
+    ck_assert_int_eq(tcp_connect(ai, conn_client), true);
+
+    conn_server = tcp_conn_create();
+    ck_assert_ptr_ne(conn_server, NULL);
+
+    ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
+    ck_assert_int_eq(tcp_sendv(conn_client, send_array, LEN), LEN);
+    while ((recv = tcp_recvv(conn_server, recv_array, LEN + 1)) == CC_EAGAIN) {}
+    ck_assert_int_eq(recv, LEN);
+    ck_assert_int_eq(memcmp(send_data, recv_data, LEN), 0);
+
+    tcp_close(conn_listen);
+    tcp_close(conn_server);
+    tcp_close(conn_client);
+
+    array_destroy(&send_array);
+    array_destroy(&recv_array);
+
+    tcp_conn_destroy(&conn_listen);
+    tcp_conn_destroy(&conn_client);
+    tcp_conn_destroy(&conn_server);
+#undef LEN
+}
+END_TEST
+
 START_TEST(test_maximize_sndbuf)
 {
 #define SNDBUF 100
@@ -244,6 +299,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_listen_listen);
     tcase_add_test(tc_log, test_client_send_server_recv);
     tcase_add_test(tc_log, test_server_send_client_recv);
+    tcase_add_test(tc_log, test_client_sendv_server_recvv);
     tcase_add_test(tc_log, test_maximize_sndbuf);
 
     return s;
