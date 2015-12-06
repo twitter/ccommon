@@ -1,4 +1,5 @@
 #include <cc_event.h>
+#include <channel/cc_pipe.h>
 
 #include <check.h>
 
@@ -43,30 +44,6 @@ test_reset(void)
     test_setup();
 }
 
-static char *
-tmpname_create(void)
-{
-#define PATH "/tmp/temp.XXXXXX"
-    char *path = malloc(sizeof(PATH) + 3);
-    strcpy(path, PATH);
-    mkdtemp(path);
-    size_t len = strlen(path);
-    path[len++] = '/';
-    path[len++] = '1';
-    path[len++] = 0;
-    return path;
-#undef PATH
-}
-
-static void
-tmpname_destroy(char *path)
-{
-    unlink(path);
-    path[strlen(path) - 2] = 0;
-    rmdir(path);
-    free(path);
-}
-
 static void
 log_event(void *arg, uint32_t events)
 {
@@ -76,22 +53,20 @@ log_event(void *arg, uint32_t events)
 
 START_TEST(test_read)
 {
-    FILE *fp;
     struct event_base *event_base;
-    char *tmpname = tmpname_create();
     char *data = "foo bar baz";
     int random_pointer[1] = {1};
+    struct pipe_conn *pipe;
 
     test_reset();
 
     event_base = event_base_create(1024, log_event);
 
-    fp = fopen(tmpname, "w");
-    fwrite(data, 1, sizeof(data), fp);
-    fclose(fp);
+    pipe = pipe_conn_create();
+    ck_assert_int_eq(pipe_open(NULL, pipe), true);
+    ck_assert_int_eq(pipe_send(pipe, data, sizeof(data)), sizeof(data));
 
-    fp = fopen(tmpname, "r");
-    event_add_read(event_base, fileno(fp), random_pointer);
+    event_add_read(event_base, pipe_read_id(pipe), random_pointer);
 
     ck_assert_int_eq(event_log_count, 0);
 
@@ -101,28 +76,26 @@ START_TEST(test_read)
     ck_assert_ptr_eq(event_log[0].arg, random_pointer);
     ck_assert_int_eq(event_log[0].events, EVENT_READ);
 
-    fclose(fp);
     event_base_destroy(&event_base);
-    tmpname_destroy(tmpname);
+    pipe_close(pipe);
+    pipe_conn_destroy(&pipe);
 }
 END_TEST
 
 START_TEST(test_cannot_read)
 {
-    FILE *fp;
     struct event_base *event_base;
-    char *tmpname = tmpname_create();
     int random_pointer[1] = {1};
+    struct pipe_conn *pipe;
 
     test_reset();
 
     event_base = event_base_create(1024, log_event);
 
-    fp = fopen(tmpname, "w");
-    fclose(fp);
+    pipe = pipe_conn_create();
+    ck_assert_int_eq(pipe_open(NULL, pipe), true);
 
-    fp = fopen(tmpname, "r");
-    event_add_read(event_base, fileno(fp), random_pointer);
+    event_add_read(event_base, pipe_read_id(pipe), random_pointer);
 
     ck_assert_int_eq(event_log_count, 0);
 
@@ -131,28 +104,25 @@ START_TEST(test_cannot_read)
     ck_assert_int_eq(event_log_count, 0);
 
     event_base_destroy(&event_base);
-    tmpname_destroy(tmpname);
+    pipe_close(pipe);
+    pipe_conn_destroy(&pipe);
 }
 END_TEST
 
 START_TEST(test_write)
 {
-    FILE *fp;
     struct event_base *event_base;
-    char *tmpname = tmpname_create();
-    char *data = "foo bar baz";
     int random_pointer[1] = {1};
+    struct pipe_conn *pipe;
 
     test_reset();
 
     event_base = event_base_create(1024, log_event);
 
-    fp = fopen(tmpname, "w");
-    fwrite(data, 1, sizeof(data), fp);
-    fclose(fp);
+    pipe = pipe_conn_create();
+    ck_assert_int_eq(pipe_open(NULL, pipe), true);
 
-    fp = fopen(tmpname, "w");
-    event_add_write(event_base, fileno(fp), random_pointer);
+    event_add_write(event_base, pipe_read_id(pipe), random_pointer);
 
     ck_assert_int_eq(event_log_count, 0);
 
@@ -162,9 +132,9 @@ START_TEST(test_write)
     ck_assert_ptr_eq(event_log[0].arg, random_pointer);
     ck_assert_int_eq(event_log[0].events, EVENT_WRITE);
 
-    fclose(fp);
     event_base_destroy(&event_base);
-    tmpname_destroy(tmpname);
+    pipe_close(pipe);
+    pipe_conn_destroy(&pipe);
 }
 END_TEST
 
