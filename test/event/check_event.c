@@ -2,8 +2,11 @@
 
 #include <check.h>
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define SUITE_NAME "event"
@@ -132,6 +135,39 @@ START_TEST(test_cannot_read)
 }
 END_TEST
 
+START_TEST(test_write)
+{
+    FILE *fp;
+    struct event_base *event_base;
+    char *tmpname = tmpname_create();
+    char *data = "foo bar baz";
+    int random_pointer[1] = {1};
+
+    test_reset();
+
+    event_base = event_base_create(1024, log_event);
+
+    fp = fopen(tmpname, "w");
+    fwrite(data, 1, sizeof(data), fp);
+    fclose(fp);
+
+    fp = fopen(tmpname, "w");
+    event_add_write(event_base, fileno(fp), random_pointer);
+
+    ck_assert_int_eq(event_log_count, 0);
+
+    event_wait(event_base, -1);
+
+    ck_assert_int_eq(event_log_count, 1);
+    ck_assert_ptr_eq(event_log[0].arg, random_pointer);
+    ck_assert_int_eq(event_log[0].events, EVENT_WRITE);
+
+    fclose(fp);
+    event_base_destroy(&event_base);
+    tmpname_destroy(tmpname);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -146,6 +182,7 @@ event_suite(void)
 
     tcase_add_test(tc_event, test_read);
     tcase_add_test(tc_event, test_cannot_read);
+    tcase_add_test(tc_event, test_write);
 
     return s;
 }
