@@ -124,18 +124,18 @@ START_TEST(test_listen_listen)
 }
 END_TEST
 
-START_TEST(test_client_write_server_read)
+START_TEST(test_client_send_server_recv)
 {
 #define LEN 20
     struct tcp_conn *conn_listen, *conn_client, *conn_server;
     struct addrinfo *ai;
-    char write_data[LEN];
-    char read_data[LEN + 1];
+    char send_data[LEN];
+    char recv_data[LEN + 1];
     size_t i;
     ssize_t recv;
 
     for (i = 0; i < LEN; i++) {
-        write_data[i] = i % CHAR_MAX;
+        send_data[i] = i % CHAR_MAX;
     }
 
     find_port_listen(&conn_listen, &ai, NULL);
@@ -149,10 +149,10 @@ START_TEST(test_client_write_server_read)
     ck_assert_ptr_ne(conn_server, NULL);
 
     ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
-    ck_assert_int_eq(tcp_send(conn_client, write_data, LEN), LEN);
-    while ((recv = tcp_recv(conn_server, read_data, LEN + 1)) == CC_EAGAIN) {}
+    ck_assert_int_eq(tcp_send(conn_client, send_data, LEN), LEN);
+    while ((recv = tcp_recv(conn_server, recv_data, LEN + 1)) == CC_EAGAIN) {}
     ck_assert_int_eq(recv, LEN);
-    ck_assert_int_eq(memcmp(write_data, read_data, LEN), 0);
+    ck_assert_int_eq(memcmp(send_data, recv_data, LEN), 0);
 
     tcp_close(conn_listen);
     tcp_close(conn_server);
@@ -165,18 +165,18 @@ START_TEST(test_client_write_server_read)
 }
 END_TEST
 
-START_TEST(test_server_write_client_read)
+START_TEST(test_server_send_client_recv)
 {
 #define LEN 20
     struct tcp_conn *conn_listen, *conn_client, *conn_server;
     struct addrinfo *ai;
-    char write_data[LEN];
-    char read_data[LEN + 1];
+    char send_data[LEN];
+    char recv_data[LEN + 1];
     size_t i;
     ssize_t recv;
 
     for (i = 0; i < LEN; i++) {
-        write_data[i] = i % CHAR_MAX;
+        send_data[i] = i % CHAR_MAX;
     }
 
     find_port_listen(&conn_listen, &ai, NULL);
@@ -190,10 +190,10 @@ START_TEST(test_server_write_client_read)
     ck_assert_ptr_ne(conn_server, NULL);
 
     ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
-    ck_assert_int_eq(tcp_send(conn_server, write_data, LEN), LEN);
-    while ((recv = tcp_recv(conn_client, read_data, LEN + 1)) == CC_EAGAIN) {}
+    ck_assert_int_eq(tcp_send(conn_server, send_data, LEN), LEN);
+    while ((recv = tcp_recv(conn_client, recv_data, LEN + 1)) == CC_EAGAIN) {}
     ck_assert_int_eq(recv, LEN);
-    ck_assert_int_eq(memcmp(write_data, read_data, LEN), 0);
+    ck_assert_int_eq(memcmp(send_data, recv_data, LEN), 0);
 
     tcp_close(conn_listen);
     tcp_close(conn_server);
@@ -242,8 +242,8 @@ log_suite(void)
 
     tcase_add_test(tc_log, test_listen_connect);
     tcase_add_test(tc_log, test_listen_listen);
-    tcase_add_test(tc_log, test_client_write_server_read);
-    tcase_add_test(tc_log, test_server_write_client_read);
+    tcase_add_test(tc_log, test_client_send_server_recv);
+    tcase_add_test(tc_log, test_server_send_client_recv);
     tcase_add_test(tc_log, test_maximize_sndbuf);
 
     return s;
