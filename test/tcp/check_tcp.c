@@ -1,7 +1,9 @@
 #include <channel/cc_tcp.h>
+#include <time/cc_timer.h>
 
 #include <check.h>
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -261,6 +263,81 @@ START_TEST(test_client_sendv_server_recvv)
 }
 END_TEST
 
+struct task {
+    useconds_t usleep;
+    struct tcp_conn *c;
+    char *data;
+    size_t datalen;
+};
+static void*
+do_write(void *_task) {
+    struct task *task = _task;
+    usleep(task->usleep);
+    ck_assert_int_eq(tcp_send(task->c, task->data, task->datalen), task->datalen);
+    return NULL;
+}
+
+START_TEST(test_nonblocking)
+{
+#define LEN 20
+#define SLEEP_TIME 500000
+#define TOLERANCE_TIME 100000
+    struct tcp_conn *conn_listen, *conn_client, *conn_server;
+    struct addrinfo *ai;
+    char send_data[LEN];
+    char recv_data[LEN + 1];
+    size_t i;
+    struct task task;
+    pthread_t thread;
+    struct duration duration;
+
+    for (i = 0; i < LEN; i++) {
+        send_data[i] = i % CHAR_MAX;
+    }
+
+    find_port_listen(&conn_listen, &ai, NULL);
+
+    conn_client = tcp_conn_create();
+    ck_assert_ptr_ne(conn_client, NULL);
+
+    ck_assert_int_eq(tcp_connect(ai, conn_client), true);
+
+    conn_server = tcp_conn_create();
+    ck_assert_ptr_ne(conn_server, NULL);
+
+    ck_assert_int_eq(tcp_accept(conn_listen, conn_server), true);
+
+    task.usleep = SLEEP_TIME;
+    task.c = conn_server;
+    task.data = send_data;
+    task.datalen = LEN;
+
+    duration_start(&duration);
+    pthread_create(&thread, NULL, do_write, &task);
+
+    tcp_set_blocking(tcp_read_id(conn_client));
+    ck_assert_int_eq(tcp_recv(conn_client, recv_data, LEN + 1), LEN);
+    ck_assert_int_eq(memcmp(send_data, recv_data, LEN), 0);
+
+    duration_stop(&duration);
+    pthread_join(thread, NULL);
+
+    ck_assert_int_ge(duration_us(&duration), SLEEP_TIME);
+    ck_assert_int_le(duration_us(&duration), SLEEP_TIME + TOLERANCE_TIME);
+
+    tcp_close(conn_listen);
+    tcp_close(conn_server);
+    tcp_close(conn_client);
+
+    tcp_conn_destroy(&conn_listen);
+    tcp_conn_destroy(&conn_client);
+    tcp_conn_destroy(&conn_server);
+#undef LEN
+#undef SLEEP_TIME
+#undef TOLERANCE_TIME
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -276,6 +353,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_client_send_server_recv);
     tcase_add_test(tc_log, test_server_send_client_recv);
     tcase_add_test(tc_log, test_client_sendv_server_recvv);
+    tcase_add_test(tc_log, test_nonblocking);
 
     return s;
 }
