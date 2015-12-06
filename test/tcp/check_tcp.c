@@ -206,6 +206,30 @@ START_TEST(test_server_write_client_read)
 }
 END_TEST
 
+START_TEST(test_maximize_sndbuf)
+{
+#define SNDBUF 100
+    struct tcp_conn *conn_listen;
+    int max;
+    ch_id_i sd;
+
+    find_port_listen(&conn_listen, NULL, NULL);
+    sd = tcp_write_id(conn_listen);
+
+    ck_assert_int_eq(tcp_set_sndbuf(sd, SNDBUF), 0);
+    ck_assert_int_eq(tcp_get_sndbuf(sd), SNDBUF);
+
+    tcp_maximize_sndbuf(sd);
+    max = tcp_get_sndbuf(sd);
+    ck_assert_int_ne(tcp_set_sndbuf(sd, max + 1), 0);
+
+    tcp_close(conn_listen);
+
+    tcp_conn_destroy(&conn_listen);
+#undef SNDBUF
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -220,6 +244,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_listen_listen);
     tcase_add_test(tc_log, test_client_write_server_read);
     tcase_add_test(tc_log, test_server_write_client_read);
+    tcase_add_test(tc_log, test_maximize_sndbuf);
 
     return s;
 }
