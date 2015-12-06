@@ -58,15 +58,18 @@ find_port_listen(struct tcp_conn **_conn_listen, struct addrinfo **_ai, uint16_t
         ck_assert_int_eq(getaddrinfo("localhost", servname, &hints, &ai), 0);
         if (tcp_connect(ai, conn_client)) {
             // port is in use by other process
+            freeaddrinfo(ai);
             tcp_close(conn_client);
             port++;
             continue;
         }
+        freeaddrinfo(ai);
 
         ck_assert_int_eq(getaddrinfo("localhost", servname, &hints, &ai), 0);
         if (tcp_listen(ai, conn_listen)) {
             break;
         }
+        freeaddrinfo(ai);
     }
     /* for some reason this line is needed, I would appreciate some insight */
     ck_assert_int_eq(tcp_connect(ai, conn_client), true);
@@ -77,6 +80,8 @@ find_port_listen(struct tcp_conn **_conn_listen, struct addrinfo **_ai, uint16_t
     }
     if (_ai) {
         *_ai = ai;
+    } else {
+        freeaddrinfo(ai);
     }
     if (_port) {
         *_port = port;
@@ -102,6 +107,7 @@ START_TEST(test_listen_connect)
 
     tcp_conn_destroy(&conn_listen);
     tcp_conn_destroy(&conn_client);
+    freeaddrinfo(ai);
 }
 END_TEST
 
@@ -123,6 +129,7 @@ START_TEST(test_listen_listen)
 
     tcp_conn_destroy(&conn_listen1);
     tcp_conn_destroy(&conn_listen2);
+    freeaddrinfo(ai);
 }
 END_TEST
 
@@ -163,6 +170,7 @@ START_TEST(test_client_send_server_recv)
     tcp_conn_destroy(&conn_listen);
     tcp_conn_destroy(&conn_client);
     tcp_conn_destroy(&conn_server);
+    freeaddrinfo(ai);
 #undef LEN
 }
 END_TEST
@@ -204,6 +212,7 @@ START_TEST(test_server_send_client_recv)
     tcp_conn_destroy(&conn_listen);
     tcp_conn_destroy(&conn_client);
     tcp_conn_destroy(&conn_server);
+    freeaddrinfo(ai);
 #undef LEN
 }
 END_TEST
@@ -259,6 +268,7 @@ START_TEST(test_client_sendv_server_recvv)
     tcp_conn_destroy(&conn_listen);
     tcp_conn_destroy(&conn_client);
     tcp_conn_destroy(&conn_server);
+    freeaddrinfo(ai);
 #undef LEN
 }
 END_TEST
@@ -332,6 +342,7 @@ START_TEST(test_nonblocking)
     tcp_conn_destroy(&conn_listen);
     tcp_conn_destroy(&conn_client);
     tcp_conn_destroy(&conn_server);
+    freeaddrinfo(ai);
 #undef LEN
 #undef SLEEP_TIME
 #undef TOLERANCE_TIME
