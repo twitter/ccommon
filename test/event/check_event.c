@@ -122,7 +122,7 @@ START_TEST(test_write)
     pipe = pipe_conn_create();
     ck_assert_int_eq(pipe_open(NULL, pipe), true);
 
-    event_add_write(event_base, pipe_read_id(pipe), random_pointer);
+    event_add_write(event_base, pipe_write_id(pipe), random_pointer);
 
     ck_assert_int_eq(event_log_count, 0);
 
