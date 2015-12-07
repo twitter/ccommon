@@ -701,7 +701,7 @@ tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
  * vector version of tcp_recv, using readv to read into a mbuf array
  */
 ssize_t
-tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
+tcp_recvv(struct tcp_conn *c, struct array *bufv)
 {
     ASSERT(array_nelem(bufv) > 0);
 

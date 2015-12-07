@@ -127,7 +127,7 @@ bool tcp_listen(struct addrinfo *ai, struct tcp_conn *c);   /* channel_open_fn, 
 void tcp_close(struct tcp_conn *c);                         /* channel_perm_fn */
 ssize_t tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_recv_fn */
 ssize_t tcp_send(struct tcp_conn *c, void *buf, size_t nbyte); /* channel_send_fn */
-ssize_t tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte);
+ssize_t tcp_recvv(struct tcp_conn *c, struct array *bufv);
 ssize_t tcp_sendv(struct tcp_conn *c, struct array *bufv);
 
 bool tcp_accept(struct tcp_conn *sc, struct tcp_conn *c);   /* channel_accept_fn */
