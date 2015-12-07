@@ -11,7 +11,7 @@
 #define TEST_METRIC(ACTION)                                \
     ACTION( c,       METRIC_COUNTER, "# counter"    )\
     ACTION( g,       METRIC_GAUGE,   "# gauge"      )\
-    ACTION( v,       METRIC_FPN,     "value"        )
+    ACTION( f,       METRIC_FPN,     "value"        )
 
 typedef struct {
         TEST_METRIC(METRIC_DECLARE)
@@ -66,17 +66,34 @@ END_TEST
 START_TEST(test_gauge)
 {
     test_reset();
-    ck_assert_int_eq(test_metrics->g.counter, 0);
+    ck_assert_int_eq(test_metrics->g.gauge, 0);
     INCR(test_metrics, g);
-    ck_assert_int_eq(test_metrics->g.counter, 1);
+    ck_assert_int_eq(test_metrics->g.gauge, 1);
     INCR_N(test_metrics, g, 2);
-    ck_assert_int_eq(test_metrics->g.counter, 3);
+    ck_assert_int_eq(test_metrics->g.gauge, 3);
     UPDATE_VAL(test_metrics, g, 2);
-    ck_assert_int_eq(test_metrics->g.counter, 2);
+    ck_assert_int_eq(test_metrics->g.gauge, 2);
     DECR(test_metrics, g);
-    ck_assert_int_eq(test_metrics->g.counter, 1);
+    ck_assert_int_eq(test_metrics->g.gauge, 1);
     DECR_N(test_metrics, g, 5);
-    ck_assert_int_eq(test_metrics->g.counter, -4);
+    ck_assert_int_eq(test_metrics->g.gauge, -4);
+}
+END_TEST
+
+START_TEST(test_fpn)
+{
+    test_reset();
+    ck_assert(test_metrics->f.fpn == 0.0);
+    INCR(test_metrics, f);
+    ck_assert(test_metrics->f.fpn == 0.0);
+    INCR_N(test_metrics, f, 2);
+    ck_assert(test_metrics->f.fpn == 0.0);
+    UPDATE_VAL(test_metrics, f, 2.1);
+    ck_assert(test_metrics->f.fpn == 2.1);
+    DECR(test_metrics, f);
+    ck_assert(test_metrics->f.fpn == 2.1);
+    DECR_N(test_metrics, f, 5);
+    ck_assert(test_metrics->f.fpn == 2.1);
 }
 END_TEST
 
@@ -94,6 +111,7 @@ metric_suite(void)
 
     tcase_add_test(tc_metric, test_counter);
     tcase_add_test(tc_metric, test_gauge);
+    tcase_add_test(tc_metric, test_fpn);
 
     return s;
 }
