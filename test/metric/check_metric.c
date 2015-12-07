@@ -63,6 +63,23 @@ START_TEST(test_counter)
 }
 END_TEST
 
+START_TEST(test_gauge)
+{
+    test_reset();
+    ck_assert_int_eq(test_metrics->g.counter, 0);
+    INCR(test_metrics, g);
+    ck_assert_int_eq(test_metrics->g.counter, 1);
+    INCR_N(test_metrics, g, 2);
+    ck_assert_int_eq(test_metrics->g.counter, 3);
+    UPDATE_VAL(test_metrics, g, 2);
+    ck_assert_int_eq(test_metrics->g.counter, 2);
+    DECR(test_metrics, g);
+    ck_assert_int_eq(test_metrics->g.counter, 1);
+    DECR_N(test_metrics, g, 5);
+    ck_assert_int_eq(test_metrics->g.counter, -4);
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -76,6 +93,7 @@ metric_suite(void)
     suite_add_tcase(s, tc_metric);
 
     tcase_add_test(tc_metric, test_counter);
+    tcase_add_test(tc_metric, test_gauge);
 
     return s;
 }
