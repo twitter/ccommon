@@ -737,26 +737,16 @@ tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
     return CC_ERROR;
 }
 
-/*
- * try writing nbyte to tcp_conn and store the data in buf
- * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
- * returned as a generic error/failure.
- */
-ssize_t
-tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
+static ssize_t
+_tcp_sendv(struct tcp_conn *c, const struct iovec *iov, int iovcnt)
 {
     ssize_t n;
 
-    ASSERT(buf != NULL);
-    ASSERT(nbyte > 0);
-
-    log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
-
     for (;;) {
-        n = write(c->sd, buf, nbyte);
+        n = writev(c->sd, iov, iovcnt);
         INCR(tcp_metrics, tcp_send);
 
-        log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
+        log_verb("write on sd %d %zd of %zu", c->sd, n, iovcnt);
 
         if (n > 0) {
             INCR_N(tcp_metrics, tcp_send_byte, n);
@@ -789,57 +779,33 @@ tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
     return CC_ERROR;
 }
 
+
+/*
+ * try writing nbyte to tcp_conn and store the data in buf
+ * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
+ * returned as a generic error/failure.
+ */
+ssize_t
+tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
+{
+    ASSERT(buf != NULL);
+    ASSERT(nbyte > 0);
+
+    log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
+
+    struct iovec iov;
+    iov.iov_base = buf;
+    iov.iov_len = nbyte;
+    return _tcp_sendv(c, &iov, 1);
+}
+
 /*
  * vector version of tcp_send, using writev to send an array of bufs
  */
 ssize_t
-tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
+tcp_sendv(struct tcp_conn *c, struct array *bufv)
 {
-    /* TODO(yao): this is almost identical with tcp_send except for the call
-     * to writev. Consolidate the two? Revisit these functions when we build
-     * more concrete backend systems.
-     */
-    ssize_t n;
-
     ASSERT(array_nelem(bufv) > 0);
-    ASSERT(nbyte != 0);
 
-    log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
-
-    for (;;) {
-        n = writev(c->sd, (const struct iovec *)bufv->data, bufv->nelem);
-        INCR(tcp_metrics, tcp_send_ex);
-
-        log_verb("writev on sd %d %zd of %zu in %"PRIu32" buffers",
-                  c->sd, n, nbyte, bufv->nelem);
-
-        if (n > 0) {
-            c->send_nbyte += (size_t)n;
-            INCR_N(tcp_metrics, tcp_send_byte, n);
-            return n;
-        }
-
-        if (n == 0) {
-            log_warn("sendv on sd %d returned zero", c->sd);
-            return 0;
-        }
-
-        /* n < 0, error */
-        INCR(tcp_metrics, tcp_send_ex);
-        if (errno == EINTR) {
-            log_verb("sendv on sd %d not ready - eintr", c->sd);
-            continue;
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_verb("sendv on sd %d not ready - eagain", c->sd);
-            return CC_EAGAIN;
-        } else {
-            c->err = errno;
-            log_error("sendv on sd %d failed: %s", c->sd, strerror(errno));
-            return CC_ERROR;
-        }
-    }
-
-    NOT_REACHED();
-
-    return CC_ERROR;
+    return _tcp_sendv(c, (const struct iovec *)bufv->data, bufv->nelem);
 }
