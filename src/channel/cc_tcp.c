@@ -686,8 +686,6 @@ _tcp_recvv(struct tcp_conn *c, const struct iovec *iov, int iovcnt)
 ssize_t
 tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
 {
-    ssize_t n;
-
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
 
