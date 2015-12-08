@@ -53,8 +53,8 @@ log_event(void *arg, uint32_t events)
 
 START_TEST(test_read)
 {
+#define DATA "foo bar baz"
     struct event_base *event_base;
-    char *data = "foo bar baz";
     int random_pointer[1] = {1};
     struct pipe_conn *pipe;
 
@@ -64,7 +64,7 @@ START_TEST(test_read)
 
     pipe = pipe_conn_create();
     ck_assert_int_eq(pipe_open(NULL, pipe), true);
-    ck_assert_int_eq(pipe_send(pipe, data, sizeof(data)), sizeof(data));
+    ck_assert_int_eq(pipe_send(pipe, DATA, sizeof(DATA)), sizeof(DATA));
 
     event_add_read(event_base, pipe_read_id(pipe), random_pointer);
 
@@ -79,6 +79,7 @@ START_TEST(test_read)
     event_base_destroy(&event_base);
     pipe_close(pipe);
     pipe_conn_destroy(&pipe);
+#undef DATA
 }
 END_TEST
 
