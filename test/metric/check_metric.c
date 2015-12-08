@@ -17,7 +17,8 @@ typedef struct {
         TEST_METRIC(METRIC_DECLARE)
 } test_metrics_st;
 
-test_metrics_st *test_metrics = NULL;
+static test_metrics_st _test_metrics;
+static test_metrics_st *test_metrics = &_test_metrics;
 
 #define TEST_METRIC_INIT(_metrics) do {                            \
     *(_metrics) = (test_metrics_st) { TEST_METRIC(METRIC_INIT) }; \
@@ -30,14 +31,12 @@ static void
 test_setup(void)
 {
     metric_setup();
-    test_metrics = malloc(sizeof(test_metrics_st));
     TEST_METRIC_INIT(test_metrics);
 }
 
 static void
 test_teardown(void)
 {
-    free(test_metrics);
     metric_teardown();
 }
 
