@@ -59,6 +59,8 @@ extern "C" {
     ACTION( pipe_send_byte,      METRIC_COUNTER, "# bytes sent"                  )\
     ACTION( pipe_flag_ex,        METRIC_COUNTER, "# pipe flag exceptions"        )
 
+extern channel_handler_st pipe_channel_handler;
+
 typedef struct {
     PIPE_METRIC(METRIC_DECLARE)
 } pipe_metrics_st;
@@ -125,6 +127,10 @@ static inline ch_id_i pipe_read_id(struct pipe_conn *c)
 static inline ch_id_i pipe_write_id(struct pipe_conn *c)
 {
     return c->fd[1];
+}
+
+static inline void pipe_set_state(struct pipe_conn *c, uint32_t state) {
+    c->state = state;
 }
 
 /* set pipe flags */

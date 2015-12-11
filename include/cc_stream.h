@@ -51,7 +51,7 @@ typedef ssize_t (*io_limiter_fn)(channel_p, iobuf_p, const char *);
 
 typedef void * stream_p;
 
-typedef stream_p (* stream_get_fn)(void);
+typedef stream_p (* stream_get_fn)(channel_handler_st *);
 typedef void (* stream_put_fn)(stream_p);
 
 /**
