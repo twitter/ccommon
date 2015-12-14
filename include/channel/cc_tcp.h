@@ -113,17 +113,20 @@ void tcp_conn_pool_destroy(void);
 struct tcp_conn *tcp_conn_borrow(void);     /* channel_get_fn, with resource pool */
 void tcp_conn_return(struct tcp_conn **c);  /* channel_put_fn, with resource pool */
 
-static inline ch_id_i tcp_read_id(struct tcp_conn *c)
+static inline ch_id_i
+tcp_read_id(struct tcp_conn *c)
 {
     return c->sd;
 }
 
-static inline ch_id_i tcp_write_id(struct tcp_conn *c)
+static inline ch_id_i
+tcp_write_id(struct tcp_conn *c)
 {
     return c->sd;
 }
 
-static inline void tcp_set_state(struct tcp_conn *c, uint32_t state) {
+static inline void
+tcp_set_state(struct tcp_conn *c, uint32_t state) {
     c->state = state;
 }
 
