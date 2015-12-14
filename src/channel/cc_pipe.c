@@ -38,6 +38,21 @@ static bool cp_init = false;
 static bool pipe_init = false;
 static pipe_metrics_st *pipe_metrics = NULL;
 
+channel_handler_st pipe_channel_handler = {
+    NULL,
+    NULL,
+    (channel_open_fn)pipe_open,
+    (channel_term_fn)pipe_close,
+    (channel_recv_fn)pipe_recv,
+    (channel_send_fn)pipe_send,
+    NULL,
+    NULL,
+    (channel_set_state_fn)pipe_set_state,
+    (channel_create_fn)pipe_conn_create,
+    (channel_destroy_fn)pipe_conn_destroy,
+    (channel_reset_fn)pipe_conn_reset
+};
+
 void
 pipe_setup(pipe_metrics_st *metrics)
 {

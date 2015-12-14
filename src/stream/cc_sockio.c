@@ -24,7 +24,7 @@
 #include <cc_mm.h>
 #include <cc_pool.h>
 #include <cc_util.h>
-#include <channel/cc_tcp.h>
+#include <channel/cc_channel.h>
 
 #include <limits.h>
 #include <sys/uio.h>
@@ -45,11 +45,11 @@ struct buf_sock_pool bsp;
 static bool bsp_init = false;
 
 rstatus_i
-buf_tcp_read(struct buf_sock *s)
+buf_sock_read(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct tcp_conn *c = (struct tcp_conn *)s->ch;
+    void *c = s->ch;
     channel_handler_st *h = s->hdl;
     struct buf *buf = s->rbuf;
     rstatus_i status = CC_OK;
@@ -71,11 +71,11 @@ buf_tcp_read(struct buf_sock *s)
         } else {
             log_info("recv on conn %p returns other error: %d", c, n);
             status = CC_ERROR;
-            c->state = CHANNEL_ERROR;
+            h->set_state(c, CHANNEL_ERROR);
         }
     } else if (n == 0) {
         status = CC_ERDHUP;
-        c->state = CHANNEL_TERM;
+        h->set_state(c, CHANNEL_TERM);
     } else if (n == cap) {
         status = CC_ERETRY;
     } else {
@@ -91,11 +91,11 @@ buf_tcp_read(struct buf_sock *s)
 }
 
 rstatus_i
-buf_tcp_write(struct buf_sock *s)
+buf_sock_write(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct tcp_conn *c = (struct tcp_conn *)s->ch;
+    void *c = s->ch;
     channel_handler_st *h = s->hdl;
     struct buf *buf = s->wbuf;
     rstatus_i status = CC_OK;
@@ -121,7 +121,7 @@ buf_tcp_write(struct buf_sock *s)
         } else {
             log_info("send on conn %p returns other error: %d", c, n);
             status = CC_ERROR;
-            c->state = CHANNEL_ERROR;
+            h->set_state(c, CHANNEL_ERROR);
         }
     } else if ((size_t)n < cap) {
         log_debug("unwritten data remain on conn %p, should retry", c);
@@ -139,11 +139,11 @@ buf_tcp_write(struct buf_sock *s)
 }
 
 rstatus_i
-dbuf_tcp_read(struct buf_sock *s)
+dbuf_sock_read(struct buf_sock *s)
 {
     ASSERT(s != NULL);
 
-    struct tcp_conn *c = (struct tcp_conn *)s->ch;
+    void *c = s->ch;
     channel_handler_st *h = s->hdl;
     rstatus_i status = CC_OK;
     uint32_t cap;
@@ -183,12 +183,12 @@ dbuf_tcp_read(struct buf_sock *s)
             } else {
                 log_info("recv on conn %p returns other error: %d", c, n);
                 status = CC_ERROR;
-                c->state = CHANNEL_ERROR;
+                h->set_state(c, CHANNEL_ERROR);
             }
             goto done;
         } else if (n == 0) {
             status = CC_ERDHUP;
-            c->state = CHANNEL_TERM;
+            h->set_state(c, CHANNEL_TERM);
 
             goto done;
         } else {
@@ -206,7 +206,7 @@ done:
 }
 
 struct buf_sock *
-buf_sock_create(void)
+buf_sock_create(channel_handler_st* h)
 {
     struct buf_sock *s;
 
@@ -217,12 +217,12 @@ buf_sock_create(void)
     STAILQ_NEXT(s, next) = NULL;
     s->owner = NULL;
     s->free = false;
-    s->hdl = NULL;
+    s->hdl = h;
     s->ch = NULL;
     s->rbuf = NULL;
     s->wbuf = NULL;
 
-    s->ch = tcp_conn_create();
+    s->ch = h->create();
     if (s->ch == NULL) {
         goto error;
     }
@@ -252,10 +252,11 @@ buf_sock_destroy(struct buf_sock **s)
     if (s == NULL || *s == NULL) {
         return;
     }
+    channel_handler_st *h = (*s)->hdl;
 
     log_verb("destroy buffered socket %p", *s);
 
-    tcp_conn_destroy(&(*s)->ch);
+    h->destroy(&(*s)->ch);
     buf_destroy(&(*s)->rbuf);
     buf_destroy(&(*s)->wbuf);
     cc_free(*s);
@@ -264,7 +265,7 @@ buf_sock_destroy(struct buf_sock **s)
 }
 
 void
-buf_sock_pool_create(uint32_t max)
+buf_sock_pool_create(uint32_t max, channel_handler_st *h)
 {
     struct buf_sock *s;
 
@@ -280,7 +281,7 @@ buf_sock_pool_create(uint32_t max)
     bsp_init = true;
 
     /* preallocating, see notes in cc_buf.c */
-    FREEPOOL_PREALLOC(s, &bsp, max, next, buf_sock_create);
+    FREEPOOL_PREALLOC1(s, &bsp, max, next, buf_sock_create, h);
     if (bsp.nfree < max) {
         log_crit("cannot preallocate buffered socket pool due to OOM, abort");
         exit(EXIT_FAILURE);
@@ -307,6 +308,7 @@ buf_sock_pool_destroy(void)
 void
 buf_sock_reset(struct buf_sock *s)
 {
+    channel_handler_st *h = s->hdl;
     ASSERT(s->rbuf != NULL && s->wbuf != NULL);
 
     log_verb("reset buffered socket %p", s);
@@ -318,17 +320,17 @@ buf_sock_reset(struct buf_sock *s)
     s->data = NULL;
     s->hdl = NULL;
 
-    tcp_conn_reset(s->ch);
+    h->reset(s->ch);
     buf_reset(s->rbuf);
     buf_reset(s->wbuf);
 }
 
 struct buf_sock *
-buf_sock_borrow(void)
+buf_sock_borrow(channel_handler_st* h)
 {
     struct buf_sock *s;
 
-    FREEPOOL_BORROW(s, &bsp, next, buf_sock_create);
+    FREEPOOL_BORROW1(s, &bsp, next, buf_sock_create, h);
     if (s == NULL) {
         log_debug("borrow buffered socket failed: OOM or over limit");
 

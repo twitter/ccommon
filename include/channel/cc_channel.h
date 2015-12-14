@@ -70,6 +70,18 @@ typedef enum channel_level {
     CHANNEL_BASE
 } ch_level_e;
 
+/* channel states, this is to be revised later (yao) */
+typedef enum {
+    CHANNEL_UNKNOWN = 0,
+    CHANNEL_LISTEN,         /* listening */
+    CHANNEL_OPEN,           /* opening */
+    CHANNEL_ESTABLISHED,
+    CHANNEL_TERM,           /* to be closed, don't need a closing state yet */
+    CHANNEL_ERROR,          /* unrecoverable error occurred */
+
+    CHANNEL_SENTINEL
+} ch_state_e;
+
 /**
  * To give implementation a chance to explicitly manage memory, we separate out
  * the interfaces for acquiring and releasing a channel as a resource, from
@@ -91,30 +103,28 @@ typedef void (* channel_term_fn)(channel_p);
 typedef ssize_t (* channel_recv_fn)(channel_p, void *, size_t);
 typedef ssize_t (* channel_send_fn)(channel_p, void *, size_t);
 typedef ch_id_i (* channel_id_fn)(channel_p);
+typedef void (* channel_set_state_fn)(channel_p, ch_state_e);
+typedef channel_p (* channel_create_fn)();
+typedef void (* channel_destroy_fn)(channel_p *);
+typedef void (* channel_reset_fn)(channel_p);
 
 typedef struct channel_handler {
-    channel_accept_fn   accept;
-    channel_reject_fn   reject;
+    channel_accept_fn     accept;
+    channel_reject_fn     reject;
 
-    channel_open_fn     open;
-    channel_term_fn     term;
-    channel_recv_fn     recv;
-    channel_send_fn     send;
-    channel_id_fn       rid;
-    channel_id_fn       wid;
+    channel_open_fn       open;
+    channel_term_fn       term;
+    channel_recv_fn       recv;
+    channel_send_fn       send;
+    channel_id_fn         rid;
+    channel_id_fn         wid;
+
+    channel_set_state_fn  set_state;
+
+    channel_create_fn     create;
+    channel_destroy_fn    destroy;
+    channel_reset_fn      reset;
 } channel_handler_st;
-
-/* channel states, this is to be revised later (yao) */
-enum {
-    CHANNEL_UNKNOWN = 0,
-    CHANNEL_LISTEN,         /* listening */
-    CHANNEL_OPEN,           /* opening */
-    CHANNEL_ESTABLISHED,
-    CHANNEL_TERM,           /* to be closed, don't need a closing state yet */
-    CHANNEL_ERROR,          /* unrecoverable error occurred */
-
-    CHANNEL_SENTINEL
-};
 
 static inline int
 channel_sigpipe_ignore(void)

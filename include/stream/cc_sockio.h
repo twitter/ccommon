@@ -68,27 +68,27 @@ struct buf_sock {
     void                    *data;  /* generic data field to be used by app */
     channel_handler_st       *hdl;   /* use can specify per-channel action */
 
-    struct tcp_conn         *ch;
+    void                    *ch;
     struct buf              *rbuf;
     struct buf              *wbuf;
 };
 
 STAILQ_HEAD(buf_sock_sqh, buf_sock); /* corresponding header type for the STAILQ */
 
-struct buf_sock *buf_sock_create(void);     /* stream_get_fn */
+struct buf_sock *buf_sock_create(channel_handler_st*);     /* stream_get_fn */
 void buf_sock_destroy(struct buf_sock **);  /* stream_put_fn */
 
-void buf_sock_pool_create(uint32_t);
+void buf_sock_pool_create(uint32_t, channel_handler_st *);
 void buf_sock_pool_destroy(void);
-struct buf_sock *buf_sock_borrow(void);     /* stream_get_fn */
+struct buf_sock *buf_sock_borrow(channel_handler_st*);     /* stream_get_fn */
 void buf_sock_return(struct buf_sock **);   /* stream_put_fn */
 
 void buf_sock_reset(struct buf_sock *);
 
-rstatus_i buf_tcp_read(struct buf_sock *);
-rstatus_i buf_tcp_write(struct buf_sock *);
+rstatus_i buf_sock_read(struct buf_sock *);
+rstatus_i buf_sock_write(struct buf_sock *);
 
-rstatus_i dbuf_tcp_read(struct buf_sock *); /* buf_tcp_read with
+rstatus_i dbuf_sock_read(struct buf_sock *); /* buf_sock_read with
                                                doubling buffer */
 
 #ifdef __cplusplus

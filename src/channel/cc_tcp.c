@@ -43,6 +43,21 @@ static bool cp_init = false;
 static tcp_metrics_st *tcp_metrics = NULL;
 static int max_backlog = TCP_BACKLOG;
 
+channel_handler_st tcp_channel_handler = {
+    (channel_accept_fn)tcp_accept,
+    (channel_reject_fn)tcp_reject,
+    (channel_open_fn)tcp_connect,
+    (channel_term_fn)tcp_close,
+    (channel_recv_fn)tcp_recv,
+    (channel_send_fn)tcp_send,
+    (channel_id_fn)tcp_read_id,
+    (channel_id_fn)tcp_write_id,
+    (channel_set_state_fn)tcp_set_state,
+    (channel_create_fn)tcp_conn_create,
+    (channel_destroy_fn)tcp_conn_destroy,
+    (channel_reset_fn)tcp_conn_reset
+};
+
 void
 tcp_setup(int backlog, tcp_metrics_st *metrics)
 {

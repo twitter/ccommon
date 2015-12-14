@@ -59,10 +59,10 @@ struct pool {                                                       \
     ASSERT(STAILQ_EMPTY(&(pool)->freeq));                           \
 } while (0)
 
-#define FREEPOOL_PREALLOC(var, pool, size, field, create) do {      \
+#define FREEPOOL_PREALLOC1(var, pool, size, field, create, create_param) do { \
     ASSERT((pool)->initialized);                                    \
     while ((pool)->nfree < size) {                                  \
-        (var) = create();                                           \
+        (var) = create(create_param);                               \
         if ((var) != NULL) {                                        \
             STAILQ_INSERT_HEAD(&(pool)->freeq, var, field);         \
             (pool)->nfree++;                                        \
@@ -72,14 +72,17 @@ struct pool {                                                       \
     }                                                               \
 } while (0)
 
-#define FREEPOOL_BORROW(var, pool, field, create) do {              \
+#define FREEPOOL_PREALLOC(var, pool, size, field, create)           \
+    FREEPOOL_PREALLOC1(var, pool, size, field, create, )
+
+#define FREEPOOL_BORROW1(var, pool, field, create, create_param) do { \
     ASSERT((pool)->initialized);                                    \
     if (!STAILQ_EMPTY(&(pool)->freeq)) {                            \
         (var) = STAILQ_FIRST(&(pool)->freeq);                       \
         STAILQ_REMOVE_HEAD(&(pool)->freeq, field);                  \
         (pool)->nfree--;                                            \
     } else if ((pool)->nfree + (pool)->nused < (pool)->nmax) {      \
-        (var) = create();                                           \
+        (var) = create(create_param);                               \
     } else {                                                        \
         (var) = NULL;                                               \
     }                                                               \
@@ -88,6 +91,9 @@ struct pool {                                                       \
         STAILQ_NEXT((var), field) = NULL;                           \
     }                                                               \
 } while (0)
+
+#define FREEPOOL_BORROW(var, pool, field, create)                   \
+    FREEPOOL_BORROW1(var, pool, field, create, )
 
 #define FREEPOOL_RETURN(var, pool, field) do {                      \
     ASSERT((pool)->initialized);                                    \
