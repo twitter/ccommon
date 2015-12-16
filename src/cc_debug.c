@@ -136,6 +136,11 @@ debug_setup(int log_level, char *log_file, uint32_t log_nbuf,
             return CC_ERROR;
         }
         dlog_tev = timeout_event_create();
+        if (dlog_tev == NULL) {
+            log_stderr("Could not create timeout event for debug logger");
+            log_destroy(&dlog->logger);
+            return CC_ERROR;
+        }
         dlog_tev->cb = &_debug_log_flush;
         dlog_tev->recur = true;
         timeout_set_ns(&dlog_tev->delay, log_intvl);
