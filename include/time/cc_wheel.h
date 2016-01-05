@@ -67,7 +67,7 @@ typedef void (*timeout_cb_fn)(void *); /* timeout callback */
  */
 struct timeout_event {
     /* user provided */
-    timeout_cb_fn                cb;       /* callback when timed out */
+    timeout_cb_fn               cb;       /* callback when timed out */
     void                        *data;    /* argument of the timeout callback */
     bool                        recur;    /* will be reinserted upon firing */
     struct timeout              delay;    /* delay */
