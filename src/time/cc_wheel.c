@@ -54,9 +54,7 @@ timeout_event_reset(struct timeout_event *t)
 {
     ASSERT(t != NULL);
 
-    STAILQ_NEXT(t, next) = NULL;
     t->free = false;
-
     t->cb = NULL;
     t->data = NULL;
     t->recur = false;
