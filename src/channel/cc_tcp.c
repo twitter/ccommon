@@ -624,88 +624,29 @@ tcp_get_soerror(int sd)
     return status;
 }
 
-
-/*
- * try reading nbyte bytes from tcp_conn and place the data in buf
- * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
- * returned as a generic error/failure.
- */
-ssize_t
-tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
+static ssize_t
+_tcp_recvv(struct tcp_conn *c, const struct iovec *iov, int iovcnt)
 {
     ssize_t n;
+    int i;
+    size_t nbyte = 0;
 
-    ASSERT(buf != NULL);
-    ASSERT(nbyte > 0);
-
-    log_verb("recv on sd %d, capacity %zu bytes", c->sd, nbyte);
-
-    for (;;) {
-        n = read(c->sd, buf, nbyte);
-        INCR(tcp_metrics, tcp_recv);
-
-        log_verb("read on sd %d %zd of %zu", c->sd, n, nbyte);
-
-        if (n > 0) {
-            log_verb("%zu bytes recv'd on sd %d", n, c->sd);
-            c->recv_nbyte += (size_t)n;
-            INCR_N(tcp_metrics, tcp_recv_byte, n);
-            return n;
-        }
-
-        if (n == 0) {
-            c->state = CHANNEL_TERM;
-            log_debug("eof recv'd on sd %d, total: rb %zu sb %zu", c->sd,
-                      c->recv_nbyte, c->send_nbyte);
-            return n;
-        }
-
-        /* n < 0 */
-        INCR(tcp_metrics, tcp_recv_ex);
-        if (errno == EINTR) {
-            log_debug("recv on sd %d not ready - EINTR", c->sd);
-            continue;
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_debug("recv on sd %d not ready - EAGAIN", c->sd);
-            return CC_EAGAIN;
-        } else {
-            c->err = errno;
-            log_error("recv on sd %d failed: %s", c->sd, strerror(errno));
-            return CC_ERROR;
-        }
+    for (i = 0; i < iovcnt; i++) {
+        nbyte += iov[i].iov_len;
     }
-
-    NOT_REACHED();
-
-    return CC_ERROR;
-}
-
-/*
- * vector version of tcp_recv, using readv to read into a mbuf array
- */
-ssize_t
-tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
-{
-    /* TODO(yao): this is almost identical with tcp_recv except for the call
-     * to readv. Consolidate the two?
-     */
-    ssize_t n;
-
-    ASSERT(array_nelem(bufv) > 0);
-    ASSERT(nbyte != 0);
 
     log_verb("recvv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = readv(c->sd, (const struct iovec *)bufv->data, bufv->nelem);
+        n = readv(c->sd, iov, iovcnt);
         INCR(tcp_metrics, tcp_recv);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
-                  c->sd, n, nbyte, bufv->nelem);
+                  c->sd, n, nbyte, iovcnt);
 
         if (n > 0) {
             c->recv_nbyte += (size_t)n;
-            INCR_N(tcp_metrics, tcp_recv, n);
+            INCR_N(tcp_metrics, tcp_recv_byte, n);
             return n;
         }
 
@@ -738,84 +679,55 @@ tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
 }
 
 /*
- * try writing nbyte to tcp_conn and store the data in buf
+ * try reading nbyte bytes from tcp_conn and place the data in buf
  * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
  * returned as a generic error/failure.
  */
 ssize_t
-tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
+tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
 {
-    ssize_t n;
-
     ASSERT(buf != NULL);
     ASSERT(nbyte > 0);
 
-    log_verb("send on sd %d, total %zu bytes", c->sd, nbyte);
-
-    for (;;) {
-        n = write(c->sd, buf, nbyte);
-        INCR(tcp_metrics, tcp_send);
-
-        log_verb("write on sd %d %zd of %zu", c->sd, n, nbyte);
-
-        if (n > 0) {
-            INCR_N(tcp_metrics, tcp_send_byte, n);
-            c->send_nbyte += (size_t)n;
-            return n;
-        }
-
-        if (n == 0) {
-            log_warn("write on sd %d returned zero", c->sd);
-            return 0;
-        }
-
-        /* n < 0 */
-        INCR(tcp_metrics, tcp_send_ex);
-        if (errno == EINTR) {
-            log_verb("write on sd %d not ready - EINTR", c->sd);
-            continue;
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_verb("write on sd %d not ready - EAGAIN", c->sd);
-            return CC_EAGAIN;
-        } else {
-            c->err = errno;
-            log_error("write on sd %d failed: %s", c->sd, strerror(errno));
-            return CC_ERROR;
-        }
-    }
-
-    NOT_REACHED();
-
-    return CC_ERROR;
+    struct iovec iov;
+    iov.iov_base = buf;
+    iov.iov_len = nbyte;
+    return _tcp_recvv(c, &iov, 1);
 }
 
 /*
- * vector version of tcp_send, using writev to send an array of bufs
+ * vector version of tcp_recv, using readv to read into a mbuf array
  */
 ssize_t
-tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
+tcp_recvv(struct tcp_conn *c, struct array *bufv)
 {
-    /* TODO(yao): this is almost identical with tcp_send except for the call
-     * to writev. Consolidate the two? Revisit these functions when we build
-     * more concrete backend systems.
-     */
-    ssize_t n;
-
     ASSERT(array_nelem(bufv) > 0);
-    ASSERT(nbyte != 0);
+
+    return _tcp_recvv(c, (const struct iovec *)bufv->data, bufv->nelem);
+}
+
+static ssize_t
+_tcp_sendv(struct tcp_conn *c, const struct iovec *iov, int iovcnt)
+{
+    ssize_t n;
+    int i;
+    size_t nbyte = 0;
+
+    for (i = 0; i < iovcnt; i++) {
+        nbyte += iov[i].iov_len;
+    }
 
     log_verb("sendv on sd %d, total %zu bytes", c->sd, nbyte);
 
     for (;;) {
-        n = writev(c->sd, (const struct iovec *)bufv->data, bufv->nelem);
-        INCR(tcp_metrics, tcp_send_ex);
+        n = writev(c->sd, iov, iovcnt);
+        INCR(tcp_metrics, tcp_send);
 
-        log_verb("writev on sd %d %zd of %zu in %"PRIu32" buffers",
-                  c->sd, n, nbyte, bufv->nelem);
+        log_verb("sendv on sd %d %zd of %zu", c->sd, n, nbyte);
 
         if (n > 0) {
-            c->send_nbyte += (size_t)n;
             INCR_N(tcp_metrics, tcp_send_byte, n);
+            c->send_nbyte += (size_t)n;
             return n;
         }
 
@@ -824,13 +736,13 @@ tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
             return 0;
         }
 
-        /* n < 0, error */
+        /* n < 0 */
         INCR(tcp_metrics, tcp_send_ex);
         if (errno == EINTR) {
-            log_verb("sendv on sd %d not ready - eintr", c->sd);
+            log_verb("sendv on sd %d not ready - EINTR", c->sd);
             continue;
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            log_verb("sendv on sd %d not ready - eagain", c->sd);
+            log_verb("sendv on sd %d not ready - EAGAIN", c->sd);
             return CC_EAGAIN;
         } else {
             c->err = errno;
@@ -842,4 +754,33 @@ tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
     NOT_REACHED();
 
     return CC_ERROR;
+}
+
+
+/*
+ * try writing nbyte to tcp_conn and store the data in buf
+ * EINTR is continued, EAGAIN is explicitly flagged in return, other errors are
+ * returned as a generic error/failure.
+ */
+ssize_t
+tcp_send(struct tcp_conn *c, void *buf, size_t nbyte)
+{
+    ASSERT(buf != NULL);
+    ASSERT(nbyte > 0);
+
+    struct iovec iov;
+    iov.iov_base = buf;
+    iov.iov_len = nbyte;
+    return _tcp_sendv(c, &iov, 1);
+}
+
+/*
+ * vector version of tcp_send, using writev to send an array of bufs
+ */
+ssize_t
+tcp_sendv(struct tcp_conn *c, struct array *bufv)
+{
+    ASSERT(array_nelem(bufv) > 0);
+
+    return _tcp_sendv(c, (const struct iovec *)bufv->data, bufv->nelem);
 }
