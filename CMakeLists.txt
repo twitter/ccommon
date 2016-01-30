@@ -107,7 +107,7 @@ include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Check REQUIRED)
 if(NOT CHECK_FOUND)
-  MESSAGE(FATAL_ERROR "Check is required")
+    message(WARNING "Check is required")
 endif(NOT CHECK_FOUND)
 find_package(Threads)
 
@@ -122,7 +122,9 @@ include_directories(${include_directories}
 ###################
 
 add_subdirectory(src)
-add_subdirectory(test)
+if(CHECK_FOUND)
+    add_subdirectory(test)
+endif(CHECK_FOUND)
 
 ###################
 # print a summary #

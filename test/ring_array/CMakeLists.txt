@@ -11,4 +11,5 @@ if (OS_PLATFORM STREQUAL "OS_LINUX")
   target_link_libraries(${test_name} rt)
 endif(OS_PLATFORM STREQUAL "OS_LINUX")
 
+add_dependencies(check ${test_name})
 add_test(${test_name} ${test_name})
