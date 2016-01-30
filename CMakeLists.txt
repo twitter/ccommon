@@ -102,15 +102,18 @@ if (COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
 endif(COVERAGE)
 
-# other dependencies
+# test dependencies
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Check)
 if(NOT CHECK_FOUND)
-    message(WARNING "Check is required")
+    message(WARNING "Check is required to build and run tests")
 endif(NOT CHECK_FOUND)
 if(CHECK_FOUND)
     check_symbol_exists(ck_assert_int_eq check.h CHECK_WORKING)
+    if(NOT CHECK_WORKING)
+        message(WARNING "Check version too old to build tests")
+    endif(NOT CHECK_WORKING)
 endif(CHECK_FOUND)
 
 find_package(Threads)
