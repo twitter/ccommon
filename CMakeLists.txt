@@ -53,17 +53,17 @@ option(HAVE_LOGGING "logging enabled by default" ON)
 option(HAVE_STATS "stats enabled by default" ON)
 option(COVERAGE "code coverage" OFF)
 
-include (CheckIncludeFiles)
-if (OS_PLATFORM STREQUAL "OS_LINUX")
+include(CheckIncludeFiles)
+if(OS_PLATFORM STREQUAL "OS_LINUX")
     check_include_files(linux/time64.h HAVE_TIME64)
-endif ()
+endif()
 
-include (CheckIncludeFiles)
-if (OperatingSystem STREQUAL "OS_LINUX")
-    check_include_files (linux/time64.h HAVE_TIME64)
-endif ()
+include(CheckIncludeFiles)
+if(OperatingSystem STREQUAL "OS_LINUX")
+    check_include_files(linux/time64.h HAVE_TIME64)
+endif()
 
-include (CheckSymbolExists)
+include(CheckSymbolExists)
 check_symbol_exists(sys_signame signal.h HAVE_SIGNAME)
 
 include(CheckFunctionExists)
@@ -105,10 +105,14 @@ endif(COVERAGE)
 # other dependencies
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
-find_package(Check REQUIRED)
+find_package(Check)
 if(NOT CHECK_FOUND)
     message(WARNING "Check is required")
 endif(NOT CHECK_FOUND)
+if(CHECK_FOUND)
+    check_symbol_exists(ck_assert_int_eq check.h CHECK_WORKING)
+endif(CHECK_FOUND)
+
 find_package(Threads)
 
 # where to find include files
@@ -122,9 +126,9 @@ include_directories(${include_directories}
 ###################
 
 add_subdirectory(src)
-if(CHECK_FOUND)
+if(CHECK_WORKING)
     add_subdirectory(test)
-endif(CHECK_FOUND)
+endif(CHECK_WORKING)
 
 ###################
 # print a summary #
@@ -139,3 +143,5 @@ message(STATUS "HAVE_SIGNAME: " ${HAVE_SIGNAME})
 
 message(STATUS "HAVE_BACKTRACE: " ${HAVE_BACKTRACE})
 message(STATUS "HAVE_BIG_ENDIAN: " ${HAVE_BIG_ENDIAN})
+
+message(STATUS "CHECK_WORKING: " ${CHECK_WORKING})
