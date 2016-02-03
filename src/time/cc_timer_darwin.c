@@ -204,6 +204,8 @@ timeout_sub_intvl(struct timeout *e, struct timeout *b, struct timeout *t)
 int64_t
 timeout_ns(struct timeout *e)
 {
+    ASSERT(e->is_set);
+
     if (e->is_intvl) {
         return _m2n(e->tp);
     } else {
