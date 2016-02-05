@@ -231,8 +231,8 @@ START_TEST(test_timing_wheel_basic)
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nprocess, 3);
 
-    timeout_event_destroy(&tev);
     timing_wheel_stop(tw);
+    timeout_event_destroy(&tev);
     timing_wheel_destroy(&tw);
 
 #undef NTICK
@@ -285,11 +285,11 @@ START_TEST(test_timing_wheel_recur)
     ck_assert_int_eq(tw->nprocess, 2);
     ck_assert_int_eq(i, 2);
 
-    timeout_event_destroy(&tev);
     timing_wheel_stop(tw);
     timing_wheel_flush(tw);
     ck_assert_int_eq(tw->nevent, 0);
     ck_assert_int_eq(tw->nprocess, 3);
+    timeout_event_destroy(&tev);
     timing_wheel_destroy(&tw);
 
 #undef NTICK
