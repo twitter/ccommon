@@ -113,7 +113,7 @@ Helper functions
   size_t metric_print(char *buf, size_t nbuf, struct metric *m);
 
 ``metric_reset`` resets the values of an array of metrics.
-``metric_print`` prints the name and value of a metric, in human readable format, to buffer ``buf``, with a single space separating the two fields. This simple style is compatible with how Memcached currently reports metrics ([Memcached]_), but other formats (e.g. Redis [Redis]_, StatsD [StatsD]_) will probably be introduced soon.
+``metric_print`` prints the name and value of a metric, in human readable format, to buffer ``buf``, with a single space separating the two fields. This simple style is compatible with how Memcached currently reports metrics ([Memcached]_). Helper functions for other formats (e.g. Redis [Redis]_, StatsD [StatsD]_) may be introduced in the future.
 
 
 Update
@@ -178,6 +178,12 @@ Compile-time switch
 ^^^^^^^^^^^^^^^^^^^
 
 All macros can be turned to no-op by turning off ``HAVE_STATS`` at compile time, which in turn undefines ``CC_STATS``.
+
+.. code-block:: bash
+
+  # assuming the following is issued in the build directory under project root
+  cmake -DHAVE_STATS=off .. # this turns stats off globally, undefines CC_STATS
+  cmake -DHAVE_STATS=on ..  # this turns stats on globally, defines CC_STATS
 
 References
 ----------
