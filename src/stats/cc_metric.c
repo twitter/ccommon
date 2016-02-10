@@ -22,10 +22,6 @@
 
 #include <stdbool.h>
 
-#define METRIC_MODULE_NAME "ccommon::metric"
-
-static bool metric_init = false;
-
 void
 metric_reset(struct metric sarr[], unsigned int n)
 {
@@ -54,28 +50,6 @@ metric_reset(struct metric sarr[], unsigned int n)
             break;
         }
     }
-}
-
-void
-metric_setup(void)
-{
-    log_info("set up the %s module", METRIC_MODULE_NAME);
-
-    if (metric_init) {
-        log_warn("%s has already been setup, overwrite", METRIC_MODULE_NAME);
-    }
-    metric_init = true;
-}
-
-void
-metric_teardown(void)
-{
-    log_info("tear down the %s module", METRIC_MODULE_NAME);
-
-    if (!metric_init) {
-        log_warn("%s has never been setup", METRIC_MODULE_NAME);
-    }
-    metric_init = false;
 }
 
 size_t
