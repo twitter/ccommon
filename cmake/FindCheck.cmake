@@ -59,6 +59,10 @@ if (NOT CHECK_FOUND)
     PATH_SUFFIXES lib
     )
 
+  find_package(Threads REQUIRED)
+
+  set(CHECK_LIBRARIES ${CHECK_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -lm)
+
   ##_____________________________________________________________________________
   ## Actions taken when all components have been found
 
