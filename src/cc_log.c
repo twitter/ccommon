@@ -183,7 +183,6 @@ log_write(struct logger *logger, char *buf, uint32_t len)
 
         if (write(logger->fd, buf, len) < (ssize_t)len) {
             INCR(log_metrics, log_write_ex);
-            logger->nerror++;
             return false;
         }
 
@@ -229,6 +228,53 @@ _log_fd(int fd, const char *fmt, ...)
     errno = errno_save;
 }
 
+
+/* read from rbuf to the fd. attempts to empty the buffer. */
+static ssize_t
+_rbuf_flush(struct rbuf *buf, int fd)
+{
+    uint32_t capacity;
+    ssize_t ret;
+    uint32_t rpos, wpos;
+    rpos = get_rpos(buf);
+    wpos = get_wpos(buf);
+
+    if (wpos < rpos) {
+        /* write until end, then wrap around */
+        capacity = buf->cap - rpos + 1;
+        ret = write(fd, buf->data + rpos, capacity);
+
+        if (ret > 0) {
+            rpos += ret;
+        }
+
+        if (ret == capacity) {
+            /* more can be written, read from beginning of buf */
+            ssize_t remaining_bytes;
+
+            capacity = wpos;
+            remaining_bytes = write(fd, buf->data, capacity);
+
+            if (remaining_bytes >= 0) {
+                rpos = remaining_bytes;
+                ret += remaining_bytes;
+            }
+        }
+    } else {
+        /* no wrap around */
+        capacity = wpos - rpos;
+        ret = write(fd, buf->data + rpos, capacity);
+
+        if (ret > 0) {
+            rpos += ret;
+        }
+    }
+
+    set_rpos(buf, rpos);
+
+    return ret;
+}
+
 void
 log_flush(struct logger *logger)
 {
@@ -246,7 +292,7 @@ log_flush(struct logger *logger)
     }
 
     buf_len = rbuf_rcap(logger->buf);
-    n = rbuf_read_fd(logger->buf, logger->fd);
+    n = _rbuf_flush(logger->buf, logger->fd);
 
     if (n < (ssize_t)buf_len) {
         INCR(log_metrics, log_flush_ex);
