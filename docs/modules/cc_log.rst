@@ -19,6 +19,7 @@ The rationale for this design comes from a few observations in production: first
 
 We have retained the ability to log directly to a file with the right configuration options, which are explained below. We recognize that it is nice to have a straightforward way of logging that does not require much setup, e.g. a background thread, for development or more relaxed scenarios.
 
+
 Data Structure
 --------------
 .. code-block:: C
@@ -73,7 +74,7 @@ Create and destroy
   struct logger *log_create(char *filename, uint32_t buf_cap);
   void log_destroy(struct logger **logger);
 
-``log_create`` returns a logger with the information given or ``NULL`` if an error has occurred. If ``filename`` is not ``NULL``, it will attempt to open the file with flags ``O_WRONLY | O_APPEND | O_CREAT`` and masks ``0644``. Otherwise, it defaults the output to ``stderr``. ``buf_cap`` configures the size of the ring buffer. If the size is greater than 0, the buffer is allocated upon successful return. Otherwise, buffering is turned off and ``write`` syscall will be used directly.
+``log_create`` returns a logger with the information given or ``NULL`` if an error has occurred. If ``filename`` is not ``NULL``, it will attempt to open the file with flags ``O_WRONLY | O_APPEND | O_CREAT`` and masks ``0644``. Otherwise, it defaults the output to ``stderr``. ``log_create`` uses ``buf_cap`` in creating the ring buffer. A buffer of capacity ``buf_cap`` is allocated upon successful return. However, if ``cap_buf`` equals ``0``, buffering is turned off and ``write`` syscall will be used directly.
 
 ``log_destroy`` will flush to the log file and release all memory resources whenever applicable. Note that the argument is of type ``struct logger **`` to avoid dangling pointers.
 
@@ -108,6 +109,12 @@ Log reopen
 ``log_reopen`` reopens the log file according to ``name``, and does nothing if standard outputs are used. It returns ``CC_OK`` for success or ``CC_ERROR`` if reopen failed (at which point ``logger`` will no longer have a valid ``fd``).
 
 This function can be used to reopen the log file when an exception has happened, or another party such as ``logrotate`` instructs the application to do so. Log rotation in a ``nocopytruncate`` manner- i.e. the content in the file is not copied, but the file is simply renamed- is more efficient in high-load systems. But doing so requires signaling the application to reopen the log file after renaming. This function makes it possible to achieve that when used with proper signal handling.
+
+Thread-safety
+-------------
+The logger is not thread-safe in the general sense. However, it is safe to use one thread as the producer, which writes to the logger, while using another thread as the consumer, which flushes the logger. A typical setup would have a worker thread being the producer and a background maintenance thread as the consumer.
+
+If ``log_reopen`` is used with a signal, it might invalidate the previous file descriptor in the middle of ``log_flush`` execution, regardless of thread model. The impact of this is to see an exception in ``write`` and failure in clearing up the ring buffer. But as long as ``log_flush`` is scheduled periodically, it is not fatal. To avoid such conflict, ``log_reopen`` should be scheduled on the same thread that performs ``log_flush``, and executed sequentially. One way of setting up signals to achieve this behavior requires masking the signal used for log rotation and having the thread check for pending signals using ``sigpending``.
 
 Examples
 --------
