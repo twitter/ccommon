@@ -22,6 +22,8 @@
 
 #include <stdbool.h>
 
+char *metric_type_str[] = {"counter", "gauge", "floating point"};
+
 void
 metric_reset(struct metric sarr[], unsigned int n)
 {
