@@ -88,3 +88,13 @@ metric_print(char *buf, size_t nbuf, char *fmt, struct metric *m)
 
     return cc_scnprintf(buf, nbuf, fmt, m->name, val_buf);
 }
+
+size_t
+metric_describe(char *buf, size_t nbuf, char *fmt, struct metric *m)
+{
+    if (m == NULL) {
+        return 0;
+    }
+
+    return cc_scnprintf(buf, nbuf, fmt, m->name, metric_type_str[m->type], m->desc);
+}
