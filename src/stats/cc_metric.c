@@ -22,6 +22,8 @@
 
 #include <stdbool.h>
 
+#define VALUE_PRINT_LEN 30
+
 char *metric_type_str[] = {"counter", "gauge", "floating point"};
 
 void
@@ -55,8 +57,10 @@ metric_reset(struct metric sarr[], unsigned int n)
 }
 
 size_t
-metric_print(char *buf, size_t nbuf, struct metric *m)
+metric_print(char *buf, size_t nbuf, char *fmt, struct metric *m)
 {
+    char val_buf[VALUE_PRINT_LEN];
+
     if (m == NULL) {
         return 0;
     }
@@ -68,18 +72,19 @@ metric_print(char *buf, size_t nbuf, struct metric *m)
          * and negatively impact readability, and since this function should not
          * be called often enough to make it absolutely performance critical.
          */
-        return cc_scnprintf(buf, nbuf, "%s %llu", m->name, __atomic_load_n(
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%llu", __atomic_load_n(
                     &m->counter, __ATOMIC_RELAXED));
 
     case METRIC_GAUGE:
-        return cc_scnprintf(buf, nbuf, "%s %lld", m->name, __atomic_load_n(
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%lld", __atomic_load_n(
                     &m->gauge, __ATOMIC_RELAXED));
 
     case METRIC_FPN:
-        return cc_scnprintf(buf, nbuf, "%s %f", m->name, m->fpn);
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%f", m->fpn);
 
     default:
         NOT_REACHED();
-        return 0;
     }
+
+    return cc_scnprintf(buf, nbuf, fmt, m->name, val_buf);
 }
