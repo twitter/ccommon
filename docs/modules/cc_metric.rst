@@ -52,6 +52,7 @@ Data Structure
 
   struct metric {
       char *name;
+      char *desc;
       metric_type_e type;
       union {
           uint64_t    counter;
@@ -60,7 +61,7 @@ Data Structure
       };
   };
 
-``metric`` is the fundamental data structure, each metric has (for now) three types, a printable name, and value.
+``metric`` is the fundamental data structure, each metric has (for now) three types, a printable name, a short description, and value.
 
 If a metric is of type ``METRIC_COUNTER``, its value always increases monotonically. A metric of type ``METRIC_GAUGE`` has a signed integer value. Type ``METRIC_FPN`` means the value is a floating-point number.
 
