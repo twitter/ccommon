@@ -300,5 +300,5 @@ log_flush(struct logger *logger)
         INCR(log_metrics, log_flush);
     }
 
-    return n;
+    return n > 0 ? n : 0;
 }
