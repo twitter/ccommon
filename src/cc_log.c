@@ -275,7 +275,7 @@ _rbuf_flush(struct rbuf *buf, int fd)
     return ret;
 }
 
-void
+size_t
 log_flush(struct logger *logger)
 {
     ssize_t n;
@@ -299,4 +299,6 @@ log_flush(struct logger *logger)
     } else {
         INCR(log_metrics, log_flush);
     }
+
+    return n;
 }
