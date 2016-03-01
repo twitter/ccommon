@@ -81,7 +81,7 @@ bool log_write(struct logger *logger, char *buf, uint32_t len);
 
 void _log_fd(int fd, const char *fmt, ...);
 
-void log_flush(struct logger *logger);
+size_t log_flush(struct logger *logger);
 
 #ifdef __cplusplus
 }
