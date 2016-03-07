@@ -144,18 +144,18 @@ log_destroy(struct logger **l)
 }
 
 rstatus_i
-log_reopen(struct logger *logger, char *backup)
+log_reopen(struct logger *logger, char *target)
 {
     int ret;
 
     if (logger->fd != STDERR_FILENO && logger->fd != STDOUT_FILENO) {
         close(logger->fd);
 
-        if (backup != NULL) {
-            ret = rename(logger->name, backup);
+        if (target != NULL) {
+            ret = rename(logger->name, target);
             if (ret < 0) {
                 log_stderr("rename old klog file '%s' to '%s' failed, ignored: "
-                           "%s", logger->name, backup, strerror(errno));
+                           "%s", logger->name, target, strerror(errno));
             }
         }
 
