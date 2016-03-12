@@ -38,6 +38,10 @@
 #define RING_ARRAY_OPTION(ACTION)                                                                            \
     ACTION( ring_array_cap,     OPTION_TYPE_UINT,   RING_ARRAY_DEFAULT_CAP,  "default ring array capacity" )
 
+typedef struct {
+    RING_ARRAY_OPTION(OPTION_DECLARE)
+} ring_array_options_st;
+
 struct ring_array {
     size_t      elem_size;         /* element size */
     uint32_t    cap;               /* total capacity (# items stored + 1) */

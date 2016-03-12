@@ -46,6 +46,10 @@ extern "C" {
     ACTION( tcp_backlog,    OPTION_TYPE_UINT,   TCP_BACKLOG,    "tcp conn backlog limit" )\
     ACTION( tcp_poolsize,   OPTION_TYPE_UINT,   TCP_POOLSIZE,   "tcp conn pool size"     )
 
+typedef struct {
+    TCP_OPTION(OPTION_DECLARE)
+} tcp_options_st;
+
 /*          name                type            description */
 #define TCP_METRIC(ACTION)                                                      \
     ACTION( tcp_conn_create,    METRIC_COUNTER, "# tcp connections created"    )\

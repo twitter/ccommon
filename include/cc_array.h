@@ -35,6 +35,10 @@ extern "C" {
 #define ARRAY_OPTION(ACTION)                                                                              \
     ACTION( array_nelem_delta,  OPTION_TYPE_UINT,   NELEM_DELTA,      "max nelem delta during expansion" )
 
+typedef struct {
+    ARRAY_OPTION(OPTION_DECLARE)
+} array_options_st;
+
 typedef int (*array_compare_fn)(const void *, const void *);
 typedef rstatus_i (*array_each_fn)(void *, void *);
 

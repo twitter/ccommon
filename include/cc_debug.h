@@ -37,6 +37,10 @@ extern "C" {
     ACTION( debug_log_nbuf,  OPTION_TYPE_UINT, DEBUG_LOG_NBUF,   "debug log buf size"                                            )\
     ACTION( debug_log_intvl, OPTION_TYPE_UINT, DEBUG_LOG_INTVL,  "debug log flush interval in ns (only applies if buf size > 0)")
 
+typedef struct {
+    DEBUG_OPTION(OPTION_DECLARE)
+} debug_options_st;
+
 /**
  * the debug module override the following signal handlers:
  *

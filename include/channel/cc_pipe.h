@@ -38,6 +38,10 @@ extern "C" {
 #define PIPE_OPTION(ACTION) \
     ACTION( pipe_poolsize,      OPTION_TYPE_UINT,   PIPE_POOLSIZE,  "pipe conn pool size" )
 
+typedef struct {
+    PIPE_OPTION(OPTION_DECLARE)
+} pipe_options_st;
+
 /*          name                 type            description */
 #define PIPE_METRIC(ACTION) \
     ACTION( pipe_conn_create,    METRIC_COUNTER, "# pipe connections created"    )\

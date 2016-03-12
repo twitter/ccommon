@@ -32,6 +32,10 @@ extern "C" {
 #define DBUF_OPTION(ACTION)                                                                             \
     ACTION( dbuf_max_power,      OPTION_TYPE_UINT,  DBUF_DEFAULT_MAX,   "max number of doubling"   )
 
+typedef struct {
+    DBUF_OPTION(OPTION_DECLARE)
+} dbuf_options_st;
+
 #define DBUF_DEFAULT_MAX    6  /* with 16KiB default size, this gives us 1 MiB max */
 
 /* Setup/teardown doubling buffer module */

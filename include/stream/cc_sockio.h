@@ -58,6 +58,10 @@ extern "C" {
 #define SOCKIO_OPTION(ACTION)                                                             \
     ACTION( buf_sock_poolsize,  OPTION_TYPE_UINT,   BUFSOCK_POOLSIZE,   "buf_sock limit" )
 
+typedef struct {
+    SOCKIO_OPTION(OPTION_DECLARE)
+} sockio_options_st;
+
 struct buf_sock {
     /* these fields are useful for resource managmenet */
     STAILQ_ENTRY(buf_sock)  next;
