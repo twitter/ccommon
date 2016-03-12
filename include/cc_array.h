@@ -135,7 +135,7 @@ void array_sort(struct array *arr, array_compare_fn compare);
 uint32_t array_each(struct array *arr, array_each_fn func, void *arg, err_i *err);
 
 /* TODO(yao): refactor to use better arg names */
-void array_setup(uint32_t nelem);
+void array_setup(array_options_st *options);
 void array_teardown(void);
 
 #ifdef __cplusplus

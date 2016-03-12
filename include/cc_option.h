@@ -85,6 +85,21 @@ struct option {
     char *description;
 };
 
+static inline bool
+option_bool(struct option *opt) {
+    return opt->val.vbool;
+}
+
+static inline uintmax_t
+option_uint(struct option *opt) {
+    return opt->val.vuint;
+}
+
+static inline char *
+option_str(struct option *opt) {
+    return opt->val.vstr;
+}
+
 rstatus_i option_set(struct option *opt, char *val_str);
 rstatus_i option_default(struct option *opt);
 void option_print(struct option *opt);

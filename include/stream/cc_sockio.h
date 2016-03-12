@@ -79,11 +79,12 @@ struct buf_sock {
 
 STAILQ_HEAD(buf_sock_sqh, buf_sock); /* corresponding header type for the STAILQ */
 
+void sockio_setup(sockio_options_st *options);
+void sockio_teardown(void);
+
 struct buf_sock *buf_sock_create(void);     /* stream_get_fn */
 void buf_sock_destroy(struct buf_sock **);  /* stream_put_fn */
 
-void buf_sock_pool_create(uint32_t);
-void buf_sock_pool_destroy(void);
 struct buf_sock *buf_sock_borrow(void);     /* stream_get_fn */
 void buf_sock_return(struct buf_sock **);   /* stream_put_fn */
 

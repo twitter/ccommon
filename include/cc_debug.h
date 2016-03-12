@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include <cc_define.h>
+#include <cc_option.h>
 #include <cc_signal.h>
 
 #include <stdint.h>
@@ -83,8 +84,7 @@ typedef struct {
 
 void debug_assert(const char *cond, const char *file, int line, int panic);
 
-rstatus_i debug_setup(int level, char *log_file, uint32_t log_nbuf,
-    uint64_t log_intvl);
+rstatus_i debug_setup(debug_options_st *options);
 void debug_teardown(void);
 
 /**

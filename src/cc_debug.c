@@ -109,13 +109,20 @@ _debug_log_flush(void *arg)
 }
 
 rstatus_i
-debug_setup(int log_level, char *log_file, uint32_t log_nbuf,
-    uint64_t log_intvl)
+debug_setup(debug_options_st *options)
 {
+    size_t log_nbuf;
+    uint64_t log_intvl;
+
+    /* since logs are not setup yet, we have to log to stderr */
     log_stderr("Set up the %s module", DEBUG_MODULE_NAME);
 
     if (debug_init) {
         log_stderr("%s has already been setup, overwrite", DEBUG_MODULE_NAME);
+    }
+
+    if (options == NULL) { /* use default_logger */
+        return CC_OK;
     }
 
     if (dlog->logger != NULL) {
@@ -123,12 +130,14 @@ debug_setup(int log_level, char *log_file, uint32_t log_nbuf,
         log_destroy(&dlog->logger);
     }
 
-    dlog->logger = log_create(log_file, log_nbuf);
+    log_nbuf = option_uint(&options->debug_log_nbuf);
+    log_intvl = option_uint(&options->debug_log_intvl);
+    dlog->logger = log_create(option_str(&options->debug_log_file), log_nbuf);
     if (dlog->logger == NULL) {
         log_stderr("Could not create logger!");
         return CC_ERROR;
     }
-    dlog->level = log_level;
+    dlog->level = option_uint(&options->debug_log_level);
 
     /*
      * 0 length buffer indicates that the logger will log directly to the file,

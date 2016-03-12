@@ -101,7 +101,7 @@ struct tcp_conn {
 
 STAILQ_HEAD(tcp_conn_sqh, tcp_conn); /* corresponding header type for the STAILQ */
 
-void tcp_setup(int backlog, tcp_metrics_st *metrics);
+void tcp_setup(tcp_options_st *options, tcp_metrics_st *metrics);
 void tcp_teardown(void);
 
 void tcp_conn_reset(struct tcp_conn *c);
@@ -110,8 +110,6 @@ void tcp_conn_reset(struct tcp_conn *c);
 struct tcp_conn *tcp_conn_create(void);     /* channel_get_fn, with allocation */
 void tcp_conn_destroy(struct tcp_conn **c); /* channel_put_fn, with deallocation  */
 
-void tcp_conn_pool_create(uint32_t max);
-void tcp_conn_pool_destroy(void);
 struct tcp_conn *tcp_conn_borrow(void);     /* channel_get_fn, with resource pool */
 void tcp_conn_return(struct tcp_conn **c);  /* channel_put_fn, with resource pool */
 

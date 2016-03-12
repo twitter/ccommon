@@ -88,7 +88,7 @@ struct pipe_conn {
 
 STAILQ_HEAD(pipe_conn_sqh, pipe_conn); /* corresponding header type for the STAILQ */
 
-void pipe_setup(pipe_metrics_st *metrics);
+void pipe_setup(pipe_options_st *options, pipe_metrics_st *metrics);
 void pipe_teardown(void);
 
 /* functions for managing pipe connection structs */
@@ -101,8 +101,6 @@ void pipe_conn_destroy(struct pipe_conn **c);
 void pipe_conn_reset(struct pipe_conn *c);
 
 /* pool functions */
-void pipe_conn_pool_create(uint32_t max);
-void pipe_conn_pool_destroy(void);
 struct pipe_conn *pipe_conn_borrow(void);
 void pipe_conn_return(struct pipe_conn **c);
 
