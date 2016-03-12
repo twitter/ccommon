@@ -101,19 +101,8 @@ An option struct for the buffer module can be defined by using the ``OPTION_DECL
 .. code-block:: C
 
   typedef struct {
-      REQUEST_METRIC(METRIC_DECLARE)
+      BUF_OPTION(METRIC_DECLARE)
   } buf_options_st;
-
-Helper functions
-^^^^^^^^^^^^^^^^
-.. code-block:: C
-
-  void metric_reset(struct metric sarr[], unsigned int nmetric);
-  size_t metric_print(char *buf, size_t nbuf, struct metric *m);
-
-``metric_reset`` resets the values of an array of metrics.
-``metric_print`` prints the name and value of a metric, in human readable format, to buffer ``buf``, with a single space separating the two fields. This simple style is compatible with how Memcached currently reports metrics ([Memcached]_). Helper functions for other formats (e.g. Redis [Redis]_, StatsD [StatsD]_) may be introduced in the future.
-
 
 Set option values
 ^^^^^^^^^^^^^^^^^
@@ -124,7 +113,14 @@ Set option values
   rstatus_i option_load_default(struct option options[], unsigned int nopt);
   rstatus_i option_load_file(FILE *fp, struct option options[], unsigned int nopt);
 
-No magic here, just setup the metrics.
+Print option info
+^^^^^^^^^^^^^^^^^
+.. code-block:: C
+
+  void option_print(struct option *opt);
+  void option_printall(struct option options[], unsigned int nopt);
+  void option_printall_default(struct option options[], unsigned int nopt);
+
 
 Examples
 --------
