@@ -110,9 +110,11 @@ option_str(struct option *opt) {
 
 rstatus_i option_set(struct option *opt, char *val_str);
 rstatus_i option_default(struct option *opt);
+
 void option_print(struct option *opt);
-void option_printall(struct option options[], unsigned int nopt);
-void option_printall_default(struct option options[], unsigned int nopt);
+void option_print_all(struct option options[], unsigned int nopt);
+void option_describe_all(struct option options[], unsigned int nopt);
+
 rstatus_i option_load_default(struct option options[], unsigned int nopt);
 rstatus_i option_load_file(FILE *fp, struct option options[], unsigned int nopt);
 void option_free(struct option options[], unsigned int nopt);

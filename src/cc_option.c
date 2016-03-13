@@ -29,6 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define OPTION_INFO_FMT "name: %-31s type: %-12s  current: %s ( default: %s )"
+#define OPTION_DESCRIBE_FMT  "%-31s %-12s %-32s %s"
+
 char * option_type_str[] = {
     "boolean",
     "unsigned int",
@@ -550,15 +553,15 @@ option_print(struct option *opt)
 {
     char default_s[PATH_MAX];
     char current_s[PATH_MAX];
+
     option_print_val(default_s, PATH_MAX, opt->type, opt->default_val);
     option_print_val(current_s, PATH_MAX, opt->type, opt->val);
-    loga("name: %s, type: %s, set? %s, default: %s, description: %s, current: %s",
-         opt->name, option_type_str[opt->type], opt->set ? "yes" : "no",
-         default_s, opt->description, current_s);
+    loga(OPTION_INFO_FMT, opt->name, option_type_str[opt->type], default_s,
+            current_s);
 }
 
 void
-option_printall(struct option options[], unsigned int nopt)
+option_print_all(struct option options[], unsigned int nopt)
 {
     unsigned int i;
     struct option *opt = options;
@@ -570,20 +573,25 @@ option_printall(struct option options[], unsigned int nopt)
 }
 
 static void
-_option_print_default(struct option *opt)
+_option_describe(struct option *opt)
 {
     char default_s[PATH_MAX + 10];
+
     option_print_val(default_s, PATH_MAX + 10, opt->type, opt->default_val);
-    log_stdout("  %-31s ( default: %s )", opt->name, default_s);
+    log_stdout(OPTION_DESCRIBE_FMT, opt->name, option_type_str[opt->type],
+            default_s, opt->description);
 }
 
 void
-option_printall_default(struct option options[], unsigned int nopt)
+option_describe_all(struct option options[], unsigned int nopt)
 {
     unsigned int i;
 
+    /* print a header */
+    log_stdout(OPTION_DESCRIBE_FMT, "NAME", "TYPE", "DEFAULT", "DESCRIPTION");
+
     for (i = 0; i < nopt; i++, options++) {
-        _option_print_default(options);
+        _option_describe(options);
     }
 }
 
