@@ -46,6 +46,7 @@ extern "C" {
 
 #define OPTION_TYPE_BOOL_VAR vbool
 #define OPTION_TYPE_UINT_VAR vuint
+#define OPTION_TYPE_FPN_VAR vfpn
 #define OPTION_TYPE_STR_VAR vstr
 
 #define OPTION_DECLARE(_name, _type, _default, _description)                \
@@ -62,6 +63,7 @@ extern "C" {
 typedef enum option_type {
     OPTION_TYPE_BOOL,
     OPTION_TYPE_UINT,
+    OPTION_TYPE_FPN,
     OPTION_TYPE_STR,
     OPTION_TYPE_SENTINEL
 } option_type_e;
@@ -72,6 +74,7 @@ extern char *option_type_str[];
 typedef union option_val {
     bool vbool;
     uintmax_t vuint;
+    double vfpn;
     char *vstr;
 } option_val_u;
 
@@ -93,6 +96,11 @@ option_bool(struct option *opt) {
 static inline uintmax_t
 option_uint(struct option *opt) {
     return opt->val.vuint;
+}
+
+static inline double
+option_fpn(struct option *opt) {
+    return opt->val.vfpn;
 }
 
 static inline char *

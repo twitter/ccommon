@@ -323,6 +323,31 @@ _option_parse_uint(struct option *opt, const char *val_str)
 }
 
 static rstatus_i
+_option_parse_fpn(struct option *opt, const char *val_str)
+{
+    /* TODO: handle expressions similar to what's allowed with integers */
+    double val = 0;
+    char *loc;
+
+    val = strtod(val_str, &loc);
+    if (errno == ERANGE) {
+        log_stderr("option value %s out of range for double type", val_str);
+        return CC_ERROR;
+    }
+
+    if (*loc != '\0') {
+        log_stderr("option value %s could not be fully parsed, check char at "
+                "offset %ld", val_str, loc - val_str);
+        return CC_ERROR;
+    }
+
+    opt->set = true;
+    opt->val.vfpn = val;
+
+    return CC_OK;
+}
+
+static rstatus_i
 _option_parse_str(struct option *opt, const char *val_str)
 {
     opt->set = true;
@@ -358,6 +383,10 @@ option_default(struct option *opt)
         opt->val.vuint = opt->default_val.vuint;
         break;
 
+    case OPTION_TYPE_FPN:
+        opt->val.vfpn = opt->default_val.vfpn;
+        break;
+
     case OPTION_TYPE_STR:
         if (opt->default_val.vstr == NULL) {
             opt->val.vstr = NULL;
@@ -389,6 +418,9 @@ option_set(struct option *opt, char *val_str)
 
     case OPTION_TYPE_UINT:
         return _option_parse_uint(opt, val_str);
+
+    case OPTION_TYPE_FPN:
+        return _option_parse_fpn(opt, val_str);
 
     case OPTION_TYPE_STR:
         return _option_parse_str(opt, val_str);
