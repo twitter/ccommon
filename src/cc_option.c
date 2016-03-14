@@ -35,6 +35,7 @@
 char * option_type_str[] = {
     "boolean",
     "unsigned int",
+    "double",
     "string"
 };
 
