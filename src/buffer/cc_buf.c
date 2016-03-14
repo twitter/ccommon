@@ -176,14 +176,14 @@ buf_setup(buf_options_st *options, buf_metrics_st *metrics)
         log_warn("%s was already setup, overwriting", BUF_MODULE_NAME);
     }
 
-    if (options != NULL) {
-        buf_init_size = option_uint(&options->buf_init_size);
-        buf_pool_create(option_uint(&options->buf_poolsize));
-    }
-
     buf_metrics = metrics;
     if (metrics != NULL) {
         BUF_METRIC_INIT(buf_metrics);
+    }
+
+    if (options != NULL) {
+        buf_init_size = option_uint(&options->buf_init_size);
+        buf_pool_create(option_uint(&options->buf_poolsize));
     }
 
     buf_init = true;

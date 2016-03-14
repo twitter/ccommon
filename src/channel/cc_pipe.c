@@ -365,13 +365,13 @@ pipe_setup(pipe_options_st *options, pipe_metrics_st *metrics)
         log_warn("%s has already been setup, overwrite", PIPE_MODULE_NAME);
     }
 
-    if (options != NULL) {
-        pipe_conn_pool_create(option_uint(&options->pipe_poolsize));
-    }
-
     pipe_metrics = metrics;
     if (metrics != NULL) {
         PIPE_METRIC_INIT(pipe_metrics);
+    }
+
+    if (options != NULL) {
+        pipe_conn_pool_create(option_uint(&options->pipe_poolsize));
     }
 
     channel_sigpipe_ignore(); /* does it ever fail */

@@ -822,14 +822,14 @@ tcp_setup(tcp_options_st *options, tcp_metrics_st *metrics)
         log_warn("%s has already been setup, overwrite", TCP_MODULE_NAME);
     }
 
-    if (options != NULL) {
-        max_backlog = option_uint(&options->tcp_backlog);
-        tcp_conn_pool_create(option_uint(&options->tcp_poolsize));
-    }
-
     tcp_metrics = metrics;
     if (metrics != NULL) {
         TCP_METRIC_INIT(tcp_metrics);
+    }
+
+    if (options != NULL) {
+        max_backlog = option_uint(&options->tcp_backlog);
+        tcp_conn_pool_create(option_uint(&options->tcp_poolsize));
     }
 
     channel_sigpipe_ignore(); /* does it ever fail? */
