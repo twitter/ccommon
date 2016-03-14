@@ -29,8 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define OPTION_INFO_FMT "name: %-31s type: %-12s  current: %s ( default: %s )"
-#define OPTION_DESCRIBE_FMT  "%-31s %-12s %-32s %s"
+#define OPTION_INFO_FMT "name: %-31s type: %-15s  current: %-20s ( default: %-20s )"
+#define OPTION_DESCRIBE_FMT  "%-31s %-15s %-20s %s"
 
 char * option_type_str[] = {
     "boolean",
@@ -531,17 +531,18 @@ option_print_val(char *s, size_t len, option_type_e type, option_val_u val)
     switch (type) {
     case OPTION_TYPE_BOOL:
         snprintf(s, len, "%s", val.vbool ? "yes" : "no");
-
         break;
 
     case OPTION_TYPE_UINT:
         snprintf(s, len, "%ju", val.vuint);
+        break;
 
+    case OPTION_TYPE_FPN:
+        snprintf(s, len, "%f", val.vfpn);
         break;
 
     case OPTION_TYPE_STR:
         snprintf(s, len, "%s", val.vstr == NULL ? "NULL" : val.vstr);
-
         break;
 
     default:
@@ -557,8 +558,8 @@ option_print(struct option *opt)
 
     option_print_val(default_s, PATH_MAX, opt->type, opt->default_val);
     option_print_val(current_s, PATH_MAX, opt->type, opt->val);
-    loga(OPTION_INFO_FMT, opt->name, option_type_str[opt->type], default_s,
-            current_s);
+    log_stdout(OPTION_INFO_FMT, opt->name, option_type_str[opt->type],
+            default_s, current_s);
 }
 
 void
