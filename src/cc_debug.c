@@ -113,7 +113,7 @@ debug_setup(debug_options_st *options)
 {
     size_t log_nbuf = DEBUG_LOG_NBUF;
     uint64_t log_intvl = DEBUG_LOG_INTVL;
-    char *filename = NULL;
+    char *filename = DEBUG_LOG_FILE;
 
     /* since logs are not setup yet, we have to log to stderr */
     log_stderr("Set up the %s module", DEBUG_MODULE_NAME);
