@@ -91,7 +91,7 @@ log_create(char *filename, uint32_t buf_cap)
 
     logger->name = filename;
     if (filename != NULL) {
-        logger->fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+        logger->fd = open(filename, O_WRONLY | O_APPEND | O_CREAT, 0644);
         if (logger->fd < 0) {
             cc_free(logger);
             log_stderr("Could not create logger - cannot open file");
