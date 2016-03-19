@@ -84,6 +84,7 @@ struct tcp_conn {
 
     ch_level_e              level;          /* meta or base */
     int                     sd;             /* socket descriptor */
+    char                    peer[32];       /* printable host:port */
 
     size_t                  recv_nbyte;     /* received (read) bytes */
     size_t                  send_nbyte;     /* sent (written) bytes */
