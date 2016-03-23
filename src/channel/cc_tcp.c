@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <stdio.h>
@@ -322,33 +321,29 @@ _tcp_resolve_peer(int sd, char *buf, int size)
 {
     int status;
     struct sockaddr *addr;
-    union {
-        struct sockaddr_in  in;
-        struct sockaddr_in6 in6;
-        struct sockaddr_un  un;
-    } addr_in;
+    struct sockaddr_storage addr_storage;
     socklen_t addrlen;
     const char *p;
     int plen;
     uint16_t port;
 
-    addr = (struct sockaddr *)&addr_in;
-    addrlen = sizeof(addr_in);
+    addr = (struct sockaddr *)&addr_storage;
+    addrlen = sizeof(addr_storage);
 
     status = getpeername(sd, addr, &addrlen);
-    if (status < 0) {
+    if (status == -1) {
         goto error;
     }
 
     switch (addr->sa_family) {
     case AF_INET:
-        p = inet_ntop(AF_INET, &addr_in.in.sin_addr, buf, size);
+        p = inet_ntop(AF_INET, &((struct sockaddr_in *)&addr_storage)->sin_addr, buf, size);
         if (p == NULL) {
             goto error;
         }
         plen = cc_strlen(p);
 
-        port = ntohs(addr_in.in.sin_port);
+        port = ntohs(((struct sockaddr_in *)&addr_storage)->sin_port);
         if (port == 0) {
             goto error;
         }
@@ -357,22 +352,18 @@ _tcp_resolve_peer(int sd, char *buf, int size)
         break;
 
     case AF_INET6:
-        p = inet_ntop(AF_INET6, &addr_in.in6.sin6_addr, buf, size);
+        p = inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&addr_storage)->sin6_addr, buf, size);
         if (p == NULL) {
             goto error;
         }
         plen = cc_strlen(p);
 
-        port = ntohs(addr_in.in6.sin6_port);
+        port = ntohs(((struct sockaddr_in6 *)&addr_storage)->sin6_port);
         if (port == 0) {
             goto error;
         }
 
         cc_snprintf(p + plen, size - plen, ":%d", port);
-        break;
-
-    case AF_UNIX:
-        cc_snprintf(buf, size, "%s", addr_in.un.sun_path);
         break;
 
     default:
