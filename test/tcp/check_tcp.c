@@ -10,7 +10,6 @@
 #define DEBUG_LOG  SUITE_NAME ".log"
 #define HOST NULL
 #define PORT "12321"
-#define LOCALHOST "127.0.0.1:"
 
 static struct addrinfo *ai;
 static struct tcp_conn *server;
@@ -69,8 +68,7 @@ START_TEST(test_accept)
     ck_assert(tcp_accept(server, c));
     ck_assert(c->free == false);
     ck_assert_int_gt(c->sd, 0);
-    ck_assert_int_gt(strnlen(c->peer, INET6_ADDRSTRLEN + 1 + 5 + 1), 0);
-    ck_assert_int_eq(strncmp(c->peer, LOCALHOST, sizeof(LOCALHOST) - 1), 0);
+    ck_assert_msg(strnlen(c->peer, INET6_ADDRSTRLEN + 1 + 5 + 1) > 0, "c->peer was not set");
     tcp_close(c);
     tcp_close(client);
     tcp_close(server);
