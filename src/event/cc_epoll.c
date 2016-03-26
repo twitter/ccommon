@@ -182,35 +182,6 @@ event_add_write(struct event_base *evb, int fd, void *data)
 }
 
 int
-event_register(struct event_base *evb, int fd, void *data)
-{
-    int status;
-    struct epoll_event event;
-    int ep;
-
-    ASSERT(evb != NULL);
-
-    ep = evb->ep;
-
-    ASSERT(ep > 0);
-    ASSERT(fd > 0);
-
-    event.events = (EPOLLOUT | EPOLLIN);
-    //event.events = (EPOLLOUT | EPOLLIN | EPOLLET);
-    event.data.ptr = data;
-
-    status = epoll_ctl(ep, EPOLL_CTL_ADD, fd, &event);
-    if (status < 0) {
-        log_error("ctl (reg) of fd %d to epoll fd %d failed: %s", fd, ep,
-                strerror(errno));
-    }
-
-    log_verb("register fd %d to epoll fd %d", fd, ep);
-
-    return status;
-}
-
-int
 event_deregister(struct event_base *evb, int fd)
 {
     int status;
