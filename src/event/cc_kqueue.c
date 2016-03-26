@@ -172,22 +172,6 @@ event_add_write(struct event_base *evb, int fd, void *data)
 }
 
 int
-event_del_read(struct event_base *evb, int fd)
-{
-    _event_update(evb, fd, EVFILT_READ, EV_DELETE, NULL);
-
-    return 0;
-}
-
-int
-event_del_write(struct event_base *evb, int fd)
-{
-    _event_update(evb, fd, EVFILT_WRITE, EV_DELETE, NULL);
-
-    return 0;
-}
-
-int
 event_del(struct event_base *evb, int fd)
 {
     _event_update(evb, fd, EVFILT_READ, EV_DELETE, NULL);
