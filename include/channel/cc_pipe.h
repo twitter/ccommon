@@ -29,14 +29,14 @@ extern "C" {
 #include <unistd.h>
 
 /**
- * This implements the channel interface for pipes
+ * This implements the channel interface for TCP.
  */
 
-#define PIPE_POOLSIZE 0
+#define PIPE_POOLSIZE 0 /* unlimited */
 
-/*          name                type                default         description */
-#define PIPE_OPTION(ACTION) \
-    ACTION( pipe_poolsize,      OPTION_TYPE_UINT,   PIPE_POOLSIZE,  "pipe conn pool size" )
+/*          name            type              default        description */
+#define PIPE_OPTION(ACTION)                                                         \
+    ACTION( pipe_poolsize,  OPTION_TYPE_UINT, PIPE_POOLSIZE, "pipe conn pool size" )
 
 typedef struct {
     PIPE_OPTION(OPTION_DECLARE)
@@ -82,7 +82,8 @@ struct pipe_conn {
     err_i                   err;        /* errno */
 };
 
-STAILQ_HEAD(pipe_conn_sqh, pipe_conn); /* corresponding header type for the STAILQ */
+/* corresponding header type for the STAILQ */
+STAILQ_HEAD(pipe_conn_sqh, pipe_conn);
 
 void pipe_setup(pipe_options_st *options, pipe_metrics_st *metrics);
 void pipe_teardown(void);

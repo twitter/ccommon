@@ -172,7 +172,8 @@ debug_teardown(void)
 }
 
 void
-_log(struct debug_logger *dl, const char *file, int line, int level, const char *fmt, ...)
+_log(struct debug_logger *dl, const char *file, int line, int level,
+     const char *fmt, ...)
 {
     int len, size, errno_save;
     char buf[LOG_MAX_LEN], *timestr;

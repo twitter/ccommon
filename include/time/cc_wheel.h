@@ -125,16 +125,20 @@ struct timing_wheel {
     uint64_t            ntick;      /* total # ticks processed */
 };
 
-struct timing_wheel *timing_wheel_create(struct timeout *tick, size_t cap, size_t ntick);
+struct timing_wheel *timing_wheel_create(struct timeout *tick, size_t cap,
+                                         size_t ntick);
 void timing_wheel_destroy(struct timing_wheel **tw);
 
-struct timeout_event * timing_wheel_insert(struct timing_wheel *tw, struct timeout *delay, bool recur, timeout_cb_fn cb, void *arg);
+struct timeout_event * timing_wheel_insert(struct timing_wheel *tw,
+                                           struct timeout *delay, bool recur,
+                                           timeout_cb_fn cb, void *arg);
 void timing_wheel_remove(struct timing_wheel *tw, struct timeout_event **tev);
 
 void timing_wheel_start(struct timing_wheel *tw);
 void timing_wheel_stop(struct timing_wheel *tw);
 void timing_wheel_execute(struct timing_wheel *tw);
-void timing_wheel_flush(struct timing_wheel *tw); /* triggering all, useful for teardown */
+void timing_wheel_flush(struct timing_wheel *tw); /* trigger all events,
+                                                     useful for teardown */
 
 void timing_wheel_setup(timing_wheel_metrics_st *metrics);
 void timing_wheel_teardown(void);

@@ -81,7 +81,8 @@ log_create(char *filename, uint32_t buf_cap)
         logger->buf = rbuf_create(buf_cap);
         if (logger->buf == NULL) {
             cc_free(logger);
-            log_stderr("Could not create logger - buffer not allocated due to OOM");
+            log_stderr("Could not create logger - buffer not allocated due to "
+                       "OOM");
             INCR(log_metrics, log_create_ex);
             return NULL;
         }
@@ -156,8 +157,8 @@ log_reopen(struct logger *logger, char *target)
 
         logger->fd = open(logger->name, O_WRONLY | O_TRUNC | O_CREAT, 0644);
         if (logger->fd < 0) {
-            log_stderr("reopening log file '%s' failed, ignored: %s", logger->name,
-                       strerror(errno));
+            log_stderr("reopening log file '%s' failed, ignored: %s",
+                       logger->name, strerror(errno));
             INCR(log_metrics, log_open_ex);
             return CC_ERROR;
         }

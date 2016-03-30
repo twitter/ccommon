@@ -28,15 +28,15 @@ extern "C" {
 #include <stdbool.h>
 
 
-/*          name                type                default             description */
-#define DBUF_OPTION(ACTION)                                                                         \
-    ACTION( dbuf_max_power,      OPTION_TYPE_UINT,  DBUF_DEFAULT_MAX,   "max number of doubling"   )
+/*          name            type              default           description */
+#define DBUF_OPTION(ACTION)                                                                   \
+    ACTION( dbuf_max_power, OPTION_TYPE_UINT, DBUF_DEFAULT_MAX, "max # times buf is doubled" )
 
 typedef struct {
     DBUF_OPTION(OPTION_DECLARE)
 } dbuf_options_st;
 
-#define DBUF_DEFAULT_MAX    8  /* with 16KiB default size, this gives us 4 MiB max */
+#define DBUF_DEFAULT_MAX 8  /* 16KiB default size gives us 4 MiB max */
 
 /* Setup/teardown doubling buffer module */
 void dbuf_setup(dbuf_options_st *options);

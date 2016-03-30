@@ -54,9 +54,9 @@ extern "C" {
  * Among peer channels, it is worth noting that difference exists between the
  * ones that are reactive (server) from the proactive (client) ones. One key
  * difference is server channels are never opened proactively, and hence a
- * server implementation does not need to provide a channel open handler, instead,
- * a meta channel implementation needs to provide ways to accept a new channel
- * request from a client.
+ * server implementation does not need to provide a channel open handler,
+ * instead, a meta channel implementation needs to provide ways to accept a new
+ * channel request from a client.
  */
 
 /* channel related data types */

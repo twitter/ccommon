@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-/*
- * buf: a buffer base for contiguous buffers that can be pooled together
- */
-
 #pragma once
 
 #ifdef __cplusplus

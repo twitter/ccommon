@@ -18,7 +18,7 @@
 #include <cc_print.h>
 
 /*
- * Note: the impelmentation of cc_print_uint64_unsafe uses Facebook/folly's
+ * Note: the implementation of cc_print_uint64_unsafe uses Facebook/folly's
  * implementation as a reference (folly/Conv.h)
  */
 
