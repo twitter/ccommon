@@ -22,8 +22,10 @@ struct timeout_event {
     STAILQ_ENTRY(timeout_event) next;   /* next timeout_event in pool */
 };
 
-STAILQ_HEAD(tevent_sqh, timeout_event); /* corresponding header type for the STAILQ */
-TAILQ_HEAD(tevent_tqh, timeout_event);  /* head type for timeout events */
+/* corresponding header type for the STAILQ */
+STAILQ_HEAD(tevent_sqh, timeout_event);
+/* head type for timeout events */
+TAILQ_HEAD(tevent_tqh, timeout_event);
 
 FREEPOOL(tevent_pool, teventq, timeout_event);
 static struct tevent_pool teventp;
@@ -272,8 +274,8 @@ _timing_wheel_insert(struct timing_wheel *tw, struct timeout_event *tev)
     INCR(timing_wheel_metrics, timing_wheel_insert);
     INCR(timing_wheel_metrics, timing_wheel_event);
 
-    log_verb("added timeout event %p into timing wheel %p: curr tick %zu, "
-            "scheduled offset %zu", tev, tw, tw->curr, tev->offset);
+    log_vverb("added timeout event %p into timing wheel %p: curr tick %zu, "
+              "scheduled offset %zu", tev, tw, tw->curr, tev->offset);
 }
 
 struct timeout_event *
@@ -325,7 +327,7 @@ _timing_wheel_remove(struct timing_wheel *tw, struct timeout_event *tev)
 {
     ASSERT(tw != NULL && tev != NULL);
 
-    log_verb("removing timeout event %p from timing wheel %p: curr tick %zu, "
+    log_vverb("removing timeout event %p from timing wheel %p: curr tick %zu, "
             "scheduled offset %zu", tev, tw, tw->curr, tev->offset);
 
     TAILQ_REMOVE(&tw->table[tev->offset], tev, tqe);

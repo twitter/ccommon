@@ -41,7 +41,7 @@ static pipe_metrics_st *pipe_metrics = NULL;
 struct pipe_conn *
 pipe_conn_create(void)
 {
-    struct pipe_conn *c = (struct pipe_conn *)cc_alloc(sizeof(struct pipe_conn));
+    struct pipe_conn *c = (struct pipe_conn *)cc_alloc(sizeof(*c));
 
     if (c == NULL) {
         log_info("pipe connection creation failed due to OOM");
@@ -243,8 +243,8 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
         }
 
         if (n == 0) {
-            log_debug("eof recv'd on pipe fd %d, total: rb %zu sb %zu", c->fd[0],
-                      c->recv_nbyte, c->send_nbyte);
+            log_debug("eof recv'd on pipe fd %d, total: rb %zu sb %zu",
+                      c->fd[0], c->recv_nbyte, c->send_nbyte);
             return n;
         }
 
@@ -258,7 +258,8 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
             return CC_EAGAIN;
         } else {
             c->err = errno;
-            log_error("recv on pipe fd %d failed: %s", c->fd[0], strerror(errno));
+            log_error("recv on pipe fd %d failed: %s", c->fd[0],
+                      strerror(errno));
             return CC_ERROR;
         }
     }
@@ -304,7 +305,8 @@ ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte)
             return CC_EAGAIN;
         } else {
             c->err = errno;
-            log_error("sendv on pipe fd %d failed: %s", c->fd[1], strerror(errno));
+            log_error("sendv on pipe fd %d failed: %s", c->fd[1],
+                      strerror(errno));
             return CC_ERROR;
         }
     }

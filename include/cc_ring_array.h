@@ -15,15 +15,6 @@
  * limitations under the License.
  */
 
-/*
- * This ring array is designed specifically with communication between two
- * threads in mind, with one thread as the producer and the other thread as the
- * consumer. In other words, one thread does all of the pushing and the other
- * thread does all of the popping. Given these conditions are met, the ring
- * array can guarantee that all pushes and pops will be valid and leave the
- * array in a valid state.
- */
-
 #pragma once
 
 #include <cc_define.h>
@@ -39,8 +30,8 @@ struct ring_array {
     uint32_t    rpos;              /* read offset */
     uint32_t    wpos;              /* write offset */
     union {
-        size_t  pad;               /* using a size_t member to force alignment at
-                                      native word boundary */
+        size_t  pad;               /* using a size_t member to force alignment
+                                      at native word boundary */
         uint8_t data[1];           /* beginning of array */
     };
 };

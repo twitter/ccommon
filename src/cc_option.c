@@ -242,7 +242,7 @@ _option_eval_rpn(char *rpn, uintmax_t *val)
                 if (result > first) {
                     /* subtraction causes op2 to be negative */
                     log_stderr("unsigned integer expression contains negative "
-                            "number");
+                               "number");
                     return CC_ERROR;
                 }
 
@@ -261,7 +261,7 @@ _option_eval_rpn(char *rpn, uintmax_t *val)
                 if (second == 0) {
                     /* divide by zero */
                     log_stderr("evaluating integer expression causes divide by "
-                            "zero");
+                               "zero");
                     return CC_ERROR;
                 }
 
@@ -450,7 +450,8 @@ _allowed_in_name(char c)
 }
 
 static rstatus_i
-_option_parse(char *line, char name[OPTNAME_MAXLEN+1], char val[OPTVAL_MAXLEN+1])
+_option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
+              char val[OPTVAL_MAXLEN + 1])
 {
     char *p = line;
     char *q;

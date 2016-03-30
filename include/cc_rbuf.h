@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-/*
- * rbuf: a ring buffer designed for logging use (NOT THREADSAFE!)
- */
-
 #pragma once
 
 #include <cc_metric.h>

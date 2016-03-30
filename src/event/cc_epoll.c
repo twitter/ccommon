@@ -118,7 +118,8 @@ event_base_destroy(struct event_base **evb)
 }
 
 static int
-_event_update(struct event_base *evb, int fd, int op, uint32_t events, void *ptr)
+_event_update(struct event_base *evb, int fd, int op, uint32_t events,
+              void *ptr)
 {
     struct epoll_event event;
 

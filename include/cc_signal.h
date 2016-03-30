@@ -36,7 +36,7 @@ struct signal {
     char *info;
     int flags;
     sig_fn handler;
-    uint32_t mask;  /* additional singals to mask */
+    uint32_t mask;  /* additional signals to mask */
 };
 
 /**
@@ -44,13 +44,15 @@ struct signal {
  * signals after it is initialized.
  *
  * Note: the library has already overridden handlers for the following signals:
- * - SIGTTIN(debug): reload log file
- * - SIGSEGV(debug): print stacktrace before reraise segfault again
- * - SIGPIPE(channel): ignored, this prevents service from exiting when pipe closes
+ * - SIGHUP(debug): reload log file
+ * - SIGSEGV(debug): print stacktrace before reraising segfault again
+ * - SIGPIPE(channel): ignored, this prevents service from exiting when pipe
+ *   closes
  */
 struct signal signals[SIGNAL_MAX]; /* there are only 31 signals from 1 to 31 */
 
-int signal_override(int signo, char *info, int flags, uint32_t mask, sig_fn handler);
+int signal_override(int signo, char *info, int flags, uint32_t mask,
+                    sig_fn handler);
 
 #ifdef __cplusplus
 }

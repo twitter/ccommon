@@ -64,7 +64,7 @@ tcp_conn_reset(struct tcp_conn *c)
 struct tcp_conn *
 tcp_conn_create(void)
 {
-    struct tcp_conn *c = (struct tcp_conn *)cc_alloc(sizeof(struct tcp_conn));
+    struct tcp_conn *c = (struct tcp_conn *)cc_alloc(sizeof(*c));
 
     if (c == NULL) {
         log_info("connection creation failed due to OOM");
@@ -190,7 +190,8 @@ tcp_connect(struct addrinfo *ai, struct tcp_conn *c)
     c->sd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     INCR(tcp_metrics, tcp_connect);
     if (c->sd < 0) {
-	log_error("socket create for tcp_conn %p failed: %s", c, strerror(errno));
+	log_error("socket create for tcp_conn %p failed: %s", c,
+                  strerror(errno));
 
         goto error;
     }

@@ -217,8 +217,10 @@ extern struct debug_logger *dlog;
 
 #endif
 
-void _log(struct debug_logger *dl, const char *file, int line, int level, const char *fmt, ...);
-void _log_hexdump(struct debug_logger *dl, int level, char *data, int datalen);
+void _log(struct debug_logger *dl, const char *file, int line, int level,
+          const char *fmt, ...);
+void _log_hexdump(struct debug_logger *dl, int level, char *data,
+                  int datalen);
 
 void debug_log_flush(void *arg); /* compatible type: timeout_cb_fn */
 

@@ -38,8 +38,8 @@
  */
 
 
-/* NOTE(kyang): until we figure out a common conn interface, cc_sockio and buf_sock
-   will be for TCP connections only */
+/* NOTE(kyang): until we figure out a common conn interface, cc_sockio and
+   buf_sock will be for TCP connections only */
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,9 +54,9 @@ extern "C" {
 
 #define BUFSOCK_POOLSIZE 0 /* unlimited */
 
-/*          name                type                default             description */
-#define SOCKIO_OPTION(ACTION)                                                             \
-    ACTION( buf_sock_poolsize,  OPTION_TYPE_UINT,   BUFSOCK_POOLSIZE,   "buf_sock limit" )
+/*          name               type              default           description */
+#define SOCKIO_OPTION(ACTION)                                                        \
+    ACTION( buf_sock_poolsize, OPTION_TYPE_UINT, BUFSOCK_POOLSIZE, "buf_sock limit" )
 
 typedef struct {
     SOCKIO_OPTION(OPTION_DECLARE)
@@ -77,7 +77,8 @@ struct buf_sock {
     struct buf              *wbuf;
 };
 
-STAILQ_HEAD(buf_sock_sqh, buf_sock); /* corresponding header type for the STAILQ */
+/* corresponding header type for the STAILQ */
+STAILQ_HEAD(buf_sock_sqh, buf_sock);
 
 void sockio_setup(sockio_options_st *options);
 void sockio_teardown(void);

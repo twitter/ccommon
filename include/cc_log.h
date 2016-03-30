@@ -36,20 +36,20 @@ struct logger {
 };
 
 /*          name            type            description */
-#define LOG_METRIC(ACTION)                                                      \
-    ACTION( log_create,     METRIC_COUNTER, "# loggers created"                )\
-    ACTION( log_create_ex,  METRIC_COUNTER, "# log create errors"              )\
-    ACTION( log_destroy,    METRIC_COUNTER, "# loggers destroyed"              )\
-    ACTION( log_curr,       METRIC_GAUGE,   "current # loggers"                )\
-    ACTION( log_open,       METRIC_COUNTER, "# files opened by loggers"        )\
-    ACTION( log_open_ex,    METRIC_COUNTER, "# logger open file errors"        )\
-    ACTION( log_write,      METRIC_COUNTER, "# log messages written"           )\
-    ACTION( log_write_byte, METRIC_COUNTER, "# bytes written by log"           )\
-    ACTION( log_write_ex,   METRIC_COUNTER, "# log write errors"               )\
-    ACTION( log_skip,       METRIC_COUNTER, "# messages not completely logged" )\
-    ACTION( log_skip_byte,  METRIC_COUNTER, "# bytes unable to be logged"      )\
-    ACTION( log_flush,      METRIC_COUNTER, "# log flushes to disk"            )\
-    ACTION( log_flush_ex,   METRIC_COUNTER, "# errors flushing to disk"        )
+#define LOG_METRIC(ACTION)                                                 \
+    ACTION( log_create,     METRIC_COUNTER, "# loggers created"           )\
+    ACTION( log_create_ex,  METRIC_COUNTER, "# log create errors"         )\
+    ACTION( log_destroy,    METRIC_COUNTER, "# loggers destroyed"         )\
+    ACTION( log_curr,       METRIC_GAUGE,   "current # loggers"           )\
+    ACTION( log_open,       METRIC_COUNTER, "# files opened by loggers"   )\
+    ACTION( log_open_ex,    METRIC_COUNTER, "# logger open file errors"   )\
+    ACTION( log_write,      METRIC_COUNTER, "# log messages written"      )\
+    ACTION( log_write_byte, METRIC_COUNTER, "# bytes written by log"      )\
+    ACTION( log_write_ex,   METRIC_COUNTER, "# log write errors"          )\
+    ACTION( log_skip,       METRIC_COUNTER, "# messages not fully logged" )\
+    ACTION( log_skip_byte,  METRIC_COUNTER, "# bytes unable to be logged" )\
+    ACTION( log_flush,      METRIC_COUNTER, "# log flushes to disk"       )\
+    ACTION( log_flush_ex,   METRIC_COUNTER, "# errors flushing to disk"   )
 
 typedef struct {
     LOG_METRIC(METRIC_DECLARE)

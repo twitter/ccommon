@@ -44,7 +44,8 @@ struct duration;  /* data structure to measure duration */
  * Reference: http://nadeausoftware.com/articles/2012/04/c_c_tip_how_measure_elapsed_real_time_benchmarking
  *
  * different implementations may interpret the tp (timestamp) field differently:
- * - on most POSIX-like platforms it means nanoseconds since an unspecified point;
+ * - on most POSIX-like platforms it means nanoseconds since an unspecified
+ *   point;
  * - on OS X it means `mach time units' since an unspecified point, the
  *   relationship between this unit and nanosecond can be obtained via another
  *   syscall

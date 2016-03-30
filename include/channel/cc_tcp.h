@@ -41,10 +41,10 @@ extern "C" {
 #define TCP_BACKLOG  128
 #define TCP_POOLSIZE 0 /* unlimited */
 
-/*          name            type                default         description */
-#define TCP_OPTION(ACTION)                                                                \
-    ACTION( tcp_backlog,    OPTION_TYPE_UINT,   TCP_BACKLOG,    "tcp conn backlog limit" )\
-    ACTION( tcp_poolsize,   OPTION_TYPE_UINT,   TCP_POOLSIZE,   "tcp conn pool size"     )
+/*          name          type              default       description */
+#define TCP_OPTION(ACTION)                                                          \
+    ACTION( tcp_backlog,  OPTION_TYPE_UINT, TCP_BACKLOG,  "tcp conn backlog limit" )\
+    ACTION( tcp_poolsize, OPTION_TYPE_UINT, TCP_POOLSIZE, "tcp conn pool size"     )
 
 typedef struct {
     TCP_OPTION(OPTION_DECLARE)
@@ -94,7 +94,8 @@ struct tcp_conn {
     err_i                   err;            /* errno */
 };
 
-STAILQ_HEAD(tcp_conn_sqh, tcp_conn); /* corresponding header type for the STAILQ */
+/* corresponding header type for the STAILQ */
+STAILQ_HEAD(tcp_conn_sqh, tcp_conn);
 
 void tcp_setup(tcp_options_st *options, tcp_metrics_st *metrics);
 void tcp_teardown(void);
@@ -103,7 +104,7 @@ void tcp_conn_reset(struct tcp_conn *c);
 
 /* resource management */
 struct tcp_conn *tcp_conn_create(void);     /* channel_get_fn, with allocation */
-void tcp_conn_destroy(struct tcp_conn **c); /* channel_put_fn, with deallocation  */
+void tcp_conn_destroy(struct tcp_conn **c); /* channel_put_fn, with deallocation */
 
 struct tcp_conn *tcp_conn_borrow(void);     /* channel_get_fn, with resource pool */
 void tcp_conn_return(struct tcp_conn **c);  /* channel_put_fn, with resource pool */

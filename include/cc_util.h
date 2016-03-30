@@ -124,9 +124,9 @@ _cc_strrchr(uint8_t *p, uint8_t *start, uint8_t c)
 }
 
 /* math */
-#define SQUARE(d)           ((d) * (d))
-#define VAR(s, s2, n)       (((n) < 2) ? 0.0 : ((s2) - SQUARE(s)/(n)) / ((n) - 1))
-#define STDDEV(s, s2, n)    (((n) < 2) ? 0.0 : sqrt(VAR((s), (s2), (n))))
+#define SQUARE(d)        ((d) * (d))
+#define VAR(s, s2, n)    (((n) < 2) ? 0.0 : ((s2) - SQUARE(s)/(n)) / ((n) - 1))
+#define STDDEV(s, s2, n) (((n) < 2) ? 0.0 : sqrt(VAR((s), (s2), (n))))
 
 /* The following functions are only valid for x >= 0, step >= 1. */
 /* Return 'x' rounded up to the nearest multiple of 'step'. */

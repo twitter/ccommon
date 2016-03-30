@@ -32,12 +32,12 @@ extern "C" {
 #define EVENT_WRITE 0x00ff00
 #define EVENT_ERR   0xff0000
 
-/*          name                type            description */
-#define EVENT_METRIC(ACTION)                                            \
-    ACTION( event_total,        METRIC_COUNTER, "# events returned"    )\
-    ACTION( event_loop,         METRIC_COUNTER, "# event loop returns" )\
-    ACTION( event_read,         METRIC_COUNTER, "# reads registered"   )\
-    ACTION( event_write,        METRIC_COUNTER, "# writes registered"  )
+/*          name         type            description */
+#define EVENT_METRIC(ACTION)                                     \
+    ACTION( event_total, METRIC_COUNTER, "# events returned"    )\
+    ACTION( event_loop,  METRIC_COUNTER, "# event loop returns" )\
+    ACTION( event_read,  METRIC_COUNTER, "# reads registered"   )\
+    ACTION( event_write, METRIC_COUNTER, "# writes registered"  )
 
 typedef struct {
     EVENT_METRIC(METRIC_DECLARE)
