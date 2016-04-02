@@ -244,7 +244,7 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
 
         if (n == 0) {
             log_debug("eof recv'd on pipe fd %d, total: rb %zu sb %zu",
-                      c->fd[0], c->recv_nbyte, c->send_nbyte);
+                    c->fd[0], c->recv_nbyte, c->send_nbyte);
             return n;
         }
 
@@ -259,7 +259,7 @@ pipe_recv(struct pipe_conn *c, void *buf, size_t nbyte)
         } else {
             c->err = errno;
             log_error("recv on pipe fd %d failed: %s", c->fd[0],
-                      strerror(errno));
+                    strerror(errno));
             return CC_ERROR;
         }
     }
@@ -306,7 +306,7 @@ ssize_t pipe_send(struct pipe_conn *c, void *buf, size_t nbyte)
         } else {
             c->err = errno;
             log_error("sendv on pipe fd %d failed: %s", c->fd[1],
-                      strerror(errno));
+                    strerror(errno));
             return CC_ERROR;
         }
     }

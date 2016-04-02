@@ -119,7 +119,7 @@ event_base_destroy(struct event_base **evb)
 
 static int
 _event_update(struct event_base *evb, int fd, int op, uint32_t events,
-              void *ptr)
+        void *ptr)
 {
     struct epoll_event event;
 
@@ -160,7 +160,7 @@ event_add_write(struct event_base *evb, int fd, void *data)
     status = _event_update(evb, fd, EPOLL_CTL_ADD, EPOLLOUT, data);
     if (status < 0 && errno != EEXIST) {
         log_error("ctl (add write) w/ epoll fd %d on fd %d failed: %s", evb->ep,
-                 fd, strerror(errno));
+                fd, strerror(errno));
     }
 
     INCR(event_metrics, event_write);
@@ -219,7 +219,7 @@ event_wait(struct event_base *evb, int timeout)
                 uint32_t events = 0;
 
                 log_verb("epoll %04"PRIX32" against data %p",
-                          ev->events, ev->data.ptr);
+                        ev->events, ev->data.ptr);
 
 
                 if (ev->events & (EPOLLERR | EPOLLHUP)) {
@@ -247,13 +247,13 @@ event_wait(struct event_base *evb, int timeout)
 
         if (nreturned == 0) {
             if (timeout == -1) {
-               log_error("indefinite wait on epoll fd %d with %d events "
-                         "returned no events", ep, nevent);
+                log_error("indefinite wait on epoll fd %d with %d events "
+                        "returned no events", ep, nevent);
                 return -1;
             }
 
             log_vverb("wait on epoll fd %d with nevent %d timeout %d"
-                         "returned no events", ep, nevent, timeout);
+                    "returned no events", ep, nevent, timeout);
             return 0;
         }
 

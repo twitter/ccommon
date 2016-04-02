@@ -52,7 +52,7 @@ struct signal {
 struct signal signals[SIGNAL_MAX]; /* there are only 31 signals from 1 to 31 */
 
 int signal_override(int signo, char *info, int flags, uint32_t mask,
-                    sig_fn handler);
+        sig_fn handler);
 
 #ifdef __cplusplus
 }

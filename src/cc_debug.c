@@ -138,7 +138,7 @@ debug_setup(debug_options_st *options)
 
     /* some adjustment on signal handling */
     if (signal_override(SIGSEGV, "printing stacktrace when segfault", 0, 0,
-            _stacktrace) < 0) {
+                    _stacktrace) < 0) {
         goto error;
     }
 
@@ -173,7 +173,7 @@ debug_teardown(void)
 
 void
 _log(struct debug_logger *dl, const char *file, int line, int level,
-     const char *fmt, ...)
+        const char *fmt, ...)
 {
     int len, size, errno_save;
     char buf[LOG_MAX_LEN], *timestr;
@@ -266,4 +266,3 @@ _log_hexdump(struct debug_logger *dl, int level, char *data, int datalen)
 
     errno = errno_save;
 }
-

@@ -82,7 +82,7 @@ log_create(char *filename, uint32_t buf_cap)
         if (logger->buf == NULL) {
             cc_free(logger);
             log_stderr("Could not create logger - buffer not allocated due to "
-                       "OOM");
+                    "OOM");
             INCR(log_metrics, log_create_ex);
             return NULL;
         }
@@ -126,7 +126,7 @@ log_destroy(struct logger **l)
     log_flush(logger);
 
     if (logger->fd >= 0 && logger->fd != STDERR_FILENO
-        && logger->fd != STDOUT_FILENO) {
+            && logger->fd != STDOUT_FILENO) {
         close(logger->fd);
     }
 
@@ -151,14 +151,14 @@ log_reopen(struct logger *logger, char *target)
             ret = rename(logger->name, target);
             if (ret < 0) {
                 log_stderr("rename old log file '%s' to '%s' failed, ignored: "
-                           "%s", logger->name, target, strerror(errno));
+                        "%s", logger->name, target, strerror(errno));
             }
         }
 
         logger->fd = open(logger->name, O_WRONLY | O_TRUNC | O_CREAT, 0644);
         if (logger->fd < 0) {
             log_stderr("reopening log file '%s' failed, ignored: %s",
-                       logger->name, strerror(errno));
+                    logger->name, strerror(errno));
             INCR(log_metrics, log_open_ex);
             return CC_ERROR;
         }

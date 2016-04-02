@@ -41,10 +41,10 @@ extern "C" {
 #define TCP_BACKLOG  128
 #define TCP_POOLSIZE 0 /* unlimited */
 
-/*          name          type              default       description */
-#define TCP_OPTION(ACTION)                                                          \
-    ACTION( tcp_backlog,  OPTION_TYPE_UINT, TCP_BACKLOG,  "tcp conn backlog limit" )\
-    ACTION( tcp_poolsize, OPTION_TYPE_UINT, TCP_POOLSIZE, "tcp conn pool size"     )
+/*          name            type                default         description */
+#define TCP_OPTION(ACTION)                                                                \
+    ACTION( tcp_backlog,    OPTION_TYPE_UINT,   TCP_BACKLOG,    "tcp conn backlog limit" )\
+    ACTION( tcp_poolsize,   OPTION_TYPE_UINT,   TCP_POOLSIZE,   "tcp conn pool size"     )
 
 typedef struct {
     TCP_OPTION(OPTION_DECLARE)

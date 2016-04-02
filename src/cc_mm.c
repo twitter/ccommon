@@ -103,10 +103,10 @@ _cc_mmap(size_t size, const char *name, int line)
      * is set appropriately.
      */
     p = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
-             -1, 0);
+            -1, 0);
     if (p == ((void *) -1)) {
         log_error("mmap %zu bytes @ %s:%d failed: %s", size, name, line,
-                  strerror(errno));
+                strerror(errno));
         return NULL;
     }
 
@@ -128,7 +128,7 @@ _cc_munmap(void *p, size_t size, const char *name, int line)
     status = munmap(p, size);
     if (status < 0) {
         log_error("munmap %p @ %s:%d failed: %s", p, name, line,
-                  strerror(errno));
+                strerror(errno));
     }
 
     return status;

@@ -116,7 +116,8 @@ void option_print_all(struct option options[], unsigned int nopt);
 void option_describe_all(struct option options[], unsigned int nopt);
 
 rstatus_i option_load_default(struct option options[], unsigned int nopt);
-rstatus_i option_load_file(FILE *fp, struct option options[], unsigned int nopt);
+rstatus_i option_load_file(FILE *fp, struct option options[],
+        unsigned int nopt);
 void option_free(struct option options[], unsigned int nopt);
 
 #ifdef __cplusplus

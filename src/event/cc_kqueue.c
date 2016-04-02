@@ -216,18 +216,18 @@ event_wait(struct event_base *evb, int timeout)
          * one (ident, filter) pair for a given kqueue.
          */
         evb->nreturned = kevent(kq, evb->change, evb->nchange, evb->event,
-                                evb->nevent, tsp);
+                evb->nevent, tsp);
         INCR(event_metrics, event_loop);
         evb->nchange = 0;
         if (evb->nreturned > 0) {
             INCR_N(event_metrics, event_total, evb->nreturned);
             for (evb->nprocessed = 0; evb->nprocessed < evb->nreturned;
-                evb->nprocessed++) {
+                 evb->nprocessed++) {
                 struct kevent *ev = &evb->event[evb->nprocessed];
                 uint32_t events = 0;
 
                 log_verb("kevent %04"PRIX32" with filter %"PRIX16" triggered "
-                          "on ident %d", ev->flags, ev->filter, ev->ident);
+                        "on ident %d", ev->flags, ev->filter, ev->ident);
 
                 /*
                  * If an error occurs while processing an element of the
@@ -236,17 +236,17 @@ event_wait(struct event_base *evb, int timeout)
                  * set in flags and the system error(errno) in data.
                  */
                 if (ev->flags & EV_ERROR) {
-                   /*
-                    * Error messages that can happen, when a delete fails.
-                    *   EBADF happens when the file descriptor has been closed
-                    *   ENOENT when the file descriptor was closed and then
-                    *   reopened.
-                    *   EINVAL for some reasons not understood; EINVAL
-                    *   should not be returned ever; but FreeBSD does :-\
-                    * An error is also indicated when a callback deletes an
-                    * event we are still processing. In that case the data
-                    * field is set to ENOENT.
-                    */
+                    /*
+                     * Error messages that can happen, when a delete fails.
+                     *   EBADF happens when the file descriptor has been closed
+                     *   ENOENT when the file descriptor was closed and then
+                     *   reopened.
+                     *   EINVAL for some reasons not understood; EINVAL
+                     *   should not be returned ever; but FreeBSD does :-\
+                     * An error is also indicated when a callback deletes an
+                     * event we are still processing. In that case the data
+                     * field is set to ENOENT.
+                     */
 
                     if (ev->data != ENOMEM && ev->data != EFAULT &&
                             ev->data != EACCES && ev->data != EINVAL) {
@@ -269,21 +269,21 @@ event_wait(struct event_base *evb, int timeout)
             }
 
             log_verb("returned %d events from kqueue fd %d", evb->nreturned,
-                     kq);
+                    kq);
 
             return evb->nreturned;
         }
 
         if (evb->nreturned == 0) {
             if (timeout == -1) {
-               log_error("indefinite wait on kqueue fd %d with %d events "
-                         "returned no events", kq, evb->nevent);
+                log_error("indefinite wait on kqueue fd %d with %d events "
+                        "returned no events", kq, evb->nevent);
 
                 return -1;
             }
 
             log_vverb("wait on kqueue fd %d with nevent %d timeout "
-                         "%d returned no events", kq, evb->nevent, timeout);
+                    "%d returned no events", kq, evb->nevent, timeout);
 
             return 0;
         }
@@ -293,7 +293,7 @@ event_wait(struct event_base *evb, int timeout)
         }
 
         log_error("wait on kqueue fd %d with nevent %d and timeout %d failed: "
-                  "%s", kq, evb->nevent, timeout, strerror(errno));
+                "%s", kq, evb->nevent, timeout, strerror(errno));
 
         return -1;
     }

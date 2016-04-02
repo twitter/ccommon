@@ -275,12 +275,12 @@ _timing_wheel_insert(struct timing_wheel *tw, struct timeout_event *tev)
     INCR(timing_wheel_metrics, timing_wheel_event);
 
     log_vverb("added timeout event %p into timing wheel %p: curr tick %zu, "
-              "scheduled offset %zu", tev, tw, tw->curr, tev->offset);
+            "scheduled offset %zu", tev, tw, tw->curr, tev->offset);
 }
 
 struct timeout_event *
 timing_wheel_insert(struct timing_wheel *tw, struct timeout *delay, bool recur,
-                    timeout_cb_fn cb, void *arg)
+        timeout_cb_fn cb, void *arg)
 {
     struct timeout_event *tev;
     size_t offset;

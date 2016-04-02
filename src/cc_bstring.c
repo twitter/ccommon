@@ -49,7 +49,7 @@ void
 bstring_deinit(struct bstring *bstr)
 {
     ASSERT((bstr->len == 0 && bstr->data == NULL) ||
-           (bstr->len != 0 && bstr->data != NULL));
+            (bstr->len != 0 && bstr->data != NULL));
 
     if (bstr->data != NULL) {
         cc_free(bstr->data);
@@ -61,7 +61,7 @@ bool
 bstring_empty(const struct bstring *str)
 {
     ASSERT((str->len == 0 && str->data == NULL) ||
-           (str->len != 0 && str->data != NULL));
+            (str->len != 0 && str->data != NULL));
     return str->len == 0 ? true : false;
 }
 

@@ -191,7 +191,7 @@ tcp_connect(struct addrinfo *ai, struct tcp_conn *c)
     INCR(tcp_metrics, tcp_connect);
     if (c->sd < 0) {
 	log_error("socket create for tcp_conn %p failed: %s", c,
-                  strerror(errno));
+                strerror(errno));
 
         goto error;
     }
@@ -208,7 +208,7 @@ tcp_connect(struct addrinfo *ai, struct tcp_conn *c)
     if (ret < 0) {
         if (errno != EINPROGRESS) {
             log_error("connect on c %p sd %d failed: %s", c, c->sd,
-                strerror(errno));
+                    strerror(errno));
 
             goto error;
         }
@@ -371,7 +371,7 @@ tcp_accept(struct tcp_conn *sc, struct tcp_conn *c)
     ret = tcp_set_tcpnodelay(sd);
     if (ret < 0) {
         log_warn("set tcp nodelay on sd %d failed, ignored: %s", sd,
-                 strerror(errno));
+                strerror(errno));
     }
 
     log_info("accepted c %d on sd %d", c->sd, sc->sd);
@@ -626,7 +626,7 @@ tcp_recv(struct tcp_conn *c, void *buf, size_t nbyte)
         if (n == 0) {
             c->state = CHANNEL_TERM;
             log_debug("eof recv'd on sd %d, total: rb %zu sb %zu", c->sd,
-                      c->recv_nbyte, c->send_nbyte);
+                    c->recv_nbyte, c->send_nbyte);
             return n;
         }
 
@@ -671,7 +671,7 @@ tcp_recvv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
         INCR(tcp_metrics, tcp_recv);
 
         log_verb("recvv on sd %d %zd of %zu in %"PRIu32" buffers",
-                  c->sd, n, nbyte, bufv->nelem);
+                c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
             c->recv_nbyte += (size_t)n;
@@ -781,7 +781,7 @@ tcp_sendv(struct tcp_conn *c, struct array *bufv, size_t nbyte)
         INCR(tcp_metrics, tcp_send_ex);
 
         log_verb("writev on sd %d %zd of %zu in %"PRIu32" buffers",
-                  c->sd, n, nbyte, bufv->nelem);
+                c->sd, n, nbyte, bufv->nelem);
 
         if (n > 0) {
             c->send_nbyte += (size_t)n;

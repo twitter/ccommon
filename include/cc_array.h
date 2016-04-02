@@ -30,10 +30,9 @@ extern "C" {
 
 #define NELEM_DELTA 16
 
-
-/*          name               type              default      description */
-#define ARRAY_OPTION(ACTION)                                                                      \
-    ACTION( array_nelem_delta, OPTION_TYPE_UINT, NELEM_DELTA, "max nelem delta during expansion" )
+/*          name                type                default         description */
+#define ARRAY_OPTION(ACTION)                                            \
+    ACTION( array_nelem_delta,  OPTION_TYPE_UINT,   NELEM_DELTA,    "max nelem delta during expansion" )
 
 typedef struct {
     ARRAY_OPTION(OPTION_DECLARE)
@@ -133,7 +132,7 @@ void *array_push(struct array *arr);
 void *array_pop(struct array *arr);
 void array_sort(struct array *arr, array_compare_fn compare);
 uint32_t array_each(struct array *arr, array_each_fn func, void *arg,
-                    err_i *err);
+        err_i *err);
 
 /* TODO(yao): refactor to use better arg names */
 void array_setup(array_options_st *options);

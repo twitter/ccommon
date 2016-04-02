@@ -34,16 +34,16 @@ extern "C" {
 
 #define PIPE_POOLSIZE 0 /* unlimited */
 
-/*          name            type              default        description */
-#define PIPE_OPTION(ACTION)                                                         \
-    ACTION( pipe_poolsize,  OPTION_TYPE_UINT, PIPE_POOLSIZE, "pipe conn pool size" )
+/*          name            type                default         description */
+#define PIPE_OPTION(ACTION)                                                            \
+    ACTION( pipe_poolsize,  OPTION_TYPE_UINT,   PIPE_POOLSIZE,  "pipe conn pool size" )
 
 typedef struct {
     PIPE_OPTION(OPTION_DECLARE)
 } pipe_options_st;
 
 /*          name                 type            description */
-#define PIPE_METRIC(ACTION) \
+#define PIPE_METRIC(ACTION)                                                       \
     ACTION( pipe_conn_create,    METRIC_COUNTER, "# pipe connections created"    )\
     ACTION( pipe_conn_create_ex, METRIC_COUNTER, "# pipe conn create exceptions" )\
     ACTION( pipe_conn_destroy,   METRIC_COUNTER, "# pipe connections destroyed"  )\

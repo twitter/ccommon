@@ -30,11 +30,11 @@
 #include <sys/uio.h>
 
 /*
-#if (IOV_MAX > 128)
-#define CC_IOV_MAX 128
-#else
-#define CC_IOV_MAX IOV_MAX
-#endif
+  #if (IOV_MAX > 128)
+  #define CC_IOV_MAX 128
+  #else
+  #define CC_IOV_MAX IOV_MAX
+  #endif
 */
 
 #define SOCKIO_MODULE_NAME "ccommon::sockio"

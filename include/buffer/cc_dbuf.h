@@ -29,7 +29,7 @@ extern "C" {
 
 
 /*          name            type              default           description */
-#define DBUF_OPTION(ACTION)                                                                   \
+#define DBUF_OPTION(ACTION)                                             \
     ACTION( dbuf_max_power, OPTION_TYPE_UINT, DBUF_DEFAULT_MAX, "max # times buf is doubled" )
 
 typedef struct {

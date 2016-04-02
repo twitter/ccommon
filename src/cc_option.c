@@ -52,7 +52,7 @@ _option_parse_bool(struct option *opt, const char *val_str)
         opt->val.vbool = false;
     } else {
         log_stderr("unrecognized boolean option (valid values: 'yes' or 'no'), "
-                   "value provided: '%s'", val_str);
+                "value provided: '%s'", val_str);
 
         status = CC_ERROR;
     }
@@ -122,7 +122,7 @@ _option_convert_rpn(const char *val_str, char *rpn)
 
             while (op_stack_len > 0 && op_stack[op_stack_len - 1] != '(' &&
                     _option_comp_op_precedence(op_stack[op_stack_len - 1],
-                    *read_ptr)) {
+                            *read_ptr)) {
                 /* stack not empty and o_2 > o_1 (see above) */
 
                 /* pop operator off stack */
@@ -242,7 +242,7 @@ _option_eval_rpn(char *rpn, uintmax_t *val)
                 if (result > first) {
                     /* subtraction causes op2 to be negative */
                     log_stderr("unsigned integer expression contains negative "
-                               "number");
+                            "number");
                     return CC_ERROR;
                 }
 
@@ -261,7 +261,7 @@ _option_eval_rpn(char *rpn, uintmax_t *val)
                 if (second == 0) {
                     /* divide by zero */
                     log_stderr("evaluating integer expression causes divide by "
-                               "zero");
+                            "zero");
                     return CC_ERROR;
                 }
 
@@ -442,7 +442,7 @@ _allowed_in_name(char c)
 {
     /* the criteria is C's rules on variable names since we use it as such */
     if ((c >= 'a' && c <= 'z') || c == '_' || (c >= 'A' && c <= 'Z') ||
-        (c >= '0' && c <= '9')) {
+            (c >= '0' && c <= '9')) {
         return true;
     } else {
         return false;
@@ -451,7 +451,7 @@ _allowed_in_name(char c)
 
 static rstatus_i
 _option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
-              char val[OPTVAL_MAXLEN + 1])
+        char val[OPTVAL_MAXLEN + 1])
 {
     char *p = line;
     char *q;
@@ -463,7 +463,7 @@ _option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
 
     if (llen > OPTLINE_MAXLEN) {
         log_stderr("option parse error: line length %zu exceeds limit %zu",
-                   llen, OPTLINE_MAXLEN);
+                llen, OPTLINE_MAXLEN);
 
         return CC_ERROR;
     }
@@ -475,7 +475,7 @@ _option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
             name++;
         } else {
             log_stderr("option parse error: invalid char'%c' at pos %d in name",
-                       *p, (p - line));
+                    *p, (p - line));
 
             return CC_ERROR;
         }
@@ -488,7 +488,7 @@ _option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
     }
     if ((size_t)(p - line) > OPTNAME_MAXLEN) {
         log_stderr("option parse error: name too long (max %zu)",
-                   OPTNAME_MAXLEN);
+                OPTNAME_MAXLEN);
 
         return CC_ERROR;
     }
@@ -511,7 +511,7 @@ _option_parse(char *line, char name[OPTNAME_MAXLEN + 1],
     vlen = q - p + 1; /* +1 because value range is [p, q] */
     if (vlen > OPTVAL_MAXLEN) {
         log_stderr("option parse error: value too long (max %zu)",
-                   OPTVAL_MAXLEN);
+                OPTVAL_MAXLEN);
 
         return CC_ERROR;
     }
@@ -649,13 +649,13 @@ option_load_file(FILE *fp, struct option options[], unsigned int nopt)
         }
         if (!match) {
             log_stderr("error loading config line: no option named '%s'",
-                       namebuf);
+                    namebuf);
 
             return CC_ERROR;
         }
         if (status != CC_OK) {
             log_stderr("error applying value '%s' to option '%s': error %d.",
-                       valbuf, namebuf, status);
+                    valbuf, namebuf, status);
 
             return CC_ERROR;
         }

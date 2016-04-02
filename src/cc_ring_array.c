@@ -133,7 +133,7 @@ ring_array_pop(void *elem, struct ring_array *arr)
 
     if (elem != NULL) {
         cc_memcpy(elem, arr->data + (arr->elem_size * arr->rpos),
-                  arr->elem_size);
+                arr->elem_size);
     }
 
     /* update rpos atomically */
@@ -152,7 +152,7 @@ ring_array_create(size_t elem_size, uint32_t cap)
 
     if (arr == NULL) {
         log_error("Could not allocate memory for ring array cap %u "
-                  "elem_size %u", cap, elem_size);
+                "elem_size %u", cap, elem_size);
         return NULL;
     }
 
