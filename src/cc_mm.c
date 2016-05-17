@@ -34,8 +34,13 @@ _cc_alloc(size_t size, const char *name, int line)
 {
     void *p;
 
+    if (size == 0) {
+        log_debug("malloc(0) @ %s:%d", name, line);
+        return NULL;
+    }
+
     p = malloc(size);
-    if (p == NULL && size != 0) {
+    if (p == NULL) {
         log_error("malloc(%zu) failed @ %s:%d", size, name, line);
     } else {
         log_vverb("malloc(%zu) at %p @ %s:%d", size, p, name, line);
@@ -68,8 +73,14 @@ _cc_realloc(void *ptr, size_t size, const char *name, int line)
 {
     void *p;
 
+    if (size == 0) {
+        free(ptr);
+        log_debug("realloc(0) @ %s:%d", name, line);
+        return NULL;
+    }
+
     p = realloc(ptr, size);
-    if (p == NULL && size != 0) {
+    if (p == NULL) {
         log_error("realloc(%zu) failed @ %s:%d", size, name, line);
     } else {
         log_vverb("realloc(%zu) at %p @ %s:%d", size, p, name, line);
@@ -83,14 +94,19 @@ _cc_realloc_move(void *ptr, size_t size, const char *name, int line)
 {
     void *p = NULL, *pr;
 
+    if (size == 0) {
+        free(ptr);
+        log_debug("realloc(0) @ %s:%d", name, line);
+        return NULL;
+    }
+
     /*
      * Calling realloc then malloc allows us to force this function call to
      * change the address of the allocated memory block. realloc ensures we can
      * copy size bytes, and calling malloc before the realloc'd data is free'd
      * gives us a new address for the memory object.
      */
-    if (((pr = realloc(ptr, size)) == NULL || (p = malloc(size)) == NULL)
-            && size != 0) {
+    if (((pr = realloc(ptr, size)) == NULL || (p = malloc(size)) == NULL)) {
         log_error("realloc(%zu) failed @ %s:%d", size, name, line);
     } else {
         log_vverb("realloc(%zu) at %p @ %s:%d", size, p, name, line);
