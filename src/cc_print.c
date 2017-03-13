@@ -22,6 +22,9 @@
  * implementation as a reference (folly/Conv.h)
  */
 
+/* use our own macro instead of llabs() to make sure it works with INT64_MIN */
+#define abs_int64(_x) ((_x) >= 0 ? (_x) : -(_x))
+
 static inline void
 _print_uint64(char *buf, size_t d, uint64_t n)
 {
@@ -50,7 +53,7 @@ size_t
 cc_print_int64_unsafe(char *buf, int64_t n)
 {
     size_t d;
-    uint64_t ab = llabs(n);
+    uint64_t ab = abs_int64(n);
 
     if (n < 0) {
         *buf++ = '-';
@@ -81,7 +84,7 @@ size_t
 cc_print_int64(char *buf, size_t size, int64_t n)
 {
     size_t d;
-    uint64_t ab = llabs(n);
+    uint64_t ab = abs_int64(n);
 
     d =  digits(ab) + (n < 0);
     if (size < d) {
