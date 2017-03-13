@@ -93,9 +93,9 @@ cc_print_int64(char *buf, size_t size, int64_t n)
 
     if (n < 0) {
         *buf++ = '-';
+        d--;
     }
 
-    d = digits(ab);
     _print_uint64(buf, d, n);
 
     return (n < 0) ? d + 1 : d;
