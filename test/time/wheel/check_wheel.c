@@ -122,7 +122,8 @@ START_TEST(test_timing_wheel_recur)
 
     struct timeout tick, delay;
     struct timing_wheel *tw;
-    struct timespec ts = (struct timespec){0, TICK_NS};
+    struct timespec ts = (struct timespec){0, TICK_NS / 2};
+    struct timespec tl = (struct timespec){0, TICK_NS};
     int i = 0;
 
     test_reset();
@@ -136,22 +137,26 @@ START_TEST(test_timing_wheel_recur)
 
     timing_wheel_insert(tw, &delay, true, _incr_cb, &i);
 
+    /* tick unchanged */
     nanosleep(&ts, NULL);
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nprocess, 0);
     ck_assert_int_eq(tw->nevent, 1);
-
     nanosleep(&ts, NULL);
+
+    /* next 2 tick */
+    nanosleep(&tl, NULL);
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nevent, 1);
     ck_assert_int_eq(tw->nprocess, 1);
     ck_assert_int_eq(i, 1);
-    nanosleep(&ts, NULL);
+    nanosleep(&tl, NULL);
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nevent, 1);
     ck_assert_int_eq(tw->nprocess, 2);
     ck_assert_int_eq(i, 2);
 
+    /* flush events */
     timing_wheel_stop(tw);
     timing_wheel_flush(tw);
     ck_assert_int_eq(tw->nevent, 0);
