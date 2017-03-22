@@ -137,12 +137,12 @@ START_TEST(test_timing_wheel_recur)
     timing_wheel_insert(tw, &delay, true, _incr_cb, &i);
 
     /* tick unchanged */
-    nanosleep(&ts, NULL);
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nprocess, 0);
     ck_assert_int_eq(tw->nevent, 1);
 
     /* next 2 tick */
+    nanosleep(&ts, NULL);
     nanosleep(&ts, NULL);
     timing_wheel_execute(tw);
     ck_assert_int_eq(tw->nevent, 1);
