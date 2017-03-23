@@ -31,7 +31,7 @@
  * whether it's big or little-endian. HAVE_LITTLE_ENDIAN and HAVE_BIG_ENDIAN
  * are set in the configure script.
  */
-#include <cc_hash.h>
+#include <hash/cc_lookup3.h>
 
 #if defined CC_BIG_ENDIAN && CC_BIG_ENDIAN == 1
 # define HASH_LITTLE_ENDIAN 0
@@ -137,7 +137,7 @@ and these came close:
 }
 
 #if HASH_LITTLE_ENDIAN == 1
-uint32_t hash(
+uint32_t hash_lookup3(
   const void *key,       /* the key to hash */
   size_t      length,    /* length of the key */
   const uint32_t    initval)   /* initval */
@@ -318,7 +318,7 @@ uint32_t hash(
  * from hashlittle() on all machines.  hashbig() takes advantage of
  * big-endian byte ordering.
  */
-uint32_t hash( const void *key, size_t length, const uint32_t initval)
+uint32_t hash_lookup3( const void *key, size_t length, const uint32_t initval)
 {
   uint32_t a,b,c;
   union { const void *ptr; size_t i; } u; /* to cast key to (size_t) happily */

@@ -26,7 +26,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-uint32_t hash(const void *key, size_t length, const uint32_t initval);
+uint32_t hash_lookup3(const void *key, size_t length, const uint32_t initval);
 
 #ifdef __cplusplus
 }
