@@ -60,7 +60,7 @@ cc_print_int64_unsafe(char *buf, int64_t n)
     }
 
     d = digits(ab);
-    _print_uint64(buf, d, n);
+    _print_uint64(buf, d, ab);
 
     return  d + (n < 0);
 }
