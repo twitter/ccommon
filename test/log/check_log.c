@@ -2,6 +2,7 @@
 
 #include <check.h>
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -240,6 +241,76 @@ START_TEST(test_write_skip_metrics)
 }
 END_TEST
 
+#define LOGOBJECTSIZE 100
+#define LOGOBJECTCOUNT 50
+struct produce_consume_st {
+  struct logger* logger;
+  bool finished_producing;
+  char *produced;
+  size_t produced_len;
+};
+
+static void*
+_produce_log(void *_task)
+{
+  struct timespec wait = {0, 1};
+  struct produce_consume_st *task = (struct produce_consume_st *)_task;
+  size_t i;
+  char logstr[LOGOBJECTSIZE];
+
+  for (i = 1; i <= LOGOBJECTCOUNT; i++) {
+    memset(logstr, i, LOGOBJECTSIZE);
+    if (log_write(task->logger, logstr, LOGOBJECTSIZE)) {
+      memcpy(&task->produced[task->produced_len], logstr, LOGOBJECTSIZE);
+      task->produced_len += LOGOBJECTSIZE;
+    }
+    if (i % 5 == 0) {
+      // yielding to another thread
+      nanosleep(&wait, NULL);
+    }
+  }
+  task->finished_producing = true;
+  return NULL;
+}
+
+static void
+_consume_log(struct produce_consume_st *task)
+{
+  while (!task->finished_producing) {
+    log_flush(task->logger);
+    log_reopen(task->logger);
+  }
+}
+
+START_TEST(test_thread_produce_thread_flush)
+{
+  struct produce_consume_st task;
+  char *tmpname = tmpname_create();
+
+  pthread_t producer_thread;
+
+  test_reset();
+
+  task.logger = log_create(tmpname, LOGOBJECTSIZE);
+  task.produced = malloc(LOGOBJECTSIZE * LOGOBJECTCOUNT);
+  task.produced_len = 0;
+  task.finished_producing = false;
+
+  pthread_create(&producer_thread, NULL, _produce_log, &task);
+  _consume_log(&task);
+  pthread_join(producer_thread, NULL);
+  log_destroy(&task.logger);
+
+  ck_assert_int_ge(task.produced_len, 2 * LOGOBJECTSIZE);
+  assert_file_contents(tmpname, task.produced, task.produced_len);
+
+  tmpname_destroy(tmpname);
+  free(task.produced);
+}
+END_TEST
+#undef LOGOBJECTSIZE
+#undef LOGOBJECTCOUNT
+
 /*
  * test suite
  */
@@ -261,6 +332,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_write_metrics_file_nobuf);
     tcase_add_test(tc_log, test_write_metrics_stderr_nobuf);
     tcase_add_test(tc_log, test_write_skip_metrics);
+    tcase_add_test(tc_log, test_thread_produce_thread_flush);
 
     return s;
 }
