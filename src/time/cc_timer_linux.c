@@ -81,7 +81,7 @@ duration_start(struct duration *d)
 }
 
 void
-duration_snapshot(struct duration *s, struct duration *d)
+duration_snapshot(struct duration *s, const struct duration *d)
 {
     ASSERT(s != 0 && d != NULL);
 
