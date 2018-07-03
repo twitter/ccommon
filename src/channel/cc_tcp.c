@@ -397,6 +397,40 @@ tcp_reject(struct tcp_conn *sc)
     }
 }
 
+void
+tcp_reject_all(struct tcp_conn *sc)
+{
+    int ret;
+    int sd;
+
+    for (;;) {
+        sd = accept(sc->sd, NULL, NULL);
+        if (sd < 0) {
+            if (errno == EINTR) {
+                log_debug("sd %d not ready: eintr", sc->sd);
+                continue;
+            }
+
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                log_debug("sd %d has no more outstanding connections", sc->sd);
+                return;
+            }
+
+            log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
+            INCR(tcp_metrics, tcp_reject_ex);
+            return;
+        }
+
+        ret = close(sd);
+        if (ret < 0) {
+            INCR(tcp_metrics, tcp_reject_ex);
+            log_warn("close c %d failed, ignored: %s", sd, strerror(errno));
+        }
+
+        INCR(tcp_metrics, tcp_reject);
+    }
+}
+
 int
 tcp_set_blocking(int sd)
 {
