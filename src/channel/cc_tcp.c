@@ -377,6 +377,11 @@ tcp_accept(struct tcp_conn *sc, struct tcp_conn *c)
     return true;
 }
 
+
+/*
+ * due to lack of a direct rejection API in POSIX, tcp_reject accepts the
+ * frontmost connection and immediately closes it
+ */
 void
 tcp_reject(struct tcp_conn *sc)
 {
@@ -397,6 +402,11 @@ tcp_reject(struct tcp_conn *sc)
     }
 }
 
+/*
+ * due to lack of a direct rejection API in POSIX, tcp_reject_all accepts
+ * connections ready on the listening socket, and immediately closes them.
+ * It does so until there are no more pending connections.
+ */
 void
 tcp_reject_all(struct tcp_conn *sc)
 {
