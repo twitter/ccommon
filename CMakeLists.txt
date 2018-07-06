@@ -129,6 +129,7 @@ endif(COVERAGE)
 # test dependencies
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+
 find_package(Check)
 if(NOT CHECK_FOUND)
     message(WARNING "Check is required to build and run tests")
@@ -141,6 +142,10 @@ if(CHECK_FOUND)
 endif(CHECK_FOUND)
 
 find_package(Threads)
+
+enable_language(Rust)
+include(CMakeCargo)
+
 
 # where to find include files
 include_directories(${include_directories}
