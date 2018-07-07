@@ -42,17 +42,17 @@ impl<'a> BStringStr<'a> {
 ///
 /// # Examples
 /// ```rust
-///     use ccommon::bstring::{BStringStr, BStringRef};
+/// use ccommon::bstring::{BStringStr, BStringRef};
 ///
-///     let s = "sea change";
-///     let bsp = BStringStr(s).into_raw();
-///     let bsr = unsafe { BStringRef::from_raw(bsp) };
+/// let s = "sea change";
+/// let bsp = BStringStr(s).into_raw();
+/// let bsr = unsafe { BStringRef::from_raw(bsp) };
 ///
-///     assert_eq!(&bsr[0..4], b"sea ");
-///     assert_eq!(&bsr[0..10], b"sea change");
-///     assert_eq!(&bsr[..], b"sea change");
+/// assert_eq!(&bsr[0..4], b"sea ");
+/// assert_eq!(&bsr[0..10], b"sea change");
+/// assert_eq!(&bsr[..], b"sea change");
 ///
-///     unsafe { BStringStr::free(bsp) };
+/// unsafe { BStringStr::free(bsp) };
 /// ```
 // see go/rust-newtype-pattern
 pub struct BStringRef<'a> {
