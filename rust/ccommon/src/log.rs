@@ -107,7 +107,6 @@ impl rslog::Log for CCLog {
     }
 }
 
-
 lazy_static! {
     static ref CC_PTR: Mutex<Cell<Option<CCPtr>>> = {
         Mutex::new(Cell::new(None))
@@ -180,8 +179,9 @@ pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
 #[repr(u32)]
 pub enum LoggerStatus {
     OK = 0,
-    RegistrationFailure = 1,
-    LoggerAlreadySetError = 2,
+    LoggerNotSetupError = 1,
+    RegistrationFailure = 2,
+    LoggerAlreadySetError = 3,
 }
 
 impl From<LoggingError> for LoggerStatus {
@@ -194,7 +194,10 @@ impl From<LoggingError> for LoggerStatus {
 }
 
 /// This function will set up our logger as the default one for the `log` crate at the given
-/// `level`.
+/// `level`. This function must be called as early as possible in program setup, followed by
+/// a call to [`rust_cc_log_set`]
+///
+/// [`rust_cc_log_set`]: fn.rust_cc_log_set.html
 ///
 /// # Errors
 ///
@@ -204,8 +207,8 @@ impl From<LoggingError> for LoggerStatus {
 /// one cannot un-register the existing backend, and this operation will *never* succeed.
 ///
 /// If this method had been called previously, and we are the provider of the logging framework,
-/// but there's already been a `logger` instance set up, then we will return
-/// [`LoggerStatus::LoggerAlreadySetError`]. This error need not be fatal.
+/// we return [`Ok`].
+///
 ///
 /// # Panics
 ///
@@ -215,18 +218,9 @@ impl From<LoggingError> for LoggerStatus {
 ///
 /// The caller must ensure that the lifetime of `logger` lives until `rust_cc_log_destroy`
 /// is called or the program terminates.
-pub extern "C" fn rust_cc_log_setup(logger: *mut bind::logger, level: Level) -> LoggerStatus {
-    assert!(logger.is_null());
-
-    let try_set = || -> Result<LoggerStatus, LoggingError> {
-        cc_ptr_try_set(CCPtr { ptr: logger, level })
-            .map(|_| LoggerStatus::OK )
-    };
-
+pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
     match try_init_logger() {
-        Ok(_) | Err(LoggingError::LoggingAlreadySetUp) =>
-            try_set().unwrap_or_else(LoggerStatus::from),
-
+        Ok(_) | Err(LoggingError::LoggingAlreadySetUp) => Ok(()),
         Err(LoggingError::LoggerRegistrationFailure) => {
             eprintln!("Error setting up cc_log! {}", LoggingError::LoggerRegistrationFailure);
             LoggerStatus::RegistrationFailure
@@ -234,7 +228,40 @@ pub extern "C" fn rust_cc_log_setup(logger: *mut bind::logger, level: Level) -> 
     }
 }
 
-pub extern "C" fn rust_cc_log_destroy() -> *mut bind::logger {
+/// This function sets the cc_log logger instance to be the sink for messages logged from
+/// the `log` crate. The user must call [`rust_cc_log_setup`] _before_ calling this function
+/// to register us as the backend for the `log` crate.
+///
+/// # Panics
+///
+/// This function will panic if the `logger` pointer is NULL.
+///
+/// # Errors
+///
+/// Returns [`LoggerNotSetupError`] if [`rust_cc_log_setup`] was NOT
+/// called prior to this function being called.
+///
+/// If there's already been a `logger` instance set up, then we will return
+/// [`LoggerAlreadySetError`]. This error need not be fatal.
+///
+/// [`rust_cc_log_setup`]: fn.rust_cc_log_setup.html
+/// [`LoggerNotSetupError`]: enum.LoggerStatus.html
+/// [`LoggerAlreadySetError`]: enums.LoggerStatus.html
+pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
+    assert!(logger.is_null());
+
+    if STATE.fetch_add(0, Ordering::SeqCst) != INITIALIZED {
+        return LoggerStatus::LoggerNotSetupError
+    }
+    
+    cc_ptr_try_set(CCPtr { ptr: logger, level })
+        .map(|_| LoggerStatus::OK)
+        .unwrap_or_else(LoggerStatus::from)
+}
+
+/// This function replaces the existing `logger` instance with a no-op logger and returns
+/// the instance. If there is no current logger instance, returns NULL.
+pub extern "C" fn rust_cc_log_unset() -> *mut bind::logger {
     match cc_ptr_replace(None) {
         Some(ccl) => ccl.ptr,
         None => ptr::null_mut(),
