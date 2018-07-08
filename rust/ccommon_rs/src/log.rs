@@ -1,7 +1,8 @@
 use cc_binding as bind;
 use lazy_static;
 use rslog;
-use rslog::{Level, Log, Metadata, Record, SetLoggerError};
+use rslog::{Log, Metadata, Record, SetLoggerError};
+pub use rslog::Level;
 use std::cell::Cell;
 use std::ptr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
@@ -176,6 +177,7 @@ pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
 }
 
 #[repr(u32)]
+#[derive(Debug, PartialEq, PartialOrd, Eq)]
 pub enum LoggerStatus {
     OK = 0,
     LoggerNotSetupError = 1,
@@ -217,6 +219,7 @@ impl From<LoggingError> for LoggerStatus {
 ///
 /// The caller must ensure that the lifetime of `logger` lives until `rust_cc_log_destroy`
 /// is called or the program terminates.
+#[no_mangle]
 pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
     match try_init_logger() {
         Ok(_) | Err(LoggingError::LoggingAlreadySetUp) => LoggerStatus::OK,
@@ -246,6 +249,7 @@ pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
 /// [`rust_cc_log_setup`]: fn.rust_cc_log_setup.html
 /// [`LoggerNotSetupError`]: enum.LoggerStatus.html
 /// [`LoggerAlreadySetError`]: enums.LoggerStatus.html
+#[no_mangle]
 pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
     assert!(logger.is_null());
 
@@ -260,6 +264,7 @@ pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> Lo
 
 /// This function replaces the existing `logger` instance with a no-op logger and returns
 /// the instance. If there is no current logger instance, returns NULL.
+#[no_mangle]
 pub extern "C" fn rust_cc_log_unset() -> *mut bind::logger {
     match cc_ptr_replace(None) {
         Some(ccl) => ccl.ptr,
@@ -267,6 +272,7 @@ pub extern "C" fn rust_cc_log_unset() -> *mut bind::logger {
     }
 }
 
+#[no_mangle]
 pub extern "C" fn rust_cc_log_flush() {
     CCLog.flush();
 }

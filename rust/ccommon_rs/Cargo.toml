@@ -1,7 +1,13 @@
 [package]
-name = "ccommon"
+name = "ccommon_rs"
 version = "0.1.0"
 authors = ["Jonathan Simms <jsimms@twitter.com>"]
+links = "ccommon"
+build = "build.rs"
+
+[lib]
+name = "ccommon_rs"
+crate-type = ["lib", "dylib", "rlib", "staticlib"]
 
 [dependencies]
 
@@ -13,7 +19,4 @@ failure = "~0.1"
 failure_derive = "~0.1"
 time = "~0.1.40"
 lazy_static = "~1.0"
-
-
-[dev-dependencies]
 tempfile = "~3.0.2"

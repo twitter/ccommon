@@ -6,8 +6,6 @@ extern crate lazy_static;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-
-#[cfg(test)]
 extern crate tempfile;
 
 pub mod bstring;
@@ -15,5 +13,4 @@ pub mod log;
 
 use std::result;
 
-#[allow(dead_code)]
-type Result<T> = result::Result<T, failure::Error>;
+pub type Result<T> = result::Result<T, failure::Error>;

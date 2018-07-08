@@ -47,7 +47,7 @@ log_metrics_create()
         log_panic("Failed to allocate log_metrics_st");
     }
     log_metrics_st mtr = (log_metrics_st) { LOG_METRIC(METRIC_INIT) };
-    memcpy(metrics, mtr, sizeof(mtr));
+    memcpy(metrics, &mtr, sizeof(mtr));
     return metrics;
 }
 

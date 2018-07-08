@@ -1,5 +1,3 @@
-extern crate bindgen;
-
 use std::env;
 use std::fs;
 use std::io;
@@ -25,29 +23,9 @@ fn main() {
 
     let cbd = PathBuf::from(cmake_binary_dir);
 
-    let mut config_h_dir = cbd.clone();
-    config_h_dir.push("ccommon");
-
     let mut lib_dir = cbd.clone();
     lib_dir.push("lib");
 
     println!("cargo:rustc-link-search-native={}", lib_dir.to_str().unwrap());
-
-    let bindings = bindgen::Builder::default()
-        .clang_args(vec![
-            "-I", include_path.to_str().unwrap(),
-            "-I", config_h_dir.to_str().unwrap(),
-            "-I", cbd.to_str().unwrap(),
-            "-L", lib_dir.to_str().unwrap(),
-        ])
-        .header("wrapper.h")
-        .blacklist_type("max_align_t") // https://github.com/rust-lang-nursery/rust-bindgen/issues/550
-        .generate()
-        .expect("Unable to generate bindings");
-
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write bindings!");
 }
 

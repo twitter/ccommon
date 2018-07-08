@@ -2,7 +2,7 @@
 
 members = [
     "cc_binding",
-    "ccommon",
+    "ccommon_rs",
 ]
 
 [profile.release]
