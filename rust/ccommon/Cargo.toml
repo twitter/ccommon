@@ -13,3 +13,7 @@ failure = "~0.1"
 failure_derive = "~0.1"
 time = "~0.1.40"
 lazy_static = "~1.0"
+
+
+[dev-dependencies]
+tempfile = "~3.0.2"

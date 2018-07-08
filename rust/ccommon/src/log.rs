@@ -9,7 +9,6 @@ use std::sync::Mutex;
 use std::result::Result;
 use time;
 
-
 /*
 binding:
 
@@ -220,7 +219,7 @@ impl From<LoggingError> for LoggerStatus {
 /// is called or the program terminates.
 pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
     match try_init_logger() {
-        Ok(_) | Err(LoggingError::LoggingAlreadySetUp) => Ok(()),
+        Ok(_) | Err(LoggingError::LoggingAlreadySetUp) => LoggerStatus::OK,
         Err(LoggingError::LoggerRegistrationFailure) => {
             eprintln!("Error setting up cc_log! {}", LoggingError::LoggerRegistrationFailure);
             LoggerStatus::RegistrationFailure

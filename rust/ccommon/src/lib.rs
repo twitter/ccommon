@@ -7,6 +7,9 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 
+#[cfg(test)]
+extern crate tempfile;
+
 pub mod bstring;
 pub mod log;
 
