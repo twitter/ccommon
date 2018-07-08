@@ -26,12 +26,12 @@ pub enum LoggingError {
     LoggingAlreadySetUp,
 
     #[fail(display = "Other logger has already been set up with log crate")]
-    LoggerRegistrationFailure(#[cause] SetLoggerError),
+    LoggerRegistrationFailure,
 }
 
 impl From<SetLoggerError> for LoggingError {
-    fn from(e: SetLoggerError) -> Self {
-        LoggingError::LoggerRegistrationFailure(e)
+    fn from(_: SetLoggerError) -> Self {
+        LoggingError::LoggerRegistrationFailure
     }
 }
 
@@ -137,7 +137,7 @@ fn cc_ptr_try_set(log: CCPtr) -> Result<(), LoggingError> {
         return Ok(());
     }
 
-    Err(LoggingError::LoggingAlreadySetUp.into())
+    Err(LoggingError::LoggingAlreadySetUp)
 }
 
 // Copied from the log crate. This lets us track if we've already succeeded in
@@ -157,9 +157,13 @@ const FAILED: usize = 3;
 /// no-op logger, and then replace it with an actual logging instance that has an output.
 /// Returns a [`ccommon::Result`] that is Ok on success and will be a [`LoggingError`] on failure.
 pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
-    if STATE.fetch_add(0, Ordering::SeqCst) == INITIALIZED {
-        return Ok(())
-    } else if STATE.compare_and_swap(UNINITIALIZED, INITIALIZING, Ordering::SeqCst) != UNINITIALIZED {
+    match STATE.fetch_add(0, Ordering::SeqCst) {
+        INITIALIZED => return Ok(()),
+        FAILED => return Err(LoggingError::LoggerRegistrationFailure),
+        _ => (),
+    };
+
+    if STATE.compare_and_swap(UNINITIALIZED, INITIALIZING, Ordering::SeqCst) != UNINITIALIZED {
         return Err(LoggingError::LoggingAlreadySetUp)
     }
 
@@ -183,7 +187,7 @@ pub enum LoggerStatus {
 impl From<LoggingError> for LoggerStatus {
     fn from(e: LoggingError) -> Self {
         match e {
-            LoggingError::LoggerRegistrationFailure(_) => LoggerStatus::RegistrationFailure,
+            LoggingError::LoggerRegistrationFailure => LoggerStatus::RegistrationFailure,
             LoggingError::LoggingAlreadySetUp => LoggerStatus::LoggerAlreadySetError,
         }
     }
@@ -217,15 +221,14 @@ pub extern "C" fn rust_cc_log_setup(logger: *mut bind::logger, level: Level) -> 
     let try_set = || -> Result<LoggerStatus, LoggingError> {
         cc_ptr_try_set(CCPtr { ptr: logger, level })
             .map(|_| LoggerStatus::OK )
-            .map_err(|e| e.into())
     };
 
     match try_init_logger() {
         Ok(_) | Err(LoggingError::LoggingAlreadySetUp) =>
-            try_set().unwrap_or_else(|err| LoggerStatus::from(err)),
+            try_set().unwrap_or_else(LoggerStatus::from),
 
-        Err(LoggingError::LoggerRegistrationFailure(err)) => {
-            eprintln!("Error setting up cc_log! {}", err);
+        Err(LoggingError::LoggerRegistrationFailure) => {
+            eprintln!("Error setting up cc_log! {}", LoggingError::LoggerRegistrationFailure);
             LoggerStatus::RegistrationFailure
         }
     }
