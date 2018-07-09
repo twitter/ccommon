@@ -126,7 +126,7 @@ lazy_static! {
         //   that object. This essentially makes that reference _live for the life of the program_.
         // * There is an implicit conversion (bijective) between &mut T and *mut T, so we
         //   can assign a *mut T to a variable that expects a &'static mut T.
-        unsafe { &*Box::into_raw(Box::new(CCLog::new())) }
+        Box::leak(Box::new(CCLog::new()))
     };
 }
 

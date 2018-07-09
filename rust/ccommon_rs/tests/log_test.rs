@@ -32,7 +32,9 @@ fn basic_roundtrip() {
 
         unsafe { bind::log_setup(stats) };
 
-        let path = "/tmp/logtest.log";
+        let tf = tempfile::NamedTempFile::new()?;
+        let pb = tf.path().to_path_buf();
+        let path = pb.to_str().unwrap();
 
         let logger: *mut bind::logger = unsafe {
             bind::log_create(CString::new(path)?.into_raw(), 0)
@@ -68,6 +70,7 @@ fn basic_roundtrip() {
     })
 }
 
+// runs this test with process isolation
 rusty_fork_test! {
     #[test]
     fn test_basic_roundtrip() { basic_roundtrip() }
