@@ -96,7 +96,7 @@ impl Log for RawLogger {
         // taken from borntyping/rust-simple_logger
         if self.enabled(record.metadata()) {
             let msg = format!(
-                "{} {:<5} [{}] {}",
+                "{} {:<5} [{}] {}\n",
                 time::strftime("%Y-%m-%d %H:%M:%S", &time::now()).unwrap(),
                 record.level().to_string(),
                 record.module_path().unwrap_or_default(),
