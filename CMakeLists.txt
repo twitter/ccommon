@@ -148,18 +148,20 @@ endif(CHECK_FOUND)
 
 find_package(Threads)
 
-if(HAVE_RUST)
-    enable_language(Rust)
-    include(CMakeCargo)
-    add_subdirectory(rust)
-endif()
-
 
 # where to find include files
 include_directories(
     ${include_directories}
     "${PROJECT_BINARY_DIR}"
     "include")
+
+if(HAVE_RUST)
+    enable_language(Rust)
+    include(CMakeCargo)
+    add_subdirectory(rust)
+    set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DHAVE_RUST=1")
+endif()
+
 
 ###################
 # things to build #

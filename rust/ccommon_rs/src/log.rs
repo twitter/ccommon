@@ -20,6 +20,7 @@
 
 // TODO(simms): add C-side setup code here.
 
+use bstring::BString;
 use cc_binding as bind;
 use lazy_static;
 use rslog;
@@ -42,6 +43,7 @@ pub struct logger {
     pub buf: *mut rbuf,
 }
 */
+pub type CLogger = bind::logger;
 
 #[derive(Fail, Debug)]
 pub enum LoggingError {
@@ -60,12 +62,12 @@ impl From<SetLoggerError> for LoggingError {
 
 #[doc(hidden)]
 #[repr(C)]
-struct CCPtr {
-    ptr: *mut bind::logger,
+struct RawLogger {
+    ptr: *mut CLogger,
     level: Level,
 }
 
-impl CCPtr {
+impl RawLogger {
     #[inline]
     unsafe fn write(&self, message: &str) -> bool {
         let msg = message.as_bytes();
@@ -82,7 +84,7 @@ impl CCPtr {
     }
 }
 
-impl Log for CCPtr {
+impl Log for RawLogger {
     #[inline]
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= self.level
@@ -109,12 +111,12 @@ impl Log for CCPtr {
     }
 }
 
-unsafe impl Send for CCPtr {}
+unsafe impl Send for RawLogger {}
 
-unsafe impl Sync for CCPtr {}
+unsafe impl Sync for RawLogger {}
 
 lazy_static! {
-    static ref CC_PTR: Mutex<Cell<Option<CCPtr>>> = {
+    static ref RAW_LOG: Mutex<Cell<Option<RawLogger>>> = {
         Mutex::new(Cell::new(None))
     };
     static ref CC_LOG: &'static CCLog = {
@@ -130,24 +132,24 @@ lazy_static! {
     };
 }
 
-// `CCLog` is a shim struct that we can create a static instance of and hand through to the
+// `Logger` is a shim struct that we can create a static instance of and hand through to the
 // `log` crate. It forwards calls to the underlying `logger` instance via a static reference.
 // It also behaves correctly if `log` is called after `log_rs_unset` has been called (i.e.
-// there is no underlying `CCPtr` configured).
+// there is no underlying `RawLogger` configured).
 #[doc(hidden)]
-struct CCLog {}
+struct Logger {}
 
-impl CCLog {
-    pub fn new() -> Self { CCLog{} }
+impl Logger {
+    pub fn new() -> Self { Logger {} }
 }
 
-impl rslog::Log for CCLog {
+impl rslog::Log for Logger {
     #[inline]
     fn enabled(&self, _metadata: &Metadata) -> bool { true }
 
     #[inline]
     fn log(&self, record: &Record) {
-        let mut i = CC_PTR.lock().unwrap();
+        let mut i = RAW_LOG.lock().unwrap();
         if let Some(lg) = i.get_mut() {
             lg.log(record)
         }
@@ -155,7 +157,7 @@ impl rslog::Log for CCLog {
 
     #[inline]
     fn flush(&self) {
-        let mut i = CC_PTR.lock().unwrap();
+        let mut i = RAW_LOG.lock().unwrap();
         if let Some(lg) = i.get_mut() {
             lg.flush()
         }
@@ -165,19 +167,19 @@ impl rslog::Log for CCLog {
 
 /// Replace the current static logging instance with a different instance.
 /// Returns the original instance.
-fn cc_ptr_replace(opt_log: Option<CCPtr>) -> Option<CCPtr> {
-    lazy_static::initialize(&CC_PTR);
+fn cc_ptr_replace(opt_log: Option<RawLogger>) -> Option<RawLogger> {
+    lazy_static::initialize(&RAW_LOG);
 
-    let cell = CC_PTR.lock().unwrap();
+    let cell = RAW_LOG.lock().unwrap();
     cell.replace(opt_log)
 }
 
 /// Set the current logging instance if it hasn't been set yet. Returns
 /// [`Err(LoggingError)`] if the instance has already been initialized.
-fn cc_ptr_try_set(log: CCPtr) -> Result<(), LoggingError> {
-    lazy_static::initialize(&CC_PTR);
+fn cc_ptr_try_set(log: RawLogger) -> Result<(), LoggingError> {
+    lazy_static::initialize(&RAW_LOG);
 
-    let mut mg: MutexGuard<Cell<Option<CCPtr>>> = CC_PTR.lock().unwrap();
+    let mut mg: MutexGuard<Cell<Option<RawLogger>>> = RAW_LOG.lock().unwrap();
 
     if (*mg).get_mut().is_none() {
         (*mg).set(Some(log));
@@ -238,6 +240,7 @@ pub enum LoggerStatus {
     LoggerNotSetupError = 1,
     RegistrationFailure = 2,
     LoggerAlreadySetError = 3,
+    InvalidUTF8 = 4,
 }
 
 impl From<LoggingError> for LoggerStatus {
@@ -320,7 +323,7 @@ pub extern "C" fn log_rs_setup() -> LoggerStatus {
 ///
 /// [`log_rs_unset`]: fn.log_rs_unset.html
 #[no_mangle]
-pub extern "C" fn log_rs_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
+pub extern "C" fn log_rs_set(logger: *mut CLogger, level: Level) -> LoggerStatus {
     assert!(!logger.is_null());
 
     let cur_state = get_state();
@@ -329,7 +332,7 @@ pub extern "C" fn log_rs_set(logger: *mut bind::logger, level: Level) -> LoggerS
         return LoggerStatus::LoggerNotSetupError
     }
     
-    cc_ptr_try_set(CCPtr { ptr: logger, level })
+    cc_ptr_try_set(RawLogger { ptr: logger, level })
         .map(|_| LoggerStatus::OK)
         .unwrap_or_else(LoggerStatus::from)
 }
@@ -341,10 +344,18 @@ pub extern "C" fn log_rs_is_setup() -> bool {
     get_state() == INITIALIZED
 }
 
-/// This function replaces the existing `logger` instance with a no-op logger and returns
+/// Log a message through the rust path at the given level.
+/// Useful for testing from the C side that the rust side is properly set up.
+/// 
+#[no_mangle]
+pub extern "C" fn log_rs_log(msg: *const BString, level: Level) -> LoggerStatus {
+    LoggerStatus::OK
+}
+
+/// Replace the existing `logger` instance with a no-op logger and returns
 /// the instance. If there is no current logger instance, returns NULL.
 #[no_mangle]
-pub extern "C" fn log_rs_unset() -> *mut bind::logger {
+pub extern "C" fn log_rs_unset() -> *mut CLogger {
     match cc_ptr_replace(None) {
         Some(ccl) => ccl.ptr,
         None => ptr::null_mut(),
@@ -358,7 +369,7 @@ pub extern "C" fn log_rs_unset() -> *mut bind::logger {
 /// If the underlying `logger` pointer has become invalid the behavior is undefined.
 #[no_mangle]
 pub extern "C" fn log_rs_flush() {
-    let mut mg = CC_PTR.lock().unwrap();
+    let mut mg = RAW_LOG.lock().unwrap();
 
     if let Some(ccp) = (*mg).get_mut() {
         ccp.flush()

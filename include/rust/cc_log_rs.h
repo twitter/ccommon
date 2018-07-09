@@ -25,11 +25,11 @@ extern "C" {
 /* NOTE: for documentation see ccommon/rust/ccommon_rs/src/log.rs */
 
 typedef enum log_rs_level {
-    LEVEL_ERROR = 1,
-    LEVEL_WARN,
-    LEVEL_INFO,
-    LEVEL_DEBUG,
-    LEVEL_TRACE,
+    LOG_LEVEL_ERROR = 1,
+    LOG_LEVEL_WARN,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_DEBUG,
+    LOG_LEVEL_TRACE,
 } log_rs_level_e;
 
 
@@ -44,12 +44,13 @@ typedef enum log_rs_status {
     LOG_STATUS_REGISTRATION_FAIL,
     /* Returned when there is already a logger set up for rust. */
     LOG_STATUS_ALREADY_SET_ERROR,
+    /* Data was expected to be valid UTF8 but was not */
+    LOG_STATUS_INVALID_UTF8,
 } log_rs_status_e;
 
-log_rs_status_e log_rs_setup(void);
-log_rs_status_e log_rs_set(logger *log, log_rs_level_e level);
+log_rs_status_e log_rs_set(struct logger *log, log_rs_level_e level);
 bool log_rs_is_setup(void);
-logger *log_rs_unset(void);
+struct logger *log_rs_unset(void);
 void log_rs_flush(void);
 
 #ifdef __cplusplus

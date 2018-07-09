@@ -7,6 +7,8 @@ use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::slice;
 
+pub type BString = bind::bstring;
+
 /// A wrapper around a string reference that returns a properly initialized `*mut bstring` pointer.
 /// Useful for testing and possibly in other circumstances.
 ///
@@ -14,8 +16,8 @@ pub struct BStringStr<'a>(pub &'a str);
 
 impl<'a> BStringStr<'a> {
     #[allow(dead_code)]
-    pub fn into_raw(self) -> *mut bind::bstring {
-        let bs = bind::bstring{
+    pub fn into_raw(self) -> *mut BString {
+        let bs = BString{
             len: self.0.len() as u32,
             data: CString::new(self.0).unwrap().into_raw(),
         };
@@ -27,8 +29,8 @@ impl<'a> BStringStr<'a> {
     /// into_raw method. Passing this method a pointer created through other means
     /// may lead to undefined behavior.
     #[allow(dead_code)]
-    pub unsafe fn free(ptr: *mut bind::bstring) {
-        let b: Box<bind::bstring> = Box::from_raw(ptr);
+    pub unsafe fn free(ptr: *mut BString) {
+        let b: Box<BString> = Box::from_raw(ptr);
         // reclaim pointer from the bstring, allowing it to be freed
         drop(CString::from_raw(b.data));
         drop(b);
@@ -56,19 +58,19 @@ impl<'a> BStringStr<'a> {
 /// ```
 // see go/rust-newtype-pattern
 pub struct BStringRef<'a> {
-    inner: &'a bind::bstring,
+    inner: &'a BString,
 }
 
 impl<'a> BStringRef<'a> {
-    pub unsafe fn from_raw(ptr: *const bind::bstring) -> Self {
+    pub unsafe fn from_raw(ptr: *const BString) -> Self {
         assert!(!ptr.is_null());
         let inner = &*ptr;
         BStringRef{inner}
     }
 
     #[allow(dead_code)]
-    pub fn into_raw(self) -> *const bind::bstring {
-        self.inner as *const bind::bstring
+    pub fn into_raw(self) -> *const BString {
+        self.inner as *const BString
     }
 }
 
@@ -114,17 +116,17 @@ impl<'a> Deref for BStringRef<'a> {
 /// ```
 #[derive(Debug)]
 pub struct BStringRefMut<'a> {
-    inner: &'a mut bind::bstring,
+    inner: &'a mut BString,
 }
 
 impl<'a> BStringRefMut<'a> {
-    pub unsafe fn from_raw(ptr: *mut bind::bstring) -> Self {
+    pub unsafe fn from_raw(ptr: *mut BString) -> Self {
         assert!(!ptr.is_null());
         BStringRefMut{inner: &mut *ptr}
     }
 
-    pub fn into_raw(self) -> *mut bind::bstring {
-        self.inner as *mut bind::bstring
+    pub fn into_raw(self) -> *mut BString {
+        self.inner as *mut BString
     }
 }
 
@@ -162,8 +164,8 @@ impl<'a> io::Write for BStringRefMut<'a> {
     }
 }
 
-impl<'a> AsMut<bind::bstring> for BStringRefMut<'a> {
-    fn as_mut(&mut self) -> &mut bind::bstring {
+impl<'a> AsMut<BString> for BStringRefMut<'a> {
+    fn as_mut(&mut self) -> &mut BString {
         self.inner
     }
 }

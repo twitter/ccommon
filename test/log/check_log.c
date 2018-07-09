@@ -1,5 +1,9 @@
 #include <cc_log.h>
 
+#ifdef HAVE_RUST
+#include <rust/cc_log_rs.h>
+#endif
+
 #include <check.h>
 
 #include <stdlib.h>
@@ -239,6 +243,24 @@ START_TEST(test_write_skip_metrics)
 #undef LOGSTR
 }
 END_TEST
+
+
+#ifdef HAVE_RUST
+
+START_TEST(test_rust_logger_integration)
+{
+    ck_assert_msg(log_rs_is_setup(), "log was not set up");
+
+    char *tmpname = tmpname_create();
+    struct logger *logger = log_create(tmpname, 0);
+    ck_assert(log_rs_set(logger, LOG_LEVEL_TRACE) == LOG_STATUS_OK);
+
+
+    log_destroy(&logger);
+    tmpname_destroy(tmpname);
+}
+
+#endif /* HAVE_RUST */
 
 /*
  * test suite
