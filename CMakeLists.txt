@@ -54,6 +54,28 @@ option(HAVE_STATS "stats enabled by default" ON)
 option(HAVE_DEBUG_MM "debugging oriented memory management disabled by default" OFF)
 option(COVERAGE "code coverage" OFF)
 
+if(BUILD_AND_INSTALL_CHECK)
+    # (simms) What follows is a crime against build systems as we run the build/install
+    # for the check library up front, during the planning phase.
+
+    set(LIBCHECK_PREFIX "${CMAKE_BINARY_DIR}/check")
+
+    # check for a local install of check
+    if(NOT EXISTS "${LIBCHECK_PREFIX}")
+        # (simms) This is terrible and I did it this way to ensure this gets built
+        # before the rest of the 'check' tests run. This should be rewritten so that
+        # the other dependencies know that there's a target that can build check
+        execute_process(
+            COMMAND "bash" "${PROJECT_SOURCE_DIR}/ci/install-check.sh" "${LIBCHECK_PREFIX}"
+            TIMEOUT 300  # if this doesn't build in 5 minutes something is hosed
+        )
+    endif()
+
+    set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
+    set(CMAKE_REQUIRED_INCLUDES "${CHECK_ROOT_DIR}/include")    # these make check link correctly in ccommon and pelikan
+    set(CMAKE_REQUIRED_LIBRARIES "${CHECK_ROOT_DIR}/lib")
+endif()
+
 include(CheckIncludeFiles)
 if(OS_PLATFORM STREQUAL "OS_LINUX")
     check_include_files(linux/time64.h HAVE_TIME64)
@@ -107,6 +129,7 @@ endif(COVERAGE)
 # test dependencies
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+
 find_package(Check)
 if(NOT CHECK_FOUND)
     message(WARNING "Check is required to build and run tests")
@@ -119,6 +142,10 @@ if(CHECK_FOUND)
 endif(CHECK_FOUND)
 
 find_package(Threads)
+
+enable_language(Rust)
+include(CMakeCargo)
+
 
 # where to find include files
 include_directories(${include_directories}
