@@ -55,6 +55,10 @@ option(HAVE_DEBUG_MM "debugging oriented memory management disabled by default" 
 option(COVERAGE "code coverage" OFF)
 option(HAVE_RUST "rust bindings not built by default" OFF)
 
+if(HAVE_RUST)
+    option(RUST_VERBOSE_BUILD "pass -vv to cargo compilation" OFF)
+endif()
+
 if(BUILD_AND_INSTALL_CHECK)
     # (simms) What follows is a crime against build systems as we run the build/install
     # for the check library up front, during the planning phase.
@@ -152,7 +156,8 @@ endif()
 
 
 # where to find include files
-include_directories(${include_directories}
+include_directories(
+    ${include_directories}
     "${PROJECT_BINARY_DIR}"
     "include")
 

@@ -1,4 +1,3 @@
 if(HAVE_RUST)
-    add_subdirectory(cc_binding)
-    add_subdirectory(ccommon)
+    add_subdirectory(ccommon_rs)
 endif()

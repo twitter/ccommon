@@ -8,62 +8,49 @@ use ccommon::log as cc_log;
 use ccommon::log::{Level, LoggerStatus};
 use ccommon::Result;
 use std::ffi::CString;
+use std::fs::File;
 use std::io::Read;
 use std::str;
-use tempfile::NamedTempFile;
+use rs_log::LevelFilter;
 
-struct CCLogState {
-    logfile: tempfile::NamedTempFile,
-    logger: *mut bind::logger,
-    stats: *mut bind::log_metrics_st,
-}
 
-impl Drop for CCLogState {
-    fn drop(&mut self) {
-        unsafe {
-            bind::log_destroy(&mut self.logger);
-            bind::log_metrics_destroy(&mut self.stats);
-        }
-    }
-}
-
-fn setup_cc_log() -> Result<CCLogState> {
-    let logfile = NamedTempFile::new()?;
-
-    let stats: *mut bind::log_metrics_st = unsafe { bind::log_metrics_create() };
+fn basic_roundtrip_test() -> Result<()> {
+    let mut stats: *mut bind::log_metrics_st = unsafe { bind::log_metrics_create() };
     assert!(!stats.is_null());
 
     unsafe { bind::log_setup(stats) };
 
-    let path = CString::new(logfile.path().to_str().unwrap())?;
+    let path = "/tmp/logtest.log";
+
     let logger: *mut bind::logger = unsafe {
-        bind::log_create(path.into_raw(), 0)
+        bind::log_create(CString::new(path)?.into_raw(), 0)
     };
     assert!(!logger.is_null());
 
-    Ok(CCLogState{logfile, stats, logger})
-}
-
-fn basic_roundtrip_test() -> Result<()> {
-    let mut state = setup_cc_log()?;
-
     assert_eq!(cc_log::rust_cc_log_setup(), LoggerStatus::OK);
-    assert_eq!(cc_log::rust_cc_log_set(state.logger, Level::Debug), LoggerStatus::OK);
+    assert_eq!(cc_log::rust_cc_log_set(logger, Level::Debug), LoggerStatus::OK);
+    rs_log::set_max_level(LevelFilter::Trace);
 
     let logged_msg = "this message should be sent to the cc logger";
 
-    warn!("msg: {}", logged_msg);
+    error!("msg: {}", logged_msg);
+
+    cc_log::rust_cc_log_flush();
 
     let mut buf = Vec::new();
     {
-        let f = state.logfile.as_file_mut();
-        let sz = f.read_to_end(&mut buf)?;
+        let mut fp = File::open(path)?;
+        let sz = fp.read_to_end(&mut buf)?;
         assert!(sz > logged_msg.len());
     }
     let s = str::from_utf8(&buf[..])?;
     assert!(s.rfind(logged_msg).is_some());
 
-    drop(state);
+    let mut ptr = cc_log::rust_cc_log_unset();
+    assert_eq!(ptr, logger);
+
+    unsafe { bind::log_destroy(&mut ptr) };
+    unsafe { bind::log_metrics_destroy(&mut stats) }
 
     Ok(())
 }

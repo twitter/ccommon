@@ -5,9 +5,10 @@ use rslog::{Log, Metadata, Record, SetLoggerError};
 pub use rslog::Level;
 use std::cell::Cell;
 use std::ptr;
+use std::result::Result;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use std::result::Result;
+use std::sync::MutexGuard;
 use time;
 
 /*
@@ -44,11 +45,11 @@ struct CCPtr {
 impl CCPtr {
     unsafe fn write(&self, message: &str) -> bool {
         let msg = message.as_bytes();
-        bind::log_write(
-            self.ptr,
-            msg.as_ptr() as *mut i8,
-            msg.len() as u32,
-        )
+        let b = bind::log_write(self.ptr, msg.as_ptr() as *mut i8, msg.len() as u32);
+        if !b {
+            eprintln!("failed to write to log: {}", message);
+        }
+        b
     }
 
     unsafe fn _flush(&self) {
@@ -86,8 +87,21 @@ unsafe impl Send for CCPtr {}
 
 unsafe impl Sync for CCPtr {}
 
+lazy_static! {
+    static ref CC_PTR: Mutex<Cell<Option<CCPtr>>> = {
+        Mutex::new(Cell::new(None))
+    };
+    static ref CC_LOG: &'static CCLog = {
+        unsafe { &*Box::into_raw(Box::new(CCLog::new())) }
+    };
+}
 
-struct CCLog;
+struct CCLog {
+}
+
+impl CCLog {
+    pub fn new() -> Self { CCLog{} }
+}
 
 impl rslog::Log for CCLog {
     fn enabled(&self, _metadata: &Metadata) -> bool { true }
@@ -107,11 +121,6 @@ impl rslog::Log for CCLog {
     }
 }
 
-lazy_static! {
-    static ref CC_PTR: Mutex<Cell<Option<CCPtr>>> = {
-        Mutex::new(Cell::new(None))
-    };
-}
 
 /// Replace the current static logging instance with a different instance.
 /// Returns the original instance.
@@ -127,16 +136,14 @@ fn cc_ptr_replace(opt_log: Option<CCPtr>) -> Option<CCPtr> {
 fn cc_ptr_try_set(log: CCPtr) -> Result<(), LoggingError> {
     lazy_static::initialize(&CC_PTR);
 
-    let mut cur = CC_PTR.lock().unwrap();
+    let mut mg: MutexGuard<Cell<Option<CCPtr>>> = CC_PTR.lock().unwrap();
 
-    let b = { cur.get_mut().is_none() };
-
-    if b {
-        cur.set(Some(log));
-        return Ok(());
+    if (*mg).get_mut().is_none() {
+        (*mg).set(Some(log));
+        Ok(())
+    } else {
+        Err(LoggingError::LoggingAlreadySetUp)
     }
-
-    Err(LoggingError::LoggingAlreadySetUp)
 }
 
 // Copied from the log crate. This lets us track if we've already succeeded in
@@ -157,6 +164,7 @@ const FAILED: usize = 3;
 /// Returns a [`ccommon::Result`] that is Ok on success and will be a [`LoggingError`] on failure.
 pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
     match STATE.fetch_add(0, Ordering::SeqCst) {
+        UNINITIALIZED => (),
         INITIALIZED => return Ok(()),
         FAILED => return Err(LoggingError::LoggerRegistrationFailure),
         _ => (),
@@ -166,8 +174,11 @@ pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
         return Err(LoggingError::LoggingAlreadySetUp)
     }
 
-    match rslog::set_boxed_logger(Box::new(CCLog)) {
-        Ok(_) => { STATE.store(INITIALIZED, Ordering::SeqCst); Ok(()) }
+    match rslog::set_logger(*CC_LOG) {
+        Ok(_) => {
+            STATE.store(INITIALIZED, Ordering::SeqCst);
+            Ok(())
+        }
         Err(err) => {
             eprintln!("Error setting up logger: {}", err);
             STATE.store(FAILED, Ordering::SeqCst);
@@ -222,7 +233,11 @@ impl From<LoggingError> for LoggerStatus {
 #[no_mangle]
 pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
     match try_init_logger() {
-        Ok(_) | Err(LoggingError::LoggingAlreadySetUp) => LoggerStatus::OK,
+        Ok(_) => LoggerStatus::OK,
+        Err(LoggingError::LoggingAlreadySetUp) => {
+            eprintln!("cc_log logging already set up");
+            LoggerStatus::OK
+        }
         Err(LoggingError::LoggerRegistrationFailure) => {
             eprintln!("Error setting up cc_log! {}", LoggingError::LoggerRegistrationFailure);
             LoggerStatus::RegistrationFailure
@@ -251,9 +266,11 @@ pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
 /// [`LoggerAlreadySetError`]: enums.LoggerStatus.html
 #[no_mangle]
 pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
-    assert!(logger.is_null());
+    assert!(!logger.is_null());
 
-    if STATE.fetch_add(0, Ordering::SeqCst) != INITIALIZED {
+    let cur_state = STATE.fetch_add(0, Ordering::SeqCst);
+    if cur_state != INITIALIZED {
+        eprintln!("rust_cc_log_set: error state was: {}", cur_state);
         return LoggerStatus::LoggerNotSetupError
     }
     
@@ -274,5 +291,9 @@ pub extern "C" fn rust_cc_log_unset() -> *mut bind::logger {
 
 #[no_mangle]
 pub extern "C" fn rust_cc_log_flush() {
-    CCLog.flush();
+    let mut mg = CC_PTR.lock().unwrap();
+
+    if let Some(ccp) = (*mg).get_mut() {
+        ccp.flush()
+    }
 }

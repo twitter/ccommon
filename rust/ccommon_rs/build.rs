@@ -15,7 +15,7 @@ fn get_cmake_binary_dir() -> io::Result<String> {
 }
 
 fn main() {
-    println!("cargo:rustc-link-lib-static=ccommon");
+    println!("cargo:rustc-link-lib=static=ccommon-1.2.0");
 
     let include_path = fs::canonicalize("./../../include").unwrap();
 
@@ -26,6 +26,6 @@ fn main() {
     let mut lib_dir = cbd.clone();
     lib_dir.push("lib");
 
-    println!("cargo:rustc-link-search-native={}", lib_dir.to_str().unwrap());
+    println!("cargo:rustc-link-search=native={}", lib_dir.to_str().unwrap());
 }
 

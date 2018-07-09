@@ -12,7 +12,6 @@ crate-type = ["lib", "dylib", "rlib", "staticlib"]
 [dependencies]
 
 cc_binding = { path = "../cc_binding" }
-
 log = "~0.4"
 libc = "~0.2.42"
 failure = "~0.1"
