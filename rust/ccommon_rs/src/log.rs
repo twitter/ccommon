@@ -1,3 +1,25 @@
+// ccommon - a cache common library.
+// Copyright (C) 2013 Twitter, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! Glue between rust's standard `log` crate and ccommon's cc_log logger.
+//!
+//! This library allows rust embedded into projects using ccommon to use
+//! the same logger provided by `cc_log.h`
+
+// TODO(simms): add C-side setup code here.
+
 use cc_binding as bind;
 use lazy_static;
 use rslog;
@@ -36,6 +58,7 @@ impl From<SetLoggerError> for LoggingError {
     }
 }
 
+#[doc(hidden)]
 #[repr(C)]
 struct CCPtr {
     ptr: *mut bind::logger,
@@ -43,6 +66,7 @@ struct CCPtr {
 }
 
 impl CCPtr {
+    #[inline]
     unsafe fn write(&self, message: &str) -> bool {
         let msg = message.as_bytes();
         let b = bind::log_write(self.ptr, msg.as_ptr() as *mut i8, msg.len() as u32);
@@ -52,6 +76,7 @@ impl CCPtr {
         b
     }
 
+    #[inline]
     unsafe fn _flush(&self) {
         bind::log_flush(self.ptr);
     }
@@ -63,9 +88,9 @@ impl Log for CCPtr {
         metadata.level() <= self.level
     }
 
-    // taken from borntyping/rust-simple_logger
-
+    #[inline]
     fn log(&self, record: &Record) {
+        // taken from borntyping/rust-simple_logger
         if self.enabled(record.metadata()) {
             let msg = format!(
                 "{} {:<5} [{}] {}",
@@ -78,6 +103,7 @@ impl Log for CCPtr {
         }
     }
 
+    #[inline]
     fn flush(&self) {
         unsafe { self._flush(); }
     }
@@ -92,20 +118,34 @@ lazy_static! {
         Mutex::new(Cell::new(None))
     };
     static ref CC_LOG: &'static CCLog = {
+        // NOTE(simms): this is how you get a &'static T reference.
+        // This drove me nuts for hours trying to figure out:
+        // * A static reference is a reference that lives for the life of the program
+        // * If you create a new Box, copy an object to it, then convert that to a raw
+        //   pointer, you've essentially malloced, then forgotten (in terms of rust lifetimes)
+        //   that object. This essentially makes that reference _live for the life of the program_.
+        // * There is an implicit conversion (bijective) between &mut T and *mut T, so we
+        //   can assign a *mut T to a variable that expects a &'static mut T.
         unsafe { &*Box::into_raw(Box::new(CCLog::new())) }
     };
 }
 
-struct CCLog {
-}
+// `CCLog` is a shim struct that we can create a static instance of and hand through to the
+// `log` crate. It forwards calls to the underlying `logger` instance via a static reference.
+// It also behaves correctly if `log` is called after `log_rs_unset` has been called (i.e.
+// there is no underlying `CCPtr` configured).
+#[doc(hidden)]
+struct CCLog {}
 
 impl CCLog {
     pub fn new() -> Self { CCLog{} }
 }
 
 impl rslog::Log for CCLog {
+    #[inline]
     fn enabled(&self, _metadata: &Metadata) -> bool { true }
 
+    #[inline]
     fn log(&self, record: &Record) {
         let mut i = CC_PTR.lock().unwrap();
         if let Some(lg) = i.get_mut() {
@@ -113,6 +153,7 @@ impl rslog::Log for CCLog {
         }
     }
 
+    #[inline]
     fn flush(&self) {
         let mut i = CC_PTR.lock().unwrap();
         if let Some(lg) = i.get_mut() {
@@ -158,12 +199,15 @@ const INITIALIZING: usize = 1;
 const INITIALIZED: usize = 2;
 const FAILED: usize = 3;
 
+fn get_state() -> usize {
+    STATE.fetch_add(0, Ordering::SeqCst)
+}
 
 /// Establishes this module as the rust `log` crate's singleton logger. We first install a
 /// no-op logger, and then replace it with an actual logging instance that has an output.
 /// Returns a [`ccommon::Result`] that is Ok on success and will be a [`LoggingError`] on failure.
 pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
-    match STATE.fetch_add(0, Ordering::SeqCst) {
+    match get_state() {
         UNINITIALIZED => (),
         INITIALIZED => return Ok(()),
         FAILED => return Err(LoggingError::LoggerRegistrationFailure),
@@ -205,33 +249,36 @@ impl From<LoggingError> for LoggerStatus {
     }
 }
 
-/// This function will set up our logger as the default one for the `log` crate at the given
-/// `level`. This function must be called as early as possible in program setup, followed by
-/// a call to [`rust_cc_log_set`]
+/// This function will set up our logger as the default
+/// one for the `log` crate at the given
+/// `level`. This function must be called as early
+/// as possible in program setup, followed by
+/// a call to [`log_rs_set`]
 ///
-/// [`rust_cc_log_set`]: fn.rust_cc_log_set.html
+/// [`log_rs_set`]: fn.log_rs_set.html
 ///
 /// # Errors
 ///
-/// If we fail to set up our logger, we will print a message on stderr and return
-/// [`LoggerStatus::RegistrationFailure`], which means we could not register ourselves as the provider
-/// of the logging backend for the `log` crate. This should be treated as a fatal error because
-/// one cannot un-register the existing backend, and this operation will *never* succeed.
+/// If we fail to set up our logger, we will print a
+/// message on stderr and return
+/// [`LoggerStatus::RegistrationFailure`], which means
+/// we could not register ourselves as the provider
+/// of the logging backend for the `log` crate.
+/// This should be treated as a fatal error because
+/// one cannot un-register the existing backend, and
+/// this operation will *never* succeed.
 ///
-/// If this method had been called previously, and we are the provider of the logging framework,
+/// If this method had been called previously,
+/// and we are the provider of the logging framework,
 /// we return [`Ok`].
-///
-///
-/// # Panics
-///
-/// This function panics if `logger` is NULL.
 ///
 /// # Safety
 ///
-/// The caller must ensure that the lifetime of `logger` lives until `rust_cc_log_destroy`
+/// The caller must ensure that the lifetime of `logger`
+/// lives until `rust_cc_log_destroy`
 /// is called or the program terminates.
 #[no_mangle]
-pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
+pub extern "C" fn log_rs_setup() -> LoggerStatus {
     match try_init_logger() {
         Ok(_) => LoggerStatus::OK,
         Err(LoggingError::LoggingAlreadySetUp) => {
@@ -245,8 +292,9 @@ pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
     }
 }
 
-/// This function sets the cc_log logger instance to be the sink for messages logged from
-/// the `log` crate. The user must call [`rust_cc_log_setup`] _before_ calling this function
+/// This function sets the cc_log logger instance to be the
+/// sink for messages logged from the `log` crate. The user
+/// must call [`log_rs_setup`] _before_ calling this function
 /// to register us as the backend for the `log` crate.
 ///
 /// # Panics
@@ -255,22 +303,29 @@ pub extern "C" fn rust_cc_log_setup() -> LoggerStatus {
 ///
 /// # Errors
 ///
-/// Returns [`LoggerNotSetupError`] if [`rust_cc_log_setup`] was NOT
+/// Returns [`LoggerNotSetupError`] if [`log_rs_setup`] was NOT
 /// called prior to this function being called.
 ///
 /// If there's already been a `logger` instance set up, then we will return
 /// [`LoggerAlreadySetError`]. This error need not be fatal.
 ///
-/// [`rust_cc_log_setup`]: fn.rust_cc_log_setup.html
+/// [`log_rs_setup`]: fn.log_rs_setup.html
 /// [`LoggerNotSetupError`]: enum.LoggerStatus.html
 /// [`LoggerAlreadySetError`]: enums.LoggerStatus.html
+///
+/// # Undefined Behavior
+///
+/// If the `logger` pointer becomes invalid before [`log_rs_unset`] is called, the
+/// behavior is undefined.
+///
+/// [`log_rs_unset`]: fn.log_rs_unset.html
 #[no_mangle]
-pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
+pub extern "C" fn log_rs_set(logger: *mut bind::logger, level: Level) -> LoggerStatus {
     assert!(!logger.is_null());
 
-    let cur_state = STATE.fetch_add(0, Ordering::SeqCst);
+    let cur_state = get_state();
     if cur_state != INITIALIZED {
-        eprintln!("rust_cc_log_set: error state was: {}", cur_state);
+        eprintln!("log_rs_set: error state was: {}", cur_state);
         return LoggerStatus::LoggerNotSetupError
     }
     
@@ -279,18 +334,30 @@ pub extern "C" fn rust_cc_log_set(logger: *mut bind::logger, level: Level) -> Lo
         .unwrap_or_else(LoggerStatus::from)
 }
 
+/// Returns true if [`log_rs_setup`] has been called previously and
+/// it is safe to set the logger instance.
+#[no_mangle]
+pub extern "C" fn log_rs_is_setup() -> bool {
+    get_state() == INITIALIZED
+}
+
 /// This function replaces the existing `logger` instance with a no-op logger and returns
 /// the instance. If there is no current logger instance, returns NULL.
 #[no_mangle]
-pub extern "C" fn rust_cc_log_unset() -> *mut bind::logger {
+pub extern "C" fn log_rs_unset() -> *mut bind::logger {
     match cc_ptr_replace(None) {
         Some(ccl) => ccl.ptr,
         None => ptr::null_mut(),
     }
 }
 
+/// Flushes the current logger instance by calling the underlying `log_flush` function in cc_log.
+///
+/// # Undefined Behavior
+///
+/// If the underlying `logger` pointer has become invalid the behavior is undefined.
 #[no_mangle]
-pub extern "C" fn rust_cc_log_flush() {
+pub extern "C" fn log_rs_flush() {
     let mut mg = CC_PTR.lock().unwrap();
 
     if let Some(ccp) = (*mg).get_mut() {

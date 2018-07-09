@@ -42,7 +42,7 @@ impl<'a> BStringStr<'a> {
 ///
 /// # Examples
 /// ```rust
-/// use ccommon::bstring::{BStringStr, BStringRef};
+/// use ccommon_rs::bstring::{BStringStr, BStringRef};
 ///
 /// let s = "sea change";
 /// let bsp = BStringStr(s).into_raw();
@@ -91,7 +91,7 @@ impl<'a> Deref for BStringRef<'a> {
 ///
 /// # Examples
 /// ```rust
-/// # use ccommon::bstring::{BStringStr, BStringRefMut};
+/// # use ccommon_rs::bstring::{BStringStr, BStringRefMut};
 ///
 /// use std::io::Write;
 ///

@@ -2,8 +2,6 @@
 name = "ccommon_rs"
 version = "0.1.0"
 authors = ["Jonathan Simms <jsimms@twitter.com>"]
-links = "ccommon"
-build = "build.rs"
 
 [lib]
 name = "ccommon_rs"
@@ -13,9 +11,10 @@ crate-type = ["lib", "dylib", "rlib", "staticlib"]
 
 cc_binding = { path = "../cc_binding" }
 log = "~0.4"
-libc = "~0.2.42"
+libc = "~0.2"
 failure = "~0.1"
 failure_derive = "~0.1"
-time = "~0.1.40"
+time = "~0.1"
 lazy_static = "~1.0"
-tempfile = "~3.0.2"
+tempfile = "~3.0"
+rusty-fork = "~0.2.0"
