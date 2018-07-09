@@ -33,6 +33,7 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use time;
+use bstring::BStringRef;
 
 /*
 binding:
@@ -115,21 +116,21 @@ unsafe impl Send for RawLogger {}
 
 unsafe impl Sync for RawLogger {}
 
+fn make_logger() -> &'static Logger {
+    // NOTE(simms): this is how you get a &'static T reference.
+    // This drove me nuts for hours trying to figure out:
+    // * A static reference is a reference that lives for the life of the program
+    // * If you create a new Box, copy an object to it, then convert that to a raw
+    //   pointer, you've essentially malloced, then forgotten (in terms of rust lifetimes)
+    //   that object. This essentially makes that reference _live for the life of the program_.
+    // * There is an implicit conversion (bijective) between &mut T and *mut T, so we
+    //   can assign a *mut T to a variable that expects a &'static mut T.
+    Box::leak(Box::new(Logger::new()))
+}
+
 lazy_static! {
-    static ref RAW_LOG: Mutex<Cell<Option<RawLogger>>> = {
-        Mutex::new(Cell::new(None))
-    };
-    static ref CC_LOG: &'static CCLog = {
-        // NOTE(simms): this is how you get a &'static T reference.
-        // This drove me nuts for hours trying to figure out:
-        // * A static reference is a reference that lives for the life of the program
-        // * If you create a new Box, copy an object to it, then convert that to a raw
-        //   pointer, you've essentially malloced, then forgotten (in terms of rust lifetimes)
-        //   that object. This essentially makes that reference _live for the life of the program_.
-        // * There is an implicit conversion (bijective) between &mut T and *mut T, so we
-        //   can assign a *mut T to a variable that expects a &'static mut T.
-        Box::leak(Box::new(CCLog::new()))
-    };
+    static ref RAW_LOG: Mutex<Cell<Option<RawLogger>>> = Mutex::new(Cell::new(None));
+    static ref LOGGER: &'static Logger = make_logger();
 }
 
 // `Logger` is a shim struct that we can create a static instance of and hand through to the
@@ -220,8 +221,10 @@ pub(crate) fn try_init_logger() -> Result<(), LoggingError> {
         return Err(LoggingError::LoggingAlreadySetUp)
     }
 
-    match rslog::set_logger(*CC_LOG) {
+    match rslog::set_logger(*LOGGER) {
         Ok(_) => {
+            // set the default max level to 'trace' and provide an API to adjust it
+            rslog::set_max_level(rslog::LevelFilter::Trace);
             STATE.store(INITIALIZED, Ordering::SeqCst);
             Ok(())
         }
@@ -341,15 +344,49 @@ pub extern "C" fn log_rs_set(logger: *mut CLogger, level: Level) -> LoggerStatus
 /// it is safe to set the logger instance.
 #[no_mangle]
 pub extern "C" fn log_rs_is_setup() -> bool {
-    get_state() == INITIALIZED
+    if get_state() != INITIALIZED {
+        return false;
+    }
+
+    let mut cell = RAW_LOG.lock().unwrap();
+    (*cell).get_mut().is_some()
 }
 
 /// Log a message through the rust path at the given level.
 /// Useful for testing from the C side that the rust side is properly set up.
-/// 
+///
+/// # Errors
+///
+/// [`LoggerStatus::InvalidUTF8`] will be returned if the
+/// bstring's contents are not valid UTF8.
+///
+/// # Panics
+///
+/// This function panics if the `msg` pointer is NULL.
 #[no_mangle]
-pub extern "C" fn log_rs_log(msg: *const BString, level: Level) -> LoggerStatus {
+pub unsafe extern "C" fn log_rs_log(msg: *const BString, level: Level) -> LoggerStatus {
+    assert!(!msg.is_null());
+    let bsr = BStringRef::from_raw(msg);
+
+    match bsr.to_str() {
+        Ok(s) => {
+            log!(level, "{}", s);
+            LOGGER.flush();
+        },
+        Err(err) => {
+            eprintln!("error in log_rs_log: {:?}", err);
+            return LoggerStatus::InvalidUTF8;
+        }
+    }
+
     LoggerStatus::OK
+}
+
+
+/// Set the level at which the rust logging macros should be active.
+/// Default is 'Trace' which allows messages at all levels.
+pub extern "C" fn log_rs_set_max_level(level: Level) {
+    rslog::set_max_level(level.to_level_filter())
 }
 
 /// Replace the existing `logger` instance with a no-op logger and returns

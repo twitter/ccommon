@@ -6,6 +6,10 @@ use std::io;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::slice;
+use std::result::Result;
+use std::str::Utf8Error;
+use std::str;
+
 
 pub type BString = bind::bstring;
 
@@ -71,6 +75,10 @@ impl<'a> BStringRef<'a> {
     #[allow(dead_code)]
     pub fn into_raw(self) -> *const BString {
         self.inner as *const BString
+    }
+
+    pub fn to_str(&self) -> Result<&str, Utf8Error> {
+        str::from_utf8(&*self)
     }
 }
 

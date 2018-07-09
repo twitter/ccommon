@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 #include <cc_log.h>
+#include <cc_bstring.h>
 
 /* NOTE: for documentation see ccommon/rust/ccommon_rs/src/log.rs */
 
@@ -48,8 +49,13 @@ typedef enum log_rs_status {
     LOG_STATUS_INVALID_UTF8,
 } log_rs_status_e;
 
+log_rs_status_e log_rs_setup(void);
 log_rs_status_e log_rs_set(struct logger *log, log_rs_level_e level);
 bool log_rs_is_setup(void);
+log_rs_status_e log_rs_log(struct bstring *msg, log_rs_level_e level);
+
+void log_rs_set_max_level(log_rs_level_e level);
+
 struct logger *log_rs_unset(void);
 void log_rs_flush(void);
 

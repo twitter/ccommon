@@ -1,4 +1,5 @@
 extern crate cc_binding;
+#[macro_use]
 extern crate log as rslog;
 extern crate time;
 #[macro_use]
