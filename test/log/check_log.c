@@ -1,9 +1,14 @@
 #include <cc_log.h>
 
+#ifdef HAVE_RUST
+#include <rust/cc_log_rs.h>
+#endif
+
 #include <check.h>
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <cc_mm.h>
 
 #define SUITE_NAME "log"
 #define DEBUG_LOG  SUITE_NAME ".log"
@@ -240,6 +245,79 @@ START_TEST(test_write_skip_metrics)
 }
 END_TEST
 
+
+#ifdef HAVE_RUST
+
+// NOTE: the returned pointer must have bstring_deinit called on it!
+static struct bstring *
+read_whole_file(char *tmpname) {
+    FILE *fp = NULL;
+    size_t fsize = 0;
+    size_t rsize = 0;
+    char *buffer = NULL;
+    struct bstring *data = NULL;
+
+    fp = fopen(tmpname , "rb");
+    ck_assert_ptr_nonnull(fp);
+
+    fseek(fp , 0L , SEEK_END);
+    fsize = (size_t)ftell(fp);
+    ck_assert_uint_lt(fsize, UINT32_MAX);
+    ck_assert_uint_gt(fsize, 0);
+    rewind(fp);
+
+    buffer = malloc(fsize);
+    ck_assert_ptr_nonnull(buffer);
+
+    rsize = fread(buffer, fsize, 1, fp);
+    ck_assert_int_eq(fclose(fp), 0);
+    ck_assert_uint_eq(rsize, 1);
+
+    data = malloc(sizeof(struct bstring));
+    ck_assert_ptr_nonnull(data);
+
+    data->len = (uint32_t)fsize;
+    data->data = buffer;
+
+    return data;
+}
+
+START_TEST(test_rust_logger_integration)
+{
+#define LOGSTR "this is the message to log"
+    struct bstring msg = null_bstring;
+    char *tmpname = NULL;
+    struct logger *log = NULL;
+    struct bstring *result = NULL;
+    ck_assert(log_rs_setup() == LOG_STATUS_OK);
+
+    tmpname = tmpname_create();
+    log = log_create(tmpname, 0);
+
+    ck_assert(log_rs_set(log, LOG_LEVEL_TRACE) == LOG_STATUS_OK);
+
+    ck_assert_msg(log_rs_is_setup(), "log was not set up");
+
+    bstring_set_raw(&msg, LOGSTR);
+    ck_assert(log_rs_log(&msg, LOG_LEVEL_ERROR) == LOG_STATUS_OK);
+
+    result = read_whole_file(tmpname);
+    ck_assert_ptr_nonnull(result);
+    ck_assert_uint_ge(result->len, msg.len);
+
+    ck_assert_ptr_nonnull(
+        memmem(result->data, result->len, msg.data, msg.len));
+
+    bstring_deinit(result);
+    cc_free(result);
+    log_destroy(&log);
+    tmpname_destroy(tmpname);
+}
+#undef LOGSTR
+END_TEST
+
+#endif /* HAVE_RUST */
+
 /*
  * test suite
  */
@@ -261,6 +339,7 @@ log_suite(void)
     tcase_add_test(tc_log, test_write_metrics_file_nobuf);
     tcase_add_test(tc_log, test_write_metrics_stderr_nobuf);
     tcase_add_test(tc_log, test_write_skip_metrics);
+    tcase_add_test(tc_log, test_rust_logger_integration);
 
     return s;
 }
