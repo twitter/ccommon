@@ -26,4 +26,4 @@ fi
 
 export CC="$C_COMPILER"
 
-curl https://sh.rustup.rs -sSf | sh -s -- -y
+# curl https://sh.rustup.rs -sSf | sh -s -- -y
