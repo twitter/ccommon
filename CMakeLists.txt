@@ -52,6 +52,7 @@ option(HAVE_ASSERT_PANIC "assert_panic disabled by default" OFF)
 option(HAVE_LOGGING "logging enabled by default" ON)
 option(HAVE_STATS "stats enabled by default" ON)
 option(HAVE_DEBUG_MM "debugging oriented memory management disabled by default" OFF)
+option(HAVE_RUST "build rust components" OFF)
 option(COVERAGE "code coverage" OFF)
 
 if(BUILD_AND_INSTALL_CHECK)
@@ -143,9 +144,10 @@ endif(CHECK_FOUND)
 
 find_package(Threads)
 
-enable_language(Rust)
-include(CMakeCargo)
-
+if(HAVE_RUST)
+    enable_language(Rust)
+    include(CMakeCargo)
+endif()
 
 # where to find include files
 include_directories(${include_directories}
