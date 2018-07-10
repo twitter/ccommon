@@ -17,23 +17,29 @@
 //!
 //! This library allows rust embedded into projects using ccommon to use
 //! the same logger provided by `cc_log.h`
+//!
+//! # Safety
+//!
+//! This library is AGGRESSIVELY NON-THREADSAFE...for SPEED.
+//!
+//! If you are using the standard rust macros for logging, you must
+//! ensure that you are running your rust code from a single thread or
+//! _bad things may happen_.
+//!
 
 // TODO(simms): add C-side setup code here.
 
 use bstring::BString;
+use bstring::BStringRef;
 use cc_binding as bind;
-use lazy_static;
 use rslog;
 use rslog::{Log, Metadata, Record, SetLoggerError};
 pub use rslog::Level;
-use std::cell::Cell;
+use rslog::LevelFilter;
 use std::ptr;
 use std::result::Result;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
-use std::sync::Mutex;
-use std::sync::MutexGuard;
 use time;
-use bstring::BStringRef;
 
 /*
 binding:
@@ -61,16 +67,54 @@ impl From<SetLoggerError> for LoggingError {
     }
 }
 
+/// The API around writing to the underlying logger
+#[doc(hidden)]
+trait RawWrapper: Log {
+    fn inner(&self) -> *mut CLogger;
+    unsafe fn inner_write(&self, message: &str) -> bool;
+    unsafe fn inner_flush(&self);
+    fn is_nop(&self) -> bool { true }
+}
+
+struct NopRawWrapper;
+
+impl RawWrapper for NopRawWrapper {
+    fn inner(&self) -> *mut CLogger { ptr::null_mut() }
+    unsafe fn inner_write(&self, _: &str) -> bool { false }
+    unsafe fn inner_flush(&self) {}
+}
+
+impl Log for NopRawWrapper {
+    fn enabled(&self, _: &Metadata) -> bool { false }
+    fn log(&self, _: &Record) {}
+    fn flush(&self) {}
+}
+
+
 #[doc(hidden)]
 #[repr(C)]
 struct RawLogger {
     ptr: *mut CLogger,
-    level: Level,
+    level: LevelFilter,
 }
 
-impl RawLogger {
+impl Default for RawLogger {
+    fn default() -> Self {
+        RawLogger { ptr: ptr::null_mut(), level: LevelFilter::Off }
+    }
+}
+
+impl RawWrapper for RawLogger {
+    fn inner(&self) -> *mut CLogger {
+        self.ptr
+    }
+
     #[inline]
-    unsafe fn write(&self, message: &str) -> bool {
+    unsafe fn inner_write(&self, message: &str) -> bool {
+        if self.ptr.is_null() {
+            return false;
+        }
+
         let msg = message.as_bytes();
         let b = bind::log_write(self.ptr, msg.as_ptr() as *mut i8, msg.len() as u32);
         if !b {
@@ -80,9 +124,14 @@ impl RawLogger {
     }
 
     #[inline]
-    unsafe fn _flush(&self) {
-        bind::log_flush(self.ptr);
+    unsafe fn inner_flush(&self) {
+        if !self.ptr.is_null() {
+            bind::log_flush(self.ptr);
+        }
     }
+
+    #[inline]
+    fn is_nop(&self) -> bool { false }
 }
 
 impl Log for RawLogger {
@@ -102,19 +151,20 @@ impl Log for RawLogger {
                 record.module_path().unwrap_or_default(),
                 record.args());
 
-            unsafe { self.write(msg.as_ref()); }
+            unsafe { self.inner_write(msg.as_ref()); }
         }
     }
 
     #[inline]
     fn flush(&self) {
-        unsafe { self._flush(); }
+        unsafe { self.inner_flush(); }
     }
 }
 
 unsafe impl Send for RawLogger {}
 
 unsafe impl Sync for RawLogger {}
+
 
 fn make_logger() -> &'static Logger {
     // NOTE(simms): this is how you get a &'static T reference.
@@ -128,8 +178,9 @@ fn make_logger() -> &'static Logger {
     Box::leak(Box::new(Logger::new()))
 }
 
+static mut RAW_LOG: &'static RawWrapper = &NopRawWrapper;
+
 lazy_static! {
-    static ref RAW_LOG: Mutex<Cell<Option<RawLogger>>> = Mutex::new(Cell::new(None));
     static ref LOGGER: &'static Logger = make_logger();
 }
 
@@ -149,46 +200,12 @@ impl rslog::Log for Logger {
     fn enabled(&self, _metadata: &Metadata) -> bool { true }
 
     #[inline]
-    fn log(&self, record: &Record) {
-        let mut i = RAW_LOG.lock().unwrap();
-        if let Some(lg) = i.get_mut() {
-            lg.log(record)
-        }
-    }
+    fn log(&self, record: &Record) { unsafe { RAW_LOG.log(record) }; }
 
     #[inline]
-    fn flush(&self) {
-        let mut i = RAW_LOG.lock().unwrap();
-        if let Some(lg) = i.get_mut() {
-            lg.flush()
-        }
-    }
+    fn flush(&self) { unsafe { RAW_LOG.flush() }; }
 }
 
-
-/// Replace the current static logging instance with a different instance.
-/// Returns the original instance.
-fn cc_ptr_replace(opt_log: Option<RawLogger>) -> Option<RawLogger> {
-    lazy_static::initialize(&RAW_LOG);
-
-    let cell = RAW_LOG.lock().unwrap();
-    cell.replace(opt_log)
-}
-
-/// Set the current logging instance if it hasn't been set yet. Returns
-/// [`Err(LoggingError)`] if the instance has already been initialized.
-fn cc_ptr_try_set(log: RawLogger) -> Result<(), LoggingError> {
-    lazy_static::initialize(&RAW_LOG);
-
-    let mut mg: MutexGuard<Cell<Option<RawLogger>>> = RAW_LOG.lock().unwrap();
-
-    if (*mg).get_mut().is_none() {
-        (*mg).set(Some(log));
-        Ok(())
-    } else {
-        Err(LoggingError::LoggingAlreadySetUp)
-    }
-}
 
 // Copied from the log crate. This lets us track if we've already succeeded in
 // registering as the logging backend.
@@ -334,22 +351,28 @@ pub extern "C" fn log_rs_set(logger: *mut CLogger, level: Level) -> LoggerStatus
         eprintln!("log_rs_set: error state was: {}", cur_state);
         return LoggerStatus::LoggerNotSetupError
     }
-    
-    cc_ptr_try_set(RawLogger { ptr: logger, level })
-        .map(|_| LoggerStatus::OK)
-        .unwrap_or_else(LoggerStatus::from)
+
+    let nop = unsafe { RAW_LOG.is_nop() };
+
+    if nop {
+        let rl = Box::new(RawLogger { ptr: logger, level: level.to_level_filter() });
+        unsafe { RAW_LOG = Box::leak(rl) };
+        
+        LoggerStatus::OK
+    } else {
+        LoggerStatus::LoggerAlreadySetError
+    }
 }
 
 /// Returns true if [`log_rs_setup`] has been called previously and
 /// it is safe to set the logger instance.
 #[no_mangle]
-pub extern "C" fn log_rs_is_setup() -> bool {
+pub unsafe extern "C" fn log_rs_is_setup() -> bool {
     if get_state() != INITIALIZED {
         return false;
     }
 
-    let mut cell = RAW_LOG.lock().unwrap();
-    (*cell).get_mut().is_some()
+    !RAW_LOG.is_nop()
 }
 
 /// Log a message through the rust path at the given level.
@@ -392,12 +415,17 @@ pub extern "C" fn log_rs_set_max_level(level: Level) {
 /// Replace the existing `logger` instance with a no-op logger and returns
 /// the instance. If there is no current logger instance, returns NULL.
 #[no_mangle]
-pub extern "C" fn log_rs_unset() -> *mut CLogger {
-    match cc_ptr_replace(None) {
-        Some(ccl) => ccl.ptr,
-        None => ptr::null_mut(),
+pub unsafe extern "C" fn log_rs_unset() -> *mut CLogger {
+    if RAW_LOG.is_nop() {
+        return ptr::null_mut()
     }
+
+    let orig = &*RAW_LOG;
+    RAW_LOG = &NopRawWrapper;
+    
+    orig.inner()
 }
+
 
 /// Flushes the current logger instance by calling the underlying `log_flush` function in cc_log.
 ///
@@ -405,10 +433,6 @@ pub extern "C" fn log_rs_unset() -> *mut CLogger {
 ///
 /// If the underlying `logger` pointer has become invalid the behavior is undefined.
 #[no_mangle]
-pub extern "C" fn log_rs_flush() {
-    let mut mg = RAW_LOG.lock().unwrap();
-
-    if let Some(ccp) = (*mg).get_mut() {
-        ccp.flush()
-    }
+pub unsafe extern "C" fn log_rs_flush() {
+    RAW_LOG.inner_flush();
 }

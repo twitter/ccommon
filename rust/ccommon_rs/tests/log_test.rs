@@ -49,7 +49,7 @@ fn basic_roundtrip() {
 
         error!("msg: {}", logged_msg);
 
-        cc_log::log_rs_flush();
+        unsafe { cc_log::log_rs_flush() };
 
         let mut buf = Vec::new();
         {
@@ -60,7 +60,7 @@ fn basic_roundtrip() {
         let s = str::from_utf8(&buf[..])?;
         assert!(s.rfind(logged_msg).is_some());
 
-        let mut ptr = cc_log::log_rs_unset();
+        let mut ptr = unsafe { cc_log::log_rs_unset() };
         assert_eq!(ptr, logger);
 
         unsafe { bind::log_destroy(&mut ptr) };
