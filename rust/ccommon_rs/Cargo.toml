@@ -1,5 +1,5 @@
 [package]
-name = "ccommon"
+name = "ccommon_rs"
 version = "0.1.0"
 authors = ["Jonathan Simms <jsimms@twitter.com>"]
 
@@ -9,5 +9,4 @@ cc_binding = { path = "../cc_binding" }
 
 log = "~0.4"
 libc = "~0.2.42"
-
-
+failure = "~0.1.1"

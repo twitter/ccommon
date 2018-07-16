@@ -8,4 +8,4 @@ bindgen = "0.37.0"
 
 [lib]
 name = "cc_binding"
-crate-type = ["rlib"]
+crate-type = ["rlib", "dylib", "staticlib", "lib"]

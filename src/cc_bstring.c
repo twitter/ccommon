@@ -142,3 +142,41 @@ bstring_atou64(uint64_t *u64, struct bstring *str)
 
     return CC_OK;
 }
+
+struct bstring *
+bstring_alloc(uint32_t size)
+{
+    struct bstring bs;
+    bstring_init(&bs);
+
+    bs.len = size;
+    bs.data = cc_alloc(size);
+    if (bs.data == NULL) {
+        return NULL;
+    }
+
+    struct bstring *rv = cc_alloc(sizeof(struct bstring));
+    if (rv == NULL) {
+        free(bs.data);
+        return NULL;
+    }
+
+    memcpy(rv, &bs, sizeof(struct bstring));
+    return rv;
+}
+
+void
+bstring_free(struct bstring **ptr)
+{
+    if (ptr == NULL) {
+        return;
+    }
+    if (*ptr == NULL) {
+        return;
+    }
+
+    struct bstring *bs = *ptr;
+    cc_free(bs->data);
+    cc_free(bs);
+    *ptr = NULL;
+}
