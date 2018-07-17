@@ -161,7 +161,7 @@ bstring_alloc(uint32_t size)
         return NULL;
     }
 
-    memcpy(rv, &bs, sizeof(struct bstring));
+    memcpy(rv, &bs, sizeof(*rv));
     return rv;
 }
 

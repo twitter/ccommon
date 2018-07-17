@@ -138,11 +138,11 @@ START_TEST(test_bstring_alloc_and_free)
 
     bs = bstring_alloc(BSTRING_SIZE);
     ck_assert_uint_eq(bs->len, BSTRING_SIZE);
-    for(int i = 0; i < BSTRING_SIZE; i++) {
+    for (int i = 0; i < BSTRING_SIZE; i++) {
         bs->data[i] = 'a';
     }
 
-    // great! we didn't segfault!
+    /* great! we didn't segfault! */
     bstring_free(&bs);
     ck_assert_ptr_null(bs);
 
