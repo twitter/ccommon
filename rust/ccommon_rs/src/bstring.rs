@@ -117,6 +117,9 @@ impl ToOwned for BStr {
     }
 }
 
+unsafe impl Send for BStr {}
+unsafe impl Sync for BStr {}
+
 /// An owned BString. By definition, a BString is allocated by
 /// cc_bstring and freed by cc_bstring. This is because libc `malloc/free`
 /// and Rust's `malloc/free` are two different implementations, and it's
@@ -349,6 +352,10 @@ impl<'a> From<&'a str> for BString {
         BString::from_bytes(s.as_bytes())
     }
 }
+
+unsafe impl Send for BString {}
+unsafe impl Sync for BString {}
+
 
 #[cfg(test)]
 mod test {
