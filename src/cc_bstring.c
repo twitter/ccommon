@@ -146,23 +146,17 @@ bstring_atou64(uint64_t *u64, struct bstring *str)
 struct bstring *
 bstring_alloc(uint32_t size)
 {
-    struct bstring bs;
-    bstring_init(&bs);
+    struct bstring *bs = cc_alloc(sizeof(struct bstring));
+    bstring_init(bs);
 
-    bs.len = size;
-    bs.data = cc_alloc(size);
-    if (bs.data == NULL) {
+    bs->len = size;
+    bs->data = cc_alloc(size);
+    if (bs->data == NULL) {
+        cc_free(bs);
         return NULL;
     }
 
-    struct bstring *rv = cc_alloc(sizeof(struct bstring));
-    if (rv == NULL) {
-        free(bs.data);
-        return NULL;
-    }
-
-    memcpy(rv, &bs, sizeof(*rv));
-    return rv;
+    return bs;
 }
 
 void

@@ -176,19 +176,23 @@ unsafe impl Sync for BStr {}
 ///
 /// ```rust
 /// # use ccommon_rs::bstring::*;
-/// use std::io::{SeekFrom, Cursor, Write, Read, Seek};
+/// use std::io::*;
+/// use std::str;
 ///
 /// let mut x = BString::from("mutation is terrible ");
 /// {
 ///     let mut c = Cursor::new(&mut x[..]);
 ///     let f = "fantastic".as_bytes();
-///     c.seek(SeekFrom::End(-10));
+///     c.seek(SeekFrom::End(-9));
 ///
 ///     let sz = c.write(&f[..]).unwrap();
 ///     assert_eq!(sz, f.len());
 /// }
 ///
-/// assert_eq!(&x[..], "mutation is fantastic".as_bytes());
+/// assert_eq!(
+///     unsafe { str::from_utf8_unchecked(&x[..]) },
+///     "mutation is fantastic"
+/// );
 /// ```
 ///
 /// Note: if you're using BString as a buffer, it's important to
@@ -432,5 +436,25 @@ mod test {
         assert_eq!(&bstr[..], &s.as_bytes()[..]);
 
         unsafe { BString::from_raw(ptr) };
+    }
+
+    #[test]
+    fn test_bstring_as_io_write() {
+        use std::io::*;
+
+        let mut x = BString::from("mutation is terrible ");
+        {
+            let mut c = Cursor::new(&mut x[..]);
+            let f = "fantastic".as_bytes();
+            c.seek(SeekFrom::End(-9));
+
+            let sz = c.write(&f[..]).unwrap();
+            assert_eq!(sz, f.len());
+        }
+
+        assert_eq!(
+            unsafe { str::from_utf8_unchecked(&x[..]) },
+            "mutation is fantastic"
+        );
     }
 }
