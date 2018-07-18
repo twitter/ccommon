@@ -26,4 +26,6 @@ fi
 
 export CC="$C_COMPILER"
 
-# curl https://sh.rustup.rs -sSf | sh -s -- -y
+if [[ -n "${RUST_ENABLED:-}" ]]; then
+  curl https://sh.rustup.rs -sSf | sh -s -- -y
+fi

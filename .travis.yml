@@ -54,6 +54,17 @@ matrix:
             - gcc-5
             - libsubunit-dev
 
+    # gcc 5 on linux
+    - env:
+        - C_COMPILER=gcc-5
+        - RUST_ENABLED=1
+      addons:
+        apt:
+          <<: *apt
+          packages:
+            - gcc-5
+            - libsubunit-dev
+
     # clang 3.6 on linux
     - env:
         - C_COMPILER=clang-3.6

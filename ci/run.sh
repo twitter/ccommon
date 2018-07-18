@@ -7,7 +7,18 @@ die() { echo "fatal: $*" >&2; exit 1; }
 
 export PATH=$HOME/.cargo/bin:$PATH
 
-mkdir -p _build && ( cd _build && cmake -D BUILD_AND_INSTALL_CHECK=yes .. && make -j && make check )
+cmake_cmd=(
+  cmake
+  -DBUILD_AND_INSTALL_CHECK=yes
+)
+
+if [[ -n "${RUST_ENABLED:-}" ]]; then
+  cmake_cmd+=( -DHAVE_RUST=yes -DRUST_VERBOSE_BUILD=yes )
+fi
+
+export RUST_BACKTRACE=full
+
+mkdir -p _build && ( cd _build && "${cmake_cmd[@]}" .. && make -j && make check )
 RESULT=$?
 
 egrep -r ":F:|:E:" . |grep -v 'Binary file' || true
