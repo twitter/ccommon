@@ -146,7 +146,10 @@ bstring_atou64(uint64_t *u64, struct bstring *str)
 struct bstring *
 bstring_alloc(uint32_t size)
 {
-    struct bstring *bs = cc_alloc(sizeof(struct bstring));
+    struct bstring *bs = cc_alloc(sizeof(*bs));
+    if (bs == NULL) {
+        return NULL;
+    }
     bstring_init(bs);
 
     bs->len = size;
@@ -162,10 +165,7 @@ bstring_alloc(uint32_t size)
 void
 bstring_free(struct bstring **ptr)
 {
-    if (ptr == NULL) {
-        return;
-    }
-    if (*ptr == NULL) {
+    if ((ptr == NULL) || (*ptr == NULL)) {
         return;
     }
 
