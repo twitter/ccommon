@@ -123,6 +123,10 @@ set(CFLAGS_LIST
 string(REPLACE "" "" CFLAGS ${CFLAGS_LIST})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${CFLAGS}")
 
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,--no-as-needed -ldl -pthread -fPIC")
+endif()
+
 if (COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
 endif(COVERAGE)
