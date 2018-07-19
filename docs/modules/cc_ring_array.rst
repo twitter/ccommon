@@ -15,7 +15,7 @@ Synopsis
   ring_array_create(size_t elem_size, uint32_t cap);
 
   void
-  ring_array_destroy(struct ring_array *arr);
+  ring_array_destroy(struct ring_array **arr);
 
   rstatus_i
   ring_array_push(const void *elem, struct ring_array *arr);
@@ -33,7 +33,7 @@ Creation/Destruction
 .. code-block:: C
 
    struct ring_array *ring_array_create(size_t elem_size, uint32_t cap);
-   void ring_array_destroy(struct ring_array *arr);
+   void ring_array_destroy(struct ring_array **arr);
 
 In order to create a ccommon ``ring_array`` data structure, call ``ring_array_create()`` with ``elem_size`` as the ``sizeof`` the elements the ``ring_array`` contains and with ``cap`` as the maximum number of elements the ``ring_array`` should be able to hold. This function returns a pointer to the ``ring_array`` that it creates.
 
@@ -99,7 +99,7 @@ Hello World! with ccommon ``ring_array``:
        }
 
        /* Destroy ring_array */
-       ring_array_destroy(arr);
+       ring_array_destroy(&arr);
 
        return 0;
    }
