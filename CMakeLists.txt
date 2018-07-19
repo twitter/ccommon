@@ -52,8 +52,8 @@ option(HAVE_ASSERT_PANIC "assert_panic disabled by default" OFF)
 option(HAVE_LOGGING "logging enabled by default" ON)
 option(HAVE_STATS "stats enabled by default" ON)
 option(HAVE_DEBUG_MM "debugging oriented memory management disabled by default" OFF)
-option(HAVE_RUST "build rust components" OFF)
 option(COVERAGE "code coverage" OFF)
+option(HAVE_RUST "rust bindings not built by default" OFF)
 
 if(BUILD_AND_INSTALL_CHECK)
     # (simms) What follows is a crime against build systems as we run the build/install
@@ -123,6 +123,10 @@ set(CFLAGS_LIST
 string(REPLACE "" "" CFLAGS ${CFLAGS_LIST})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${CFLAGS}")
 
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,--no-as-needed -ldl -pthread -fPIC")
+endif()
+
 if (COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
 endif(COVERAGE)
@@ -147,7 +151,9 @@ find_package(Threads)
 if(HAVE_RUST)
     enable_language(Rust)
     include(CMakeCargo)
+    add_subdirectory(rust)
 endif()
+
 
 # where to find include files
 include_directories(${include_directories}
