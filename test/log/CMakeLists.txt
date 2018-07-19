@@ -19,6 +19,7 @@ target_link_libraries(
     m)
 
 if(OS_PLATFORM STREQUAL "OS_DARWIN")
+    # the "rand" crate links to the platform secure rng API, so it requires this
     target_link_libraries(${test_name} "-framework Security")
     set_target_properties(${test_name} PROPERTIES LINK_FLAGS "-Wl,-F/System/Library/Frameworks")
 endif()

@@ -24,6 +24,48 @@
 //! and shut down cleanly.
 //!
 //! This configuration is a shared-nothing lockless design...for _SPEED_.
+//!
+//! # Example
+//!
+//! Basic setup in an app that makes use of ccommon:
+//!
+//! ```ignore
+//! #include <cc_bstring.h>
+//! #include <cc_debug.h>
+//! #include <cc_mm.h>
+//!
+//! #include <rust/cc_log_rs.h>
+//!
+//! #define PATH "/var/log/appname"
+//!
+//! static struct log_handle_rs *log_handle;
+//! static struct log_config_rs log_config;
+//!
+//!
+//! void
+//! log_setup()
+//! {
+//! 	log_config.buf_size = 1024;
+//! 	bstring_set_raw(&log_config.prefix, "templog");
+//! 	bstring_set_raw(&log_config.path, PATH);
+//! 	log_config.level = LOG_LEVEL_TRACE;
+//!
+//! 	log_handle = log_create_handle_rs(&log_config);
+//! 	ASSERT(log_handle != NULL);
+//! 	ASSERT(log_is_setup_rs(log_handle));
+//! }
+//!
+//! void
+//! log_teardown()
+//! {
+//! 	if (log_shutdown_rs(log_handle) != LOG_STATUS_OK) {
+//! 		/* emit a warning about this */
+//! 	}
+//!
+//! 	log_destroy_handle_rs(&log_handle);
+//! }
+//!
+//! ```
 
 #![allow(dead_code)]
 
@@ -35,6 +77,7 @@ use crossbeam::sync::ArcCell;
 use failure;
 use ptrs;
 use rslog;
+use bstring::BStr;
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::io::{Cursor, Write};
@@ -196,6 +239,7 @@ impl Drop for LogMetrics {
     }
 }
 
+const DEFAULT_LOG_BASENAME: &str = "ccommon";
 
 #[repr(C)]
 pub struct LogConfig {
@@ -206,7 +250,7 @@ pub struct LogConfig {
     /// logs will be named `foobar.${thread_id}.log`. There will be one
     /// log created per thread. If the thread is named, that will be used
     /// as `thread_id` otherwise a unique identifier will be chosen.
-    file_basename: String,
+    prefix: String,
 
     /// What size buffer should the cc_log side use?
     buf_size: u32,
@@ -214,42 +258,106 @@ pub struct LogConfig {
     level: Level,
 }
 
+#[derive(Clone, Debug)]
+pub struct LogConfigBuilder {
+    path: Option<String>,
+    prefix: Option<String>,
+    buf_size: Option<u32>,
+    level: Option<Level>,
+}
+
+impl Default for LogConfigBuilder {
+    fn default() -> Self {
+        LogConfigBuilder{
+            path: None,
+            prefix: Some(String::from("ccommon")),
+            buf_size: Some(0),
+            level: Some(Level::Trace)
+        }
+    }
+}
+
+
+impl LogConfigBuilder {
+    pub fn path(&mut self, path: String) -> &mut Self {
+        let new = self;
+        new.path = Some(path);
+        new
+    }
+
+    pub fn prefix(&mut self, prefix: String) -> &mut Self {
+        let new = self;
+        new.prefix = Some(prefix);
+        new
+    }
+
+    pub fn buf_size(&mut self, buf: u32) -> &mut Self {
+        let new = self;
+        new.buf_size = Some(buf);
+        new
+    }
+
+    pub fn level(&mut self, lvl: Level) -> &mut Self {
+        let new = self;
+        new.level = Some(lvl);
+        new
+    }
+
+    pub fn build(&self) -> Result<LogConfig> {
+        if self.path.is_none() {
+            bail!("path field must be set: {:#?}", self)
+        }
+        Ok(LogConfig{
+            path: Clone::clone(&self.path).unwrap().to_owned(),
+            prefix: Clone::clone(&self.prefix).unwrap().to_owned(),
+            buf_size: Clone::clone(&self.buf_size).unwrap(),
+            level: Clone::clone(&self.level).unwrap(),
+        })
+    }
+}
+
+fn level_from_usize(u: usize) -> Option<Level> {
+    match u {
+        1 => Some(Level::Error),
+        2 => Some(Level::Warn),
+        3 => Some(Level::Info),
+        4 => Some(Level::Debug),
+        5 => Some(Level::Trace),
+        _ => None,
+    }
+}
 
 impl LogConfig {
     #[doc(hidden)]
-    pub fn from_raw(ptr: *mut bind::log_config_rs) -> Result<Self> {
+    pub unsafe fn from_raw(ptr: *mut bind::log_config_rs) -> Result<Self> {
         ptrs::lift_to_option(ptr)
             .ok_or_else(|| ptrs::NullPointerError.into())
             .and_then(|ptr| {
-                let path = unsafe { CString::from_raw((*ptr).path).to_str()?.to_owned() };
+                let raw = *ptr;
 
-                let file_basename = unsafe {
-                    CString::from_raw((*ptr).file_basename)
-                }.to_str()?.to_owned();
+                let path = BStr::from_ref(&raw.path).to_utf8_string()?;
+                let prefix = BStr::from_ref(&raw.prefix).to_utf8_string()?;
+                let buf_size = raw.buf_size;
+                let level =
+                    match level_from_usize(raw.level as usize) {
+                        Some(n) => n,
+                        None => Level::Trace,
+                    };
 
-                let buf_size = unsafe {(*ptr).buf_size};
-                let level = Self::from_usize(unsafe { (*ptr).level } as usize).unwrap();
-
-                Ok(LogConfig{path, file_basename, buf_size, level})
+                LogConfigBuilder::default()
+                    .path(path)
+                    .prefix(prefix)
+                    .buf_size(buf_size)
+                    .level(level)
+                    .build()
             })
     }
 
     fn to_path_buf(&self, thread_id: &str) -> PathBuf {
         let mut pb = PathBuf::new();
         pb.push(&self.path);
-        pb.push(format!("{}.{}.log", self.file_basename, thread_id));
+        pb.push(format!("{}.{}.log", self.prefix, thread_id));
         pb
-    }
-
-    fn from_usize(u: usize) -> Option<Level> {
-        match u {
-            1 => Some(Level::Error),
-            2 => Some(Level::Warn),
-            3 => Some(Level::Info),
-            4 => Some(Level::Debug),
-            5 => Some(Level::Trace),
-            _ => None,
-        }
     }
 }
 
@@ -440,6 +548,12 @@ impl Handle {
 
         let stop_at = time::SteadyTime::now() + timeout;
 
+        if active.is_none() {
+            // we've already shut down
+            eprintln!("already shut down!");
+            return;
+        }
+
         loop {
             if let Some(opt_shim) = Arc::get_mut(&mut active) {
                 if let Some(shim) = opt_shim {
@@ -452,15 +566,29 @@ impl Handle {
             }
 
             if time::SteadyTime::now() < stop_at {
+                eprintln!("timed out waiting on log shutdown, best of luck!");
                 break
             }
         }
     }
+
+    fn is_setup(&self) -> bool {
+        self.shim.get().is_some()
+    }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn log_is_setup_rs(cfgp: *mut Handle) -> bool {
+    ptrs::lift_to_option(cfgp)
+        .map(|p| (*p).is_setup() )
+        .expect("log_is_setup_rs was passed a raw pointer")
+}
+
+const SHUTDOWN_TIMEOUT_MS: u64 = 1000;
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        self.shutdown(time::Duration::zero());
+        self.shutdown(time::Duration::milliseconds(SHUTDOWN_TIMEOUT_MS as i64));
     }
 }
 
@@ -478,26 +606,27 @@ fn log_setup_safe(config: LogConfig) -> Result<Handle> {
 
 #[no_mangle]
 pub unsafe extern "C" fn log_create_handle_rs(cfgp: *mut bind::log_config_rs) -> *mut Handle {
-    ptrs::null_check(cfgp)                              // make sure our input is good
-        .map_err(|e| e.into())                          // error type bookkeeping
-        .and_then(LogConfig::from_raw)                  // convert the *mut into a rust struct
-        .and_then(log_setup_safe)                       // register our logger
-        .map(|handle| Box::into_raw(Box::new(handle)))  // convert our handle into a raw pointer
-        .unwrap_or_else(|err| {                         // hand it back to C
+    ptrs::null_check(cfgp)                                // make sure our input is good
+        .map_err(|e| e.into())                            // error type bookkeeping
+        .and_then(|c|LogConfig::from_raw(c))              // convert the *mut into a rust struct
+        .and_then(log_setup_safe)                         // register our logger
+        .map(|handle| Box::into_raw(Box::new(handle)))    // convert our handle into a raw pointer
+        .unwrap_or_else(|err| {                           // hand it back to C
             eprintln!("ERROR log_create_handle: {:#?}", err);
-            ptr::null_mut()                             // unless there was an error, then return NULL
+            ptr::null_mut()                               // unless there was an error, then return NULL
         })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn log_shutdown_rs(ph: *mut Handle) -> LoggerStatus {
-    let handle =
+pub unsafe extern "C" fn log_shutdown_rs(ph: *mut Handle, timeout_ms: u32) -> LoggerStatus {
+    let mut handle =
         match ptrs::lift_to_option(ph) {
             Some(ph) => Box::from_raw(ph),
             None => return LoggerStatus::NullPointerError,
         };
 
-    drop(handle);
+    Handle::shutdown(&mut handle, time::Duration::milliseconds(timeout_ms as i64));
+
     LoggerStatus::OK
 }
 
@@ -559,7 +688,7 @@ mod test {
 
             let cfg = LogConfig {
                 path: tmpdir.path().to_path_buf().to_str().unwrap().to_owned(),
-                file_basename: String::from("testmt"),
+                prefix: String::from("testmt"),
                 buf_size: 0,
                 level: Level::Trace,
             };
@@ -596,7 +725,7 @@ mod test {
 
             let cfg = LogConfig {
                 path: tmpdir.path().to_path_buf().to_str().unwrap().to_owned(),
-                file_basename: String::from("testmt"),
+                prefix: String::from("testmt"),
                 buf_size: 0,
                 level: Level::Trace,
             };
@@ -643,7 +772,7 @@ mod test {
 
             let cfg = LogConfig {
                 path: tmpdir.path().to_path_buf().to_str().unwrap().to_owned(),
-                file_basename: String::from("testmt"),
+                prefix: String::from("testmt"),
                 buf_size: 0,
                 level: Level::Trace,
             };

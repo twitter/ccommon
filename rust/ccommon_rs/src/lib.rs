@@ -14,7 +14,9 @@
 // limitations under the License.
 
 extern crate cc_binding;
+extern crate chrono;
 extern crate crossbeam;
+#[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;

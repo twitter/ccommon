@@ -17,7 +17,6 @@
 use std::ffi::CStr;
 use std::fs;
 use std::os::raw::c_char;
-use std::path::PathBuf;
 
 /// Recursively removes files and directories under `path` before removing `path` itself.
 /// Returns 0 on success and -1 on error. `errno` will be set to the cause of the failure.

@@ -56,18 +56,19 @@ typedef enum log_status_rs {
 } log_status_rs_e;
 
 struct log_config_rs {
-    char *path;
-    char *file_basename;
     uint32_t buf_size;
     log_level_rs_e level;
+    struct bstring path;
+    struct bstring prefix;
 };
 
 struct log_handle_rs;
 
 struct log_handle_rs* log_create_handle_rs(struct log_config_rs *cfg);
-log_status_rs_e log_shutdown_rs(struct log_handle_rs *handle);
+log_status_rs_e log_shutdown_rs(struct log_handle_rs *handle, uint32_t timeout_ms);
 void log_destroy_handle_rs(struct log_handle_rs **h);
 
+bool log_is_setup_rs(struct log_handle_rs *handle);
 
 #ifdef __cplusplus
 }

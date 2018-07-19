@@ -251,29 +251,29 @@ START_TEST(test_write_skip_metrics)
 END_TEST
 
 #ifdef HAVE_RUST
-#define PATH "/tmp/temp.XXXXXX"
 START_TEST(test_most_basic_rust_logging_setup_teardown)
 {
+#define PATH "/tmp/temp.XXXXXX"
     char *path = malloc(sizeof(PATH) + 1);
     strcpy(path, PATH);
     mkdtemp(path);
 
-    struct log_config_rs config = {
-        .path = path,
-        .file_basename = "templog",
-        .buf_size = 1024,
-        .level = LOG_LEVEL_TRACE,
-    };
+    struct log_config_rs cfg;
+    cfg.buf_size = 1024;
+    bstring_set_raw(&cfg.prefix, "templog");
+    bstring_set_raw(&cfg.path, path);
+    cfg.level = LOG_LEVEL_TRACE;
 
-    struct log_handle_rs *handle = log_create_handle_rs(&config);
-    ck_assert_uint_eq(log_shutdown_rs(handle), LOG_STATUS_OK);
+    struct log_handle_rs *handle = log_create_handle_rs(&cfg);
+    ck_assert(log_is_setup_rs(handle));
+    ck_assert_uint_eq(log_shutdown_rs(handle, 1000), LOG_STATUS_OK);
     log_destroy_handle_rs(&handle);
     ck_assert_ptr_null(handle);
 
     cc_util_rm_rf_rs(path);
+#undef PATH
 }
 END_TEST
-#undef PATH
 #endif
 
 
