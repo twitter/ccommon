@@ -239,6 +239,7 @@ impl BString {
     ///
     /// This method will panic if `src.len() != self.len()`
     #[inline]
+    #[allow(dead_code)]
     fn copy_from_slice(&mut self, src: &[u8]) {
         assert_eq!(src.len(), self.len());
         (&mut (**self)).copy_from_slice(&src[..]);
@@ -446,7 +447,7 @@ mod test {
         {
             let mut c = Cursor::new(&mut x[..]);
             let f = "fantastic".as_bytes();
-            c.seek(SeekFrom::End(-9));
+            c.seek(SeekFrom::End(-9)).unwrap();
 
             let sz = c.write(&f[..]).unwrap();
             assert_eq!(sz, f.len());
