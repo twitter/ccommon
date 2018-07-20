@@ -5,12 +5,13 @@ extern crate failure;
 use std::env;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::io::BufReader;
 use std::io::prelude::*;
+use std::ffi::OsString;
 use std::os::unix::fs as unix_fs;
 use std::path::Path;
+use std::path::PathBuf;
 use std::result;
-use std::io::BufReader;
 
 type Result<T> = result::Result<T, failure::Error>;
 
@@ -61,13 +62,17 @@ fn main() {
     let mut config_h_dir = cbd.clone();
     config_h_dir.push("ccommon");
 
-    let lib_dir =
-        get_cmake_cache_value(&cbd, CCOMMON_BINARY_DIR_KEY)
+    let lib_dir: String = {
+        let cbd = get_cmake_cache_value(&cbd, CCOMMON_BINARY_DIR_KEY)
+            .map(|o| o.map(OsString::from))
             .unwrap()
-            .expect(&format!("could not find {} in {}", CCOMMON_BINARY_DIR_KEY, CMAKE_CACHE)[..]);
+            .expect(
+                format!("could not find {} in {}", CCOMMON_BINARY_DIR_KEY, CMAKE_CACHE).as_ref()
+            );
 
-//    let mut lib_dir = cbd.clone();
-//    lib_dir.push("lib");
+        let cbd = Path::new(&cbd);
+        cbd.join("lib").to_str().unwrap().to_string()
+    };
 
     println!("cargo:rustc-link-search=native={}", lib_dir);
 
