@@ -79,6 +79,7 @@ name = "cc_binding"
 version = "0.1.0"
 dependencies = [
  "bindgen 0.37.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

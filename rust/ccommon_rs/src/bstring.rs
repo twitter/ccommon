@@ -33,6 +33,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::slice;
 use std::str;
+use std::borrow::BorrowMut;
 
 
 pub type CCbstring = bind::bstring;
@@ -87,7 +88,7 @@ impl BStr {
     }
 
     #[inline]
-    fn as_ptr(&self) -> *mut CCbstring {
+    pub fn as_ptr(&self) -> *mut CCbstring {
         self as *const _ as *mut _
     }
 }
@@ -105,6 +106,30 @@ impl DerefMut for BStr {
     #[inline]
     fn deref_mut(&mut self) -> &mut [u8] {
         unsafe { raw_ptr_to_bytes_mut(self.as_ptr()) }
+    }
+}
+
+impl AsRef<CCbstring> for BStr {
+    fn as_ref(&self) -> &CCbstring {
+        unsafe { &*self.as_ptr() }
+    }
+}
+
+impl AsMut<CCbstring> for BStr {
+    fn as_mut(&mut self) -> &mut CCbstring {
+        unsafe { &mut *(self.as_ptr() as *mut _)}
+    }
+}
+
+impl Borrow<CCbstring> for BStr {
+    fn borrow(&self) -> &CCbstring {
+        unsafe { &*self.as_ptr() }
+    }
+}
+
+impl BorrowMut<CCbstring> for BStr {
+    fn borrow_mut(&mut self) -> &mut CCbstring {
+        unsafe { &mut *(self.as_ptr() as *mut _)}
     }
 }
 
@@ -239,6 +264,7 @@ impl BString {
     ///
     /// This method will panic if `src.len() != self.len()`
     #[inline]
+    #[allow(dead_code)]
     fn copy_from_slice(&mut self, src: &[u8]) {
         assert_eq!(src.len(), self.len());
         (&mut (**self)).copy_from_slice(&src[..]);
@@ -446,7 +472,7 @@ mod test {
         {
             let mut c = Cursor::new(&mut x[..]);
             let f = "fantastic".as_bytes();
-            c.seek(SeekFrom::End(-9));
+            c.seek(SeekFrom::End(-9)).unwrap();
 
             let sz = c.write(&f[..]).unwrap();
             assert_eq!(sz, f.len());
