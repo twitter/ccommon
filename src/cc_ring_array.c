@@ -100,7 +100,7 @@ ring_array_push(const void *elem, struct ring_array *arr)
 }
 
 bool
-ring_array_full(struct ring_array *arr)
+ring_array_full(const struct ring_array *arr)
 {
     /*
      * Take snapshot of rpos, since another thread might be popping. Note: other
@@ -134,7 +134,7 @@ ring_array_pop(void *elem, struct ring_array *arr)
 }
 
 bool
-ring_array_empty(struct ring_array *arr)
+ring_array_empty(const struct ring_array *arr)
 {
     /* take snapshot of wpos, since another thread might be pushing */
     uint32_t wpos = __atomic_load_n(&(arr->wpos), __ATOMIC_RELAXED);

@@ -2,8 +2,11 @@
 
 #include <check.h>
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <unistd.h>
 
 #define SUITE_NAME "ring_array"
 #define DEBUG_LOG  SUITE_NAME ".log"
@@ -156,6 +159,64 @@ START_TEST(test_flush)
 END_TEST
 
 /*
+ * Threading test
+ */
+struct test_ring_array_arg {
+    uint32_t n;
+    struct ring_array *arr;
+};
+
+static void *
+test_produce(void *arg)
+{
+    uint32_t i, n = ((struct test_ring_array_arg *)arg)->n;
+    struct ring_array *arr = ((struct test_ring_array_arg *)arg)->arr;
+
+    for (i = 0; i < n;) {
+        if (!ring_array_full(arr)) {
+            ring_array_push(&i, arr);
+            ++i;
+        }
+    }
+    return NULL;
+}
+
+START_TEST(test_thread)
+{
+#define ELEM_SIZE sizeof(uint32_t)
+#define CAP 1000
+#define NUM_REPS 5000
+    struct ring_array *arr = NULL;
+    pthread_t producer = NULL;
+    struct test_ring_array_arg arg;
+    uint32_t i;
+
+    arr = ring_array_create(ELEM_SIZE, CAP);
+    ck_assert_ptr_ne(arr, NULL);
+
+    arg.n = NUM_REPS;
+    arg.arr = arr;
+
+    /* create producer thread */
+    ck_assert_int_eq(pthread_create(&producer, NULL, &test_produce, &arg), 0);
+
+    /* parent is consumer thread */
+    for (i = 0; i < NUM_REPS;) {
+        if (!ring_array_empty(arr)) {
+            uint32_t val;
+            ck_assert_int_eq(ring_array_pop(&val, arr), CC_OK);
+            ck_assert_int_eq(val, i++);
+        }
+    }
+
+    ring_array_destroy(&arr);
+#undef ELEM_SIZE
+#undef CAP
+#undef NUM_REPS
+}
+END_TEST
+
+/*
  * test suite
  */
 static Suite *
@@ -173,6 +234,7 @@ ring_array_suite(void)
     tcase_add_test(tc_ring_array, test_push_full);
     tcase_add_test(tc_ring_array, test_push_pop_many);
     tcase_add_test(tc_ring_array, test_flush);
+    tcase_add_test(tc_ring_array, test_thread);
 
     return s;
 }
