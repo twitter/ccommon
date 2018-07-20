@@ -58,7 +58,7 @@ struct ring_array {
 rstatus_i ring_array_push(const void *elem, struct ring_array *arr);
 
 /* check if array is full */
-bool ring_array_full(struct ring_array *arr);
+bool ring_array_full(const struct ring_array *arr);
 
 
 /***********************
@@ -69,7 +69,7 @@ bool ring_array_full(struct ring_array *arr);
 rstatus_i ring_array_pop(void *elem, struct ring_array *arr);
 
 /* check if array is empty */
-bool ring_array_empty(struct ring_array *arr);
+bool ring_array_empty(const struct ring_array *arr);
 
 /* flush contents of ring array */
 void ring_array_flush(struct ring_array *arr);
