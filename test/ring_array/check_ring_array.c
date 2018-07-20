@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <unistd.h>
-
 #define SUITE_NAME "ring_array"
 #define DEBUG_LOG  SUITE_NAME ".log"
 
