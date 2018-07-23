@@ -18,10 +18,6 @@ trap cleanup EXIT
 
 BUILD_PATH=(
   "$HOME/.cargo/bin"
-  "/opt/twitter_mde/bin"
-  "/opt/twitter_mde/data/node/bin"
-  "/opt/twitter_mde/homebrew/mde_bin"
-  "/opt/twitter_mde/homebrew_minimal/mde_bin"
   "/usr/local/bin"
   "/usr/local/sbin"
   "/usr/bin"
@@ -53,5 +49,7 @@ mkdir -p "$BUILD_DIR" && (
   cd "$BUILD_DIR" &&
   cmake "${CMAKEFLAGS[@]}" "$TOPLEVEL" &&
   make -j all &&
-  make check
+  make check &&
+  cd rust &&
+  cargo test
 )
