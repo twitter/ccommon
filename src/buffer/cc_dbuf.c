@@ -51,9 +51,15 @@ static rstatus_i
 _dbuf_resize(struct buf **buf, uint32_t nsize)
 {
     struct buf *nbuf;
-    uint32_t osize = buf_size(*buf);
-    uint32_t roffset = (*buf)->rpos - (*buf)->begin;
-    uint32_t woffset = (*buf)->wpos - (*buf)->begin;
+    uint32_t osize, roffset, woffset;
+
+    if (nsize > max_size) {
+        return CC_ERROR;
+    }
+
+    osize = buf_size(*buf);
+    roffset = (*buf)->rpos - (*buf)->begin;
+    woffset = (*buf)->wpos - (*buf)->begin;
 
     nbuf = cc_realloc(*buf, nsize);
     if (nbuf == NULL) { /* realloc failed, but *buf is still valid */
@@ -80,10 +86,6 @@ dbuf_double(struct buf **buf)
     rstatus_i status;
     uint32_t nsize = buf_size(*buf) * 2;
 
-    if (nsize > max_size) {
-        return CC_ERROR;
-    }
-
     status = _dbuf_resize(buf, nsize);
     if (status == CC_OK) {
         INCR(dbuf_metrics, dbuf_double);
@@ -100,12 +102,14 @@ dbuf_fit(struct buf **buf, uint32_t cap)
     rstatus_i status = CC_OK;
     uint32_t nsize = buf_init_size;
 
-    buf_lshift(*buf);
-    if (buf_rsize(*buf) > cap || cap + BUF_HDR_SIZE > max_size) {
+    /* check if new cap can contain unread bytes */
+    if (buf_rsize(*buf) > cap) {
         return CC_ERROR;
     }
 
-    /* cap is checked, given how max_size is initialized this is safe */
+    buf_lshift(*buf);
+
+    /* double size of buf until it can fit cap */
     while (nsize < cap + BUF_HDR_SIZE) {
         nsize *= 2;
     }
@@ -122,10 +126,9 @@ dbuf_fit(struct buf **buf, uint32_t cap)
     return status;
 }
 
-rstatus_i
+void
 dbuf_shrink(struct buf **buf)
 {
-    rstatus_i status = CC_OK;
     uint32_t nsize = buf_init_size;
     uint32_t cap = buf_rsize(*buf);
 
@@ -136,13 +139,11 @@ dbuf_shrink(struct buf **buf)
     }
 
     if (nsize != buf_size(*buf)) {
-        status = _dbuf_resize(buf, nsize);
-        if (status == CC_OK) {
-            INCR(dbuf_metrics, dbuf_shrink);
-        } else {
-            INCR(dbuf_metrics, dbuf_shrink_ex);
-        }
-    }
+        /* should never fail, since we are shrinking */
+        rstatus_i status = _dbuf_resize(buf, nsize);
+        ASSERT(status == CC_OK);
+        (void)status;
 
-    return status;
+        INCR(dbuf_metrics, dbuf_shrink);
+    }
 }

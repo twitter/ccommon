@@ -29,8 +29,8 @@ extern "C" {
 
 
 /*          name                type                default             description */
-#define DBUF_OPTION(ACTION)                                                                         \
-    ACTION( dbuf_max_power,      OPTION_TYPE_UINT,  DBUF_DEFAULT_MAX,   "max number of doubling"   )
+#define DBUF_OPTION(ACTION)                                                                     \
+    ACTION( dbuf_max_power,      OPTION_TYPE_UINT,  DBUF_DEFAULT_MAX,   "max number of doubles")
 
 typedef struct {
     DBUF_OPTION(OPTION_DECLARE)
@@ -43,7 +43,6 @@ typedef struct {
     ACTION( dbuf_double,    METRIC_COUNTER, "# double completed"   )\
     ACTION( dbuf_double_ex, METRIC_COUNTER, "# double failed"      )\
     ACTION( dbuf_shrink,    METRIC_COUNTER, "# shrink completed"   )\
-    ACTION( dbuf_shrink_ex, METRIC_COUNTER, "# srhink failed"      )\
     ACTION( dbuf_fit,       METRIC_COUNTER, "# fit completed"      )\
     ACTION( dbuf_fit_ex,    METRIC_COUNTER, "# fit failed"         )
 
@@ -58,7 +57,7 @@ void dbuf_teardown(void);
 /* Buffer resizing functions */
 rstatus_i dbuf_double(struct buf **buf); /* 2x size, slightly >2x capacity */
 /* shrink to initial size or content size, whichever is larger */
-rstatus_i dbuf_shrink(struct buf **buf);
+void dbuf_shrink(struct buf **buf);
 rstatus_i dbuf_fit(struct buf **buf, uint32_t cap); /* resize to fit cap */
 
 #ifdef __cplusplus
