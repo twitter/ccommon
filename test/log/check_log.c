@@ -260,8 +260,8 @@ START_TEST(test_most_basic_rust_logging_setup_teardown)
 
     struct log_config_rs cfg;
     cfg.buf_size = 1024;
-    bstring_set_raw(&cfg.prefix, "templog");
-    bstring_set_raw(&cfg.path, path);
+    bstring_set_cstr(&cfg.prefix, "templog");
+    bstring_set_cstr(&cfg.path, path);
     cfg.level = LOG_LEVEL_TRACE;
 
     struct log_handle_rs *handle = log_create_handle_rs(&cfg);
