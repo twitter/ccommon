@@ -126,11 +126,12 @@ dbuf_fit(struct buf **buf, uint32_t cap)
     return status;
 }
 
-void
+rstatus_i
 dbuf_shrink(struct buf **buf)
 {
     uint32_t nsize = buf_init_size;
     uint32_t cap = buf_rsize(*buf);
+    rstatus_i status = CC_OK;
 
     buf_lshift(*buf);
 
@@ -139,11 +140,18 @@ dbuf_shrink(struct buf **buf)
     }
 
     if (nsize != buf_size(*buf)) {
-        /* should never fail, since we are shrinking */
-        rstatus_i status = _dbuf_resize(buf, nsize);
-        ASSERT(status == CC_OK);
-        (void)status;
+        /*
+         * realloc is not guaranteed to succeed even on trim, but in the case
+         * that it fails, original buf will still be valid.
+         */
+        status = _dbuf_resize(buf, nsize);
 
-        INCR(dbuf_metrics, dbuf_shrink);
+        if (status == CC_OK) {
+            INCR(dbuf_metrics, dbuf_shrink);
+        } else {
+            INCR(dbuf_metrics, dbuf_shrink_ex);
+        }
     }
+
+    return status;
 }

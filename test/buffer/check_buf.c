@@ -350,7 +350,7 @@ START_TEST(test_dbuf_shrink)
     ck_assert_int_eq(dbuf_double(&buf), CC_OK);
 
     /* shrink, then check state */
-    dbuf_shrink(&buf);
+    ck_assert_int_eq(dbuf_shrink(&buf), CC_OK);
     ck_assert_int_eq(bmetrics.buf_memory.gauge, TEST_BUF_SIZE);
     ck_assert_uint_eq(buf_rsize(buf), sizeof(MSG1));
     ck_assert_uint_eq(buf_wsize(buf), TEST_BUF_CAP - sizeof(MSG1));
@@ -365,7 +365,7 @@ START_TEST(test_dbuf_shrink)
     ck_assert_uint_eq(buf_write(buf, MSG2, sizeof(MSG2)), sizeof(MSG2));
 
     /* shrink, then check state */
-    dbuf_shrink(&buf);
+    ck_assert_int_eq(dbuf_shrink(&buf), CC_OK);
     ck_assert_int_eq(bmetrics.buf_memory.gauge, EXPECTED_BUF_SIZE);
     ck_assert_uint_eq(buf_rsize(buf), sizeof(MSG2));
     ck_assert_uint_eq(buf_wsize(buf), EXPECTED_BUF_CAP - sizeof(MSG2));
