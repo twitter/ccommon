@@ -46,8 +46,8 @@
 //! log_setup()
 //! {
 //! 	log_config.buf_size = 1024;
-//! 	bstring_set_raw(&log_config.prefix, "templog");
-//! 	bstring_set_raw(&log_config.path, PATH);
+//! 	bstring_set_cstr(&log_config.prefix, "templog");
+//! 	bstring_set_cstr(&log_config.path, PATH);
 //! 	log_config.level = LOG_LEVEL_TRACE;
 //!
 //! 	log_handle = log_create_handle_rs(&log_config);
