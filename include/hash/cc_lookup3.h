@@ -26,6 +26,11 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+
+/* TODO (yao): consider retiring this API after moving Pelikan to murmur3, which
+ * is noticeably faster.
+ * Ref: https://blog.reverberate.org/2012/01/state-of-hash-functions-2012.html
+ */
 uint32_t hash_lookup3(const void *key, size_t length, const uint32_t initval);
 
 #ifdef __cplusplus
