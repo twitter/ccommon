@@ -57,7 +57,7 @@ event_base_create(int nevent, event_cb_fn cb)
 
     ASSERT(nevent > 0);
 
-    ep = epoll_create(nevent);
+    ep = epoll_create1(0);
     if (ep < 0) {
         log_error("epoll create size %d failed: %s", nevent, strerror(errno));
         return NULL;
