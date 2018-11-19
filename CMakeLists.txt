@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(ccommon C)
 
-set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+# Uncomment the following to output dependency graph debugging messages
+# set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
 
 enable_testing()
 
