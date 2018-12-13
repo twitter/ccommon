@@ -36,16 +36,10 @@ matrix:
 
     - os: osx
       osx_image: xcode10.1
-      env:
-        - C_COMPILER=clang
-        - ALLOWED_TO_FAIL=1
 
   allow_failures:
     - os: osx
       osx_image: xcode10.1
-      env:
-        - C_COMPILER=clang
-        - ALLOWED_TO_FAIL=1
 
 before_install:
   - ./ci/before-install.sh
