@@ -19,6 +19,7 @@ env:
 matrix:
   include:
     - name: "gcc-5 on Linux"
+      compiler: gcc
       addons:
         apt:
           <<: *apt
@@ -26,6 +27,7 @@ matrix:
             - libsubunit-dev
 
     - name: "gcc-5 on Linux, Rust enabled"
+      compiler: gcc
       env:
         - RUST_ENABLED=1
       addons:
@@ -36,16 +38,12 @@ matrix:
 
     - os: osx
       osx_image: xcode10.1
-      env:
-        - C_COMPILER=clang
-        - ALLOWED_TO_FAIL=1
+      compiler: clang
 
   allow_failures:
     - os: osx
       osx_image: xcode10.1
-      env:
-        - C_COMPILER=clang
-        - ALLOWED_TO_FAIL=1
+      compiler: clang
 
 before_install:
   - ./ci/before-install.sh
