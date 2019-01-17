@@ -6,6 +6,7 @@
 
 #define STATS_LOG_MODULE_NAME "util::stats_log"
 #define CSV_FMT "%s, "
+#define CSV_PAIR_FMT "%s: %s, "
 #define PRINT_BUF_LEN 64
 
 static struct logger *slog = NULL;
@@ -94,6 +95,22 @@ stats_log_value(struct metric metrics[], unsigned int nmetric)
     }
 }
 
+void
+stats_log(struct metric metrics[], unsigned int nmetric)
+{
+    unsigned int i;
+
+    if (slog == NULL) {
+        return;
+    }
+
+    for (i = 0; i < nmetric; i++, metrics++) {
+        int len = 0;
+
+        len = metric_print(buf, PRINT_BUF_LEN, CSV_PAIR_FMT, metrics);
+        log_write(slog, buf, len);
+    }
+}
 
 void
 stats_log_flush(void)
