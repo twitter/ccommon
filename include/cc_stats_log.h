@@ -27,8 +27,6 @@ typedef struct {
 void stats_log_setup(stats_log_options_st *options);
 void stats_log_teardown(void);
 
-void stats_log_name(struct metric metrics[], unsigned int nmetric);
-void stats_log_value(struct metric metrics[], unsigned int nmetric);
 void stats_log(struct metric metrics[], unsigned int nmetric);
 
 void stats_log_flush(void);

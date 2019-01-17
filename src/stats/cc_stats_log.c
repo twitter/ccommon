@@ -5,8 +5,7 @@
 #include <cc_metric.h>
 
 #define STATS_LOG_MODULE_NAME "util::stats_log"
-#define CSV_FMT "%s, "
-#define CSV_PAIR_FMT "%s: %s, "
+#define STATS_LOG_FMT "%s: %s, "
 #define PRINT_BUF_LEN 64
 
 static struct logger *slog = NULL;
@@ -62,40 +61,6 @@ stats_log_teardown(void)
 }
 
 void
-stats_log_name(struct metric metrics[], unsigned int nmetric)
-{
-    unsigned int i;
-
-    if (slog == NULL) {
-        return;
-    }
-
-    for (i = 0; i < nmetric; i++, metrics++) {
-        int len = 0;
-
-        len = metric_print_name(buf, PRINT_BUF_LEN, CSV_FMT, metrics);
-        log_write(slog, buf, len);
-    }
-}
-
-void
-stats_log_value(struct metric metrics[], unsigned int nmetric)
-{
-    unsigned int i;
-
-    if (slog == NULL) {
-        return;
-    }
-
-    for (i = 0; i < nmetric; i++, metrics++) {
-        int len = 0;
-
-        len = metric_print_value(buf, PRINT_BUF_LEN, CSV_FMT, metrics);
-        log_write(slog, buf, len);
-    }
-}
-
-void
 stats_log(struct metric metrics[], unsigned int nmetric)
 {
     unsigned int i;
@@ -107,7 +72,7 @@ stats_log(struct metric metrics[], unsigned int nmetric)
     for (i = 0; i < nmetric; i++, metrics++) {
         int len = 0;
 
-        len = metric_print(buf, PRINT_BUF_LEN, CSV_PAIR_FMT, metrics);
+        len = metric_print(buf, PRINT_BUF_LEN, STATS_LOG_FMT, metrics);
         log_write(slog, buf, len);
     }
 }
