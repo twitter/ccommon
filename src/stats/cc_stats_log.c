@@ -65,6 +65,10 @@ stats_log_name(struct metric metrics[], unsigned int nmetric)
 {
     unsigned int i;
 
+    if (slog == NULL) {
+        return;
+    }
+
     for (i = 0; i < nmetric; i++, metrics++) {
         int len = 0;
 
@@ -78,6 +82,10 @@ stats_log_value(struct metric metrics[], unsigned int nmetric)
 {
     unsigned int i;
 
+    if (slog == NULL) {
+        return;
+    }
+
     for (i = 0; i < nmetric; i++, metrics++) {
         int len = 0;
 
@@ -90,6 +98,9 @@ stats_log_value(struct metric metrics[], unsigned int nmetric)
 void
 stats_log_flush(void)
 {
+    if (slog == NULL) {
+        return;
+    }
     log_flush(slog);
 }
 
