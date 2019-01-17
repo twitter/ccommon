@@ -58,58 +58,6 @@ metric_reset(struct metric sarr[], unsigned int n)
     }
 }
 
-static void
-_metric_value(char *buf, struct metric *m)
-{
-    switch(m->type) {
-    case METRIC_COUNTER:
-        /**
-         * not using cc_print_uint64, since it would complicate implementation
-         * and negatively impact readability, and since this function should not
-         * be called often enough to make it absolutely performance critical.
-         */
-        cc_scnprintf(buf, VALUE_PRINT_LEN, "%llu", __atomic_load_n(&m->counter,
-                    __ATOMIC_RELAXED));
-        break;
-
-    case METRIC_GAUGE:
-        cc_scnprintf(buf, VALUE_PRINT_LEN, "%lld", __atomic_load_n(&m->gauge,
-                    __ATOMIC_RELAXED));
-        break;
-
-    case METRIC_FPN:
-        cc_scnprintf(buf, VALUE_PRINT_LEN, "%f", m->fpn);
-        break;
-
-    default:
-        NOT_REACHED();
-    }
-}
-
-size_t
-metric_print_name(char *buf, size_t nbuf, char *fmt, struct metric *m)
-{
-    if (m == NULL) {
-        return 0;
-    }
-
-    return cc_scnprintf(buf, nbuf, fmt, m->name);
-}
-
-size_t
-metric_print_value(char *buf, size_t nbuf, char *fmt, struct metric *m)
-{
-    char val_buf[VALUE_PRINT_LEN];
-
-    if (m == NULL) {
-        return 0;
-    }
-
-    _metric_value(val_buf, m);
-
-    return cc_scnprintf(buf, nbuf, fmt, val_buf);
-}
-
 size_t
 metric_print(char *buf, size_t nbuf, char *fmt, struct metric *m)
 {
@@ -119,7 +67,29 @@ metric_print(char *buf, size_t nbuf, char *fmt, struct metric *m)
         return 0;
     }
 
-    _metric_value(val_buf, m);
+    switch(m->type) {
+    case METRIC_COUNTER:
+        /**
+         * not using cc_print_uint64, since it would complicate implementation
+         * and negatively impact readability, and since this function should not
+         * be called often enough to make it absolutely performance critical.
+         */
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%llu", __atomic_load_n(
+                    &m->counter, __ATOMIC_RELAXED));
+        break;
+
+    case METRIC_GAUGE:
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%lld", __atomic_load_n(
+                    &m->gauge, __ATOMIC_RELAXED));
+        break;
+
+    case METRIC_FPN:
+        cc_scnprintf(val_buf, VALUE_PRINT_LEN, "%f", m->fpn);
+        break;
+
+    default:
+        NOT_REACHED();
+    }
 
     return cc_scnprintf(buf, nbuf, fmt, m->name, val_buf);
 }
