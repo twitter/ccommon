@@ -20,7 +20,7 @@ Goals
 =====
 
 #. Modularized functionality with consistent, intuitive interface.
-   
+
 #. Use abstraction to allow compile-time choice from multiple implementations of the same interface, but avoid excessive, multi-layered abstraction unless absolutely necessary.
 
 #. Production quality code that has built-in configuration, monitoring and logging support.
