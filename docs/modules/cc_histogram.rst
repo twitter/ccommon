@@ -140,6 +140,7 @@ References
 .. |S| replace:: :math:`S`
 .. |V| replace:: :math:`V`
 .. |h| replace:: :math:`h`
+.. |l| replace:: :math:`l`
 .. |m| replace:: :math:`m`
 .. |n| replace:: :math:`n`
 .. |r| replace:: :math:`r`
