@@ -18,13 +18,11 @@ This module aims to provide a simpler implementation, finer-grain configuration,
 Definition
 ----------
 
-In the following discussion, we assume the input values are always positive integers (i.e. zero values are not allowed). Support for zero value can be added by adding explicit checking of value as a first step into implementation.
-
 The histogram is primarily kept in a collection of buckets. The following definitions apply during bucket construction:
 
 - Minimum Resolution (|M|): :math:`M = 2^m`, where |m| is a configurable non-negative integer. the smallest unit of quantification, which is also the smallest bucket width. If the input values are always integers, choosing |m0| would ensure precise recording for the smallest values.
 - Minimum Resolution Range (|R|): :math:`R = 2^r-1`, where |r| is a configurable integer with the constraint that :math:`r>m`. This indicates the maximum value Minimum Resolution should extend to.
-- Maximum Value (|N|): :math:`N = 2^n-1`, where |n| is a configurable integer with the constraint that :math:`n>=r`.
+- Maximum Value (|N|): :math:`N = 2^n-1`, where |n| is a configurable integer with the constraint that :math:`n \ge r`.
 
 There are a few secondary definitions that help us understand the properties of the histogram, and are used often in computation:
 
@@ -39,17 +37,17 @@ Buckets
 
 The buckets are constructed as follows:
 
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
-| Resolution        | Bucket offset                                        | # Buckets          | Value Range                      |
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
-| :math:`2^{m+0}`   | :math:`[0, 2 \times G)`                              | :math:`2 \times G` | up to :math:`2^r`                |
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
-| :math:`2^{m+1}`   | :math:`[2 \times G, 3 \times G)`                     | :math:`G`          | :math:`2^r` to :math:`2^{r+1}`   |
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
-| ...               | ...                                                  | ...                | ...                              |
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
-| :math:`2^{m+n-r}` | :math:`[(n - r + 1) \times G, (n - r + 2) \times G)` | :math:`G`          | :math:`2^{n-1}` to :math:`2^{n}` |
-+-------------------+------------------------------------------------------+--------------------+----------------------------------+
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
+| Resolution        | Bucket offset                                        | # Buckets          | Value Range                          |
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
+| :math:`2^{m+0}`   | :math:`[0, 2 \times G)`                              | :math:`2 \times G` | 0 to :math:`2^r - 1`                 |
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
+| :math:`2^{m+1}`   | :math:`[2 \times G, 3 \times G)`                     | :math:`G`          | :math:`2^r` to :math:`2^{r+1} - 1`   |
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
+| ...               | ...                                                  | ...                | ...                                  |
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
+| :math:`2^{m+n-r}` | :math:`[(n - r + 1) \times G, (n - r + 2) \times G)` | :math:`G`          | :math:`2^{n-1}` to :math:`2^{n} - 1` |
++-------------------+------------------------------------------------------+--------------------+--------------------------------------+
 
 Below are a few examples that provide an intuitive understanding of the impact of the primary variables:
 
@@ -90,7 +88,7 @@ From the above table, it should be obvious that if considering using 16-bit numb
 Bucket Lookup
 ^^^^^^^^^^^^^
 
-Bucket lookup is the primary operation for recording a value.
+Bucket lookup is the primary operation for recording a value. The following algorithm only applies to positive integers (i.e. zero values are not allowed). Support for zero value can be added by adding explicit checking of value as a first step into implementation.
 
 We represent the input value as a |n|-digit binary: :math:`V = (a_{n-1}a_{n-2}...a_0)_2`, looking up the right bucket |B| for |V| works as follows:
 
@@ -116,9 +114,17 @@ Quantile Lookup
 
 Generally speaking, reporting a particular quantile :math:`q` requires traversing all the buckets once.
 
+There are a couple things to consider during implementation regarding bias in reporting. Because each bucket potentially covers a range, a decision needs to be made about what value in that range to report when we do a quantile lookup. When the histogram is relatively sparse compared to the quantiles requested, we also need to consider whether to round down or round up to the next bucket where records are logged. It is better to be consistent in the direction of rounding regarding these two scenarios for any given histogram. It is also possible to extrapolate an in-between value based on existing data, however, this could lead to the confusing situation where the reported value falls into a bucket that no records have fallen, or could possibly fall, into.
+
 *Thoughts on optimization*: To reduce the number of buckets traversed during lookup, one can store the total number of counts, :math:`C`, across all buckets, and return when the buckets traversed so far yields a cumulative count greater than :math:`q \times C` (if traversing from lowest bucket) or :math:`(1 - q) \times C` (if traversing from highest bucket). Further reduction can be achieved by using some type of "sketch" that stores cumulative values across multiple buckets, which allows the cursor to jump over many buckets at a time. The tradeoff is multiple values will need to be updated for each recording, and more space will be used.
 
 There are two typical scenarios where HdrHistogram is deployed. The first one is to check if there is any SLA violation, such as latency at 99.9\%. In this case, the percentile of interest is very close to highest end, so a simple global count and backward traversal can greatly reduce the number of buckets visited. The other one is to create a snapshot of value distribution by reporting several pre-defined percentiles at once, such as `p25`, `p50`, `p75`, `p90`, `p95`, `p99`... In this case, it is probably the most efficient to create APIs that allow multiple quantiles to be reported in a single sweeping trip through all the buckets.
+
+
+Extension
+^^^^^^^^^
+
+- Minimum Bucket (|l|): If a Minimum Bucket |l| is provided that satisfies :math:`l \le (n - r + 2 ) \times G`, all the buckets up to |l| can be skipped. For Bucket Lookup, this means final value of |B| should subtract |l|. For Quantile Lookup, this means scanning |l| fewer buckets.
 
 
 References
