@@ -108,8 +108,9 @@ histo_u32_record(struct histo_u32 *h, uint64_t value, uint32_t count)
         return HISTO_EOVERFLOW;
     }
 
-    offset = _bucket_offset(value, h->m, h->n, h->G);
+    offset = _bucket_offset(value, h->m, h->r, h->G);
     *(h->buckets + offset) += count;
+    h->nrecord += count;
 
     return HISTO_OK;
 }
@@ -122,6 +123,11 @@ _greater_dbl(double a, double b) {
 static inline bool
 _lesser_dbl(double a, double b) {
     return (b - a) >= DBL_EPSILON;
+}
+
+static inline bool
+_equal_dbl(double a, double b) {
+    return fabs(b - a) < DBL_EPSILON;
 }
 
 histo_rstatus_e
@@ -158,11 +164,12 @@ histo_u32_report(uint64_t *value, const struct histo_u32 *h, double p)
         bucket++;
         offset++;
     }
+    *value = offset; /* value must be no smaller than the lowest non-empty bucket */
     /* find the first bucket where the record count threshold is met */
     for (; offset < h->nbucket && rcount < rthreshold; ++offset, ++bucket) {
         rcount += *bucket;
+        *value = offset;
     }
-    *value = offset;
 
     return HISTO_OK;
 }
@@ -174,10 +181,11 @@ histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h)
     ASSERT(h != NULL);
 
     uint64_t rthreshold, rcount = 0;
-    uint64_t offset = 0;
+    uint64_t curr = 0, offset = 0;
     uint32_t *bucket = h->buckets;
     double *p = pp->percentile;
     uint64_t *v = pp->result;
+    uint8_t count = pp->count;
 
     if (h->nrecord == 0) {
         log_info("No value to report due to histogram being empty");
@@ -186,26 +194,38 @@ histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h)
     }
 
     /* find the lowest non-empty bucket */
-    while (offset < h->nbucket && *bucket == 0) {
+    while (curr < h->nbucket && *bucket == 0) {
         bucket++;
-        offset++;
+        curr++;
     }
-    pp->min = offset;
+    pp->min = offset = curr;
+    rthreshold = (uint64_t)ceil(*p * h->nrecord);
 
-    for (uint8_t i = 0; i < pp->count; i++, p++, v++) {
-
-        /* ceil(p * n) */
-        rthreshold = (uint64_t)ceil(*p * h->nrecord);
-        /* find the next smallest bucket where the record count threshold is met */
-        for (; offset < h->nbucket && rcount < rthreshold; ++offset, ++bucket) {
-            rcount += *bucket;
+    /* Assume the percentiles are set according to percentile_profile_set */
+    while (curr < h->nbucket && count > 0) {
+        while (curr < h->nbucket && rcount < rthreshold) {
+            if (*bucket > 0) {
+                rcount += *bucket;
+                offset = curr; /* offset always points to a non-empty bucket */
+            }
+            curr++;
+            bucket++;
         }
-        *v = offset;
+        do { /* the same bucket may satisfy multiple percentile */
+            *v = offset;
+            count--;
+            if (count == 0) {
+                break;
+            }
+            p++;
+            v++;
+            rthreshold = (uint64_t)ceil(*p * h->nrecord);
+        } while (rthreshold <= rcount);
     }
 
     /* scan the rest of the buckets to find max */
     pp->max = offset;
-    for (;offset < h->nbucket; ++offset, ++bucket) {
+    for (;curr < h->nbucket; ++curr, ++bucket) {
         bool empty = (*bucket == 0);
         pp->max = pp->max * empty + offset * !empty;
     }
@@ -274,7 +294,7 @@ percentile_profile_set(struct percentile_profile *pp, const double *percentile, 
 {
     const double *src = percentile;
     double *dst = pp->percentile;
-    double last = 0.0;
+    double last = -1.0;
 
     pp->count = count;
     for (; count > 0; count--, src++, dst++) {
@@ -288,7 +308,7 @@ percentile_profile_set(struct percentile_profile *pp, const double *percentile, 
 
             return HISTO_EUNDERFLOW;
         }
-        if (_lesser_dbl(*src, last)) {
+        if (_lesser_dbl(*src, last) || _equal_dbl(*src, last)) {
             log_error("Percentile being queried must be increasing");
 
             return HISTO_EORDER;

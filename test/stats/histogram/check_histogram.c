@@ -11,6 +11,7 @@
 
 #define PARRAY_SIZE 7
 const double parray[PARRAY_SIZE] = {0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999};
+const double pbad[PARRAY_SIZE] = {-0.5, 0.0, 0.5, 0.5, 0.25, 1.0, 2.0};
 
 /*
  * utilities
@@ -28,7 +29,7 @@ test_teardown(void)
 /*
  * tests
  */
-START_TEST(test_histo_create_destroy)
+START_TEST(test_histo_basic)
 {
 #define m 1
 #define r 10
@@ -63,9 +64,97 @@ START_TEST(test_percentile_basic)
         ck_assert(fabs(*(pp->percentile + count) - parray[count]) < DBL_EPSILON);
     }
 
+    /* percentile checks */
+    ck_assert(percentile_profile_set(pp, pbad, 2) == HISTO_EUNDERFLOW);
+    ck_assert(percentile_profile_set(pp, pbad + 1, 3) == HISTO_EORDER);
+    ck_assert(percentile_profile_set(pp, pbad + 3, 3) == HISTO_EORDER);
+    ck_assert(percentile_profile_set(pp, pbad + 4, 3) == HISTO_EOVERFLOW);
+
     percentile_profile_destroy(&pp);
     ck_assert(pp == NULL);
+}
+END_TEST
 
+START_TEST(test_record)
+{
+#define m 0
+#define r 10
+#define n 20
+    struct histo_u32 *histo = histo_u32_create(m, r, n);
+
+    ck_assert_int_eq(histo->nrecord, 0);
+    histo_u32_record(histo, 0, 1);
+    ck_assert_int_eq(*histo->buckets, 1);
+    ck_assert_int_eq(histo->nrecord, 1);
+    histo_u32_record(histo, 1, 1);
+    ck_assert_int_eq(*(histo->buckets + 1), 1);
+    ck_assert_int_eq(histo->nrecord, 2);
+    histo_u32_record(histo, 1023, 1);
+    ck_assert_int_eq(*(histo->buckets + 1023), 1);
+    histo_u32_record(histo, 1024, 1);
+    ck_assert_int_eq(*(histo->buckets + 1024), 1);
+    histo_u32_record(histo, 1025, 1);
+    ck_assert_int_eq(*(histo->buckets + 1024), 2);
+    histo_u32_record(histo, 1026, 1);
+    ck_assert_int_eq(*(histo->buckets + 1025), 1);
+    histo_u32_record(histo, 2048, 1);
+    ck_assert_int_eq(*(histo->buckets + 1536), 1);
+    histo_u32_record(histo, 2051, 1);
+    ck_assert_int_eq(*(histo->buckets + 1536), 2);
+    histo_u32_record(histo, 2052, 1);
+    ck_assert_int_eq(*(histo->buckets + 1537), 1);
+    histo_u32_record(histo, (1 << 20) - 1, 1);
+    ck_assert_int_eq(*(histo->buckets + histo->nbucket - 1), 1);
+    ck_assert(histo_u32_record(histo, 1 << 20, 1) == HISTO_EOVERFLOW);
+
+    histo_u32_destroy(&histo);
+#undef n
+#undef r
+#undef m
+}
+END_TEST
+
+START_TEST(test_report_sparse)
+{
+#define m 1
+#define r 3
+#define n 5
+    const double percentiles[5] = {0.0, 0.1, 0.5, 0.75, 1.0};
+    const double results[5] = {1, 1, 3, 6, 6};
+    uint64_t value;
+    struct histo_u32 *histo = histo_u32_create(m, r, n);
+    struct percentile_profile *pp = percentile_profile_create(5);
+
+    ck_assert(histo_u32_report(&value, histo, 0.1) == HISTO_EEMPTY);
+
+    histo_u32_record(histo, 2, 1); /* bucket 1 */
+    histo_u32_record(histo, 6, 1); /* bucket 3 */
+    ck_assert_int_eq(*(histo->buckets + 3), 1);
+    histo_u32_record(histo, 23, 1);/* bucket 6 */
+
+
+    ck_assert(histo_u32_report(&value, histo, 0.0) == HISTO_OK);
+    ck_assert_int_eq(value, 1);
+    ck_assert(histo_u32_report(&value, histo, 0.1) == HISTO_OK);
+    ck_assert_int_eq(value, 1);
+    ck_assert(histo_u32_report(&value, histo, 0.5) == HISTO_OK);
+    ck_assert_int_eq(value, 3);
+    ck_assert(histo_u32_report(&value, histo, 0.75) == HISTO_OK);
+    ck_assert_int_eq(value, 6);
+    ck_assert(histo_u32_report(&value, histo, 1.0) == HISTO_OK);
+    ck_assert_int_eq(value, 6);
+
+    ck_assert_int_eq(percentile_profile_set(pp, percentiles, 5), HISTO_OK);
+    ck_assert(histo_u32_report_multi(pp, histo) == HISTO_OK);
+    for (int i = 0; i < 5; ++i) {
+        ck_assert_int_eq(*(pp->result + i), results[i]);
+    }
+
+    percentile_profile_destroy(&pp);
+    histo_u32_destroy(&histo);
+#undef n
+#undef r
+#undef m
 }
 END_TEST
 
@@ -82,9 +171,10 @@ metric_suite(void)
     TCase *tc_histogram = tcase_create("cc_histogram test");
     suite_add_tcase(s, tc_histogram);
 
-    tcase_add_test(tc_histogram, test_histo_create_destroy);
+    tcase_add_test(tc_histogram, test_histo_basic);
     tcase_add_test(tc_histogram, test_percentile_basic);
-
+    tcase_add_test(tc_histogram, test_record);
+    tcase_add_test(tc_histogram, test_report_sparse);
     return s;
 }
 /**************
