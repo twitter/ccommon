@@ -32,7 +32,6 @@ struct histo_u32
     uint32_t m;
     uint32_t r;
     uint32_t n;
-    bool     over; /* reported values should overstate if true, understate if false */
 
     /* the following variables are computed from those above */
     uint64_t M; /* Minimum Resolution: 2^m */
@@ -52,7 +51,7 @@ struct histo_u32
 };
 
 /* APIs */
-struct histo_u32 *histo_u32_create(uint32_t m, uint32_t r, uint32_t n, bool roundup);
+struct histo_u32 *histo_u32_create(uint32_t m, uint32_t r, uint32_t n);
 void histo_u32_destroy(struct histo_u32 **h);
 
 /* the most important assumption here is that we assume reset/report will always
@@ -62,19 +61,15 @@ void histo_u32_destroy(struct histo_u32 **h);
  */
 void histo_u32_reset(struct histo_u32 *h);
 histo_rstatus_e histo_u32_record(struct histo_u32 *h, uint64_t value, uint32_t count);
-/* the following functions return the highest/lowest value the corresponding
- * buckets represent depending on how histogram is configured in terms of over-/
- * under-stating.
+/* the following functions return the bucket for the percentile(s) requested.
  * If the histogram is too sparse for the percentile specified, the next
- * higher (if overstating) / lower (if understating) non-empty bucket would be
- * returned, with all values bounded by minimum / maximum occupied buckets.
+ * (higher) non-empty bucket is returned.
  *
- * For example, for m=2 and records (2, 5). From an overstating histogram,
- * min/p0 returns 2, p25 returns 2, p50 returns 2, p75 returns 6, p90 returns 6,
- * and max/p100 returns 6. From an understating histogram, min/p0 returns 1,
- * p25/p50/p75/p90 all return 1, and max/p100 returns 5.
+ * It is upon the caller to translate bucket to value(s), for example by using
+ * bucket_low/high to get the value range.
  */
-histo_rstatus_e histo_u32_report(uint64_t *value, const struct histo_u32 *h, double p);
+histo_rstatus_e histo_u32_report(uint64_t *bucket, const struct histo_u32 *h, double p);
+/* when using percentile_profile, min/max buckets are always updated/returned */
 histo_rstatus_e histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h);
 
 void histo_u32_reset_consumer(struct histo_u32*h);
@@ -83,6 +78,28 @@ histo_rstatus_e histo_u32_record_producer(struct histo_u32 *h, uint64_t value, u
 struct percentile_profile *percentile_profile_create(uint8_t cap);
 void percentile_profile_destroy(struct percentile_profile **pp);
 histo_rstatus_e percentile_profile_set(struct percentile_profile *pp, const double *percentile, uint8_t count);
+
+static inline uint64_t
+bucket_low(const struct histo_u32 *h, uint64_t bucket)
+{
+    uint64_t g = bucket >> (h->r - h->m - 1); /* bucket offset in terms of G */
+    uint64_t b = g - g * h->G;
+
+    /* g < 2 & g >= 2 have different formula */
+    return (g < 2) * ((1 << h->m) * b) +
+        (g >= 2) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b);
+}
+
+static inline uint64_t
+bucket_high(const struct histo_u32 *h, uint64_t bucket)
+{
+    uint64_t g = bucket >> (h->r - h->m - 1); /* bucket offset in terms of G */
+    uint64_t b = g - g * h->G + 1; /* the next bucket */
+
+    /* g < 2 & g >= 2 have different formula */
+    return (g < 2) * ((1 << h->m) * b - 1) +
+        (g >= 2) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b - 1);
+}
 
 #ifdef __cplusplus
 }

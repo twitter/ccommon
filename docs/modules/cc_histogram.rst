@@ -114,7 +114,7 @@ Quantile Lookup
 
 Generally speaking, reporting a particular quantile :math:`q` requires traversing all the buckets once.
 
-There are a couple things to consider during implementation regarding bias in reporting. Because each bucket potentially covers a range, a decision needs to be made about what value in that range to report when we do a quantile lookup. When the histogram is relatively sparse compared to the quantiles requested, we also need to consider whether to round down or round up to the next bucket where records are logged. It is better to be consistent in the direction of rounding regarding these two scenarios for any given histogram. It is also possible to extrapolate an in-between value based on existing data, however, this could lead to the confusing situation where the reported value falls into a bucket that no records have fallen, or could possibly fall, into.
+There are a couple things to consider during implementation regarding bias in reporting. Because each bucket potentially covers a range, a decision needs to be made about what value in that range to report when we do a quantile lookup. When buckets are not fully populated, we also need to consider how to interpret results that don't fall neatly in a single bucket. For the latter, we use the nearest-rank method to find the nearest bucket with records. Alternatively, it is also possible to extrapolate an in-between value based on existing data, however, this could lead to the confusing situation where the reported value falls into a bucket that no records have fallen, or could possibly fall, into.
 
 *Thoughts on optimization*: To reduce the number of buckets traversed during lookup, one can store the total number of counts, :math:`C`, across all buckets, and return when the buckets traversed so far yields a cumulative count greater than :math:`q \times C` (if traversing from lowest bucket) or :math:`(1 - q) \times C` (if traversing from highest bucket). Further reduction can be achieved by using some type of "sketch" that stores cumulative values across multiple buckets, which allows the cursor to jump over many buckets at a time. The tradeoff is multiple values will need to be updated for each recording, and more space will be used.
 
@@ -130,7 +130,7 @@ Extension
 References
 ----------
 .. [HdrHistogram] `High dynamic range histogram <http://www.hdrhistogram.org/>`_
-
+.. [NearestRank] `Nearest-rank method to calculate percentile <https://en.wikipedia.org/wiki/Percentile#The_nearest-rank_method>`_
 
 .. |B| replace:: :math:`B`
 .. |G| replace:: :math:`G`
