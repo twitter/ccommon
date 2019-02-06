@@ -130,6 +130,12 @@ _equal_dbl(double a, double b) {
     return fabs(b - a) < DBL_EPSILON;
 }
 
+static inline uint64_t
+_threshold(uint64_t nrecord, double percentile)
+{
+    return (uint64_t)ceil(percentile * nrecord / 100);
+}
+
 histo_rstatus_e
 histo_u32_report(uint64_t *value, const struct histo_u32 *h, double p)
 {
@@ -139,13 +145,13 @@ histo_u32_report(uint64_t *value, const struct histo_u32 *h, double p)
     uint64_t offset = 0;
     uint32_t *bucket = h->buckets;
 
-    if (_greater_dbl(p, 1.0f)) {
-        log_error("Percentile must be between [0.0, 1.0], %f provided", p);
+    if (_greater_dbl(p, 100.0f)) {
+        log_error("Percentile must be between [0.0, 100.0], %f provided", p);
 
         return HISTO_EOVERFLOW;
     }
     if (_lesser_dbl(p, 0.0f)) {
-        log_error("Percentile must be between [0.0, 1.0], %f provided", p);
+        log_error("Percentile must be between [0.0, 100.0], %f provided", p);
 
         return HISTO_EUNDERFLOW;
     }
@@ -155,7 +161,7 @@ histo_u32_report(uint64_t *value, const struct histo_u32 *h, double p)
         return HISTO_EEMPTY;
     }
 
-    rthreshold = (uint64_t)ceil(p * h->nrecord);
+    rthreshold = _threshold(h->nrecord, p);
     /* find the lowest non-empty bucket, this is done separately to make sure
      * that if the threshold is 0 (e.g. p=0.0), we still return a bucket within
      * the range of recorded values.
@@ -199,7 +205,7 @@ histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h)
         curr++;
     }
     pp->min = offset = curr;
-    rthreshold = (uint64_t)ceil(*p * h->nrecord);
+    rthreshold = _threshold(h->nrecord, *p);
 
     /* Assume the percentiles are set according to percentile_profile_set */
     while (curr < h->nbucket && count > 0) {
@@ -219,7 +225,7 @@ histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h)
             }
             p++;
             v++;
-            rthreshold = (uint64_t)ceil(*p * h->nrecord);
+            rthreshold = _threshold(h->nrecord, *p);
         } while (rthreshold <= rcount);
     }
 
@@ -298,13 +304,13 @@ percentile_profile_set(struct percentile_profile *pp, const double *percentile, 
 
     pp->count = count;
     for (; count > 0; count--, src++, dst++) {
-        if (_greater_dbl(*src, 1.0f)) {
-            log_error("Percentile must be between [0.0, 1.0], %f provided", *src);
+        if (_greater_dbl(*src, 100.0f)) {
+            log_error("Percentile must be between [0.0, 100.0], %f provided", *src);
 
             return HISTO_EOVERFLOW;
         }
         if (_lesser_dbl(*src, 0.0f)) {
-            log_error("Percentile must be between [0.0, 1.0], %f provided", *src);
+            log_error("Percentile must be between [0.0, 100.0], %f provided", *src);
 
             return HISTO_EUNDERFLOW;
         }

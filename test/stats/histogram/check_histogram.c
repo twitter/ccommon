@@ -10,8 +10,8 @@
 #define DEBUG_LOG  SUITE_NAME ".log"
 
 #define PARRAY_SIZE 7
-const double parray[PARRAY_SIZE] = {0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999};
-const double pbad[PARRAY_SIZE] = {-0.5, 0.0, 0.5, 0.5, 0.25, 1.0, 2.0};
+const double parray[PARRAY_SIZE] = {25, 50, 75, 90, 95, 99, 99.9};
+const double pbad[PARRAY_SIZE] = {-5, 0, 50, 50, 25, 100, 200};
 
 /*
  * utilities
@@ -119,7 +119,7 @@ START_TEST(test_report_sparse)
 #define m 1
 #define r 3
 #define n 5
-    const double percentiles[5] = {0.0, 0.1, 0.5, 0.75, 1.0};
+    const double percentiles[5] = {0, 10, 50, 75, 100};
     const double results[5] = {1, 1, 3, 6, 6};
     uint64_t value;
     struct histo_u32 *histo = histo_u32_create(m, r, n);
@@ -133,22 +133,30 @@ START_TEST(test_report_sparse)
     histo_u32_record(histo, 23, 1);/* bucket 6 */
 
 
-    ck_assert(histo_u32_report(&value, histo, 0.0) == HISTO_OK);
+    ck_assert(histo_u32_report(&value, histo, percentiles[0]) == HISTO_OK);
     ck_assert_int_eq(value, 1);
-    ck_assert(histo_u32_report(&value, histo, 0.1) == HISTO_OK);
+    ck_assert(histo_u32_report(&value, histo, percentiles[1]) == HISTO_OK);
     ck_assert_int_eq(value, 1);
-    ck_assert(histo_u32_report(&value, histo, 0.5) == HISTO_OK);
+    ck_assert(histo_u32_report(&value, histo, percentiles[2]) == HISTO_OK);
     ck_assert_int_eq(value, 3);
-    ck_assert(histo_u32_report(&value, histo, 0.75) == HISTO_OK);
+    ck_assert(histo_u32_report(&value, histo, percentiles[3]) == HISTO_OK);
     ck_assert_int_eq(value, 6);
-    ck_assert(histo_u32_report(&value, histo, 1.0) == HISTO_OK);
+    ck_assert(histo_u32_report(&value, histo, percentiles[4]) == HISTO_OK);
     ck_assert_int_eq(value, 6);
 
     ck_assert_int_eq(percentile_profile_set(pp, percentiles, 5), HISTO_OK);
     ck_assert(histo_u32_report_multi(pp, histo) == HISTO_OK);
+    ck_assert_int_eq(pp->min, 1);
+    ck_assert_int_eq(pp->max, 6);
     for (int i = 0; i < 5; ++i) {
         ck_assert_int_eq(*(pp->result + i), results[i]);
     }
+
+    histo_u32_record(histo, 31, 1); /* bucket 7 */
+    ck_assert(histo_u32_report_multi(pp, histo) == HISTO_OK);
+    ck_assert_int_eq(pp->min, 1);
+    ck_assert_int_eq(pp->max, 7);
+    ck_assert_int_eq(*(pp->result + 4), 7);
 
     percentile_profile_destroy(&pp);
     histo_u32_destroy(&histo);
@@ -158,6 +166,30 @@ START_TEST(test_report_sparse)
 }
 END_TEST
 
+START_TEST(test_report_exact)
+{
+#define m 0
+#define r 4
+#define n 4
+    uint64_t value;
+    struct histo_u32 *histo = histo_u32_create(m, r, n);
+
+    for (int i = 1; i <= 10; ++i) {
+        histo_u32_record(histo, i, 1);
+        ck_assert_int_eq(*(histo->buckets + i), 1);
+    }
+
+    for (int i = 1; i <= 10; ++i) {
+        ck_assert(histo_u32_report(&value, histo, i * 10) == HISTO_OK);
+        ck_assert_int_eq(value, i);
+    }
+
+    histo_u32_destroy(&histo);
+#undef n
+#undef r
+#undef m
+}
+END_TEST
 
 /*
  * test suite
@@ -175,6 +207,7 @@ metric_suite(void)
     tcase_add_test(tc_histogram, test_percentile_basic);
     tcase_add_test(tc_histogram, test_record);
     tcase_add_test(tc_histogram, test_report_sparse);
+    tcase_add_test(tc_histogram, test_report_exact);
     return s;
 }
 /**************
