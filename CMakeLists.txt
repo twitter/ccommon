@@ -154,7 +154,15 @@ endif(COVERAGE)
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
-find_package(Check)
+find_package(PkgConfig QUIET)
+
+if(PKG_CONFIG_FOUND)
+    pkg_check_modules(CHECK QUIET check>=0.10)
+endif()
+
+if(NOT CHECK_FOUND)
+    find_package(Check QUIET 0.10)
+endif()
 
 if (HAVE_ITT_INSTRUMENTATION)
     if(PKG_CONFIG_FOUND)
