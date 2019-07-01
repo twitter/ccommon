@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 project(ccommon C)
 
 # Uncomment the following to output dependency graph debugging messages
