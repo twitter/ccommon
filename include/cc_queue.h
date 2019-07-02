@@ -694,8 +694,7 @@ struct {                                                                \
 
 #define TAILQ_REINIT(head, var, field, offset) do {                     \
     TAILQ_FIRST((head)) = var;                                          \
-    *(head)->tqh_last = NULL;                                           \
-    TAILQ_FOREACH(var, head, s_tqe) {                                   \
+    TAILQ_FOREACH(var, head, field) {                                   \
         if ((TAILQ_NEXT((var), field)) != NULL) {                       \
             TAILQ_NEXT((var), field) =                                  \
                 (void *)((char *)(TAILQ_NEXT((var), field)) + (offset));\
@@ -706,6 +705,7 @@ struct {                                                                \
             (var)->field.tqe_prev =                                     \
                 (void *)((char *)((var)->field.tqe_prev) + (offset));   \
         }                                                               \
+        (head)->tqh_last = &TAILQ_NEXT((var), field);                   \
     }                                                                   \
 } while (0)
 
