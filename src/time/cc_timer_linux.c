@@ -172,7 +172,7 @@ _now_ns(void)
 {
     struct timespec now;
 
-    _gettime(&now, cid[DURATION_PRECISE]);
+    _gettime(&now, DURATION_PRECISE);
     return now.tv_sec * NSEC_PER_SEC + now.tv_nsec;
 }
 
