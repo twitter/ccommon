@@ -36,7 +36,7 @@ histo_u32_create(uint32_t m, uint32_t r, uint32_t n)
     histo->G = 1 << (r - m - 1);
     histo->nbucket = (n - r + 2) * histo->G;
 
-    histo->buckets = cc_alloc(histo->nbucket * sizeof(uint32_t));
+    histo->buckets = cc_alloc(histo->nbucket * sizeof(*histo->buckets));
     if (histo->buckets == NULL) {
         log_error("Failed to allocate buckets");
         cc_free(histo);
