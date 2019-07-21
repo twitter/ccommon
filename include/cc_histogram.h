@@ -40,8 +40,8 @@ struct histo_u32
     uint64_t G; /* Grouping Factor: 2^(r-m-1) */
     uint64_t nbucket;  /* total number of buckets: (n-r+2)*G */
 
-    /* we are treating integer operations as atomic (under relaxed constraint),
-     * this is true on x86 which is all we care about for now
+    /* we are treating integer operations as atomic (under relaxed constraint
+     * and when there's only one writer), this is true on x86
      */
     uint64_t nrecord;  /* total number of records */
     uint32_t *buckets; /* buckets where counts are kept as uint32_t */
@@ -53,27 +53,6 @@ struct histo_u32
 /* APIs */
 struct histo_u32 *histo_u32_create(uint32_t m, uint32_t r, uint32_t n);
 void histo_u32_destroy(struct histo_u32 **h);
-
-/* the most important assumption here is that we assume reset/report will always
- * be called by the same thread, while record is called from a different thread.
- * This fits the worker / admin model where the former records value and the
- * latter reports/resets histograms.
- */
-void histo_u32_reset(struct histo_u32 *h);
-histo_rstatus_e histo_u32_record(struct histo_u32 *h, uint64_t value, uint32_t count);
-/* the following functions return the bucket for the percentile(s) requested.
- * If the histogram is too sparse for the percentile specified, the next
- * (higher) non-empty bucket is returned.
- *
- * It is upon the caller to translate bucket to value(s), for example by using
- * bucket_low/high to get the value range.
- */
-histo_rstatus_e histo_u32_report(uint64_t *bucket, const struct histo_u32 *h, double p);
-/* when using percentile_profile, min/max buckets are always updated/returned */
-histo_rstatus_e histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h);
-
-void histo_u32_reset_consumer(struct histo_u32*h);
-histo_rstatus_e histo_u32_record_producer(struct histo_u32 *h, uint64_t value, uint32_t count);
 
 struct percentile_profile *percentile_profile_create(uint8_t cap);
 void percentile_profile_destroy(struct percentile_profile **pp);
@@ -93,13 +72,29 @@ bucket_low(const struct histo_u32 *h, uint64_t bucket)
 static inline uint64_t
 bucket_high(const struct histo_u32 *h, uint64_t bucket)
 {
-    uint64_t g = bucket >> (h->r - h->m - 1); /* bucket offset in terms of G */
+    uint64_t g = bucket >> (h->r - h->m - 1); /* offset as multiplers of G */
     uint64_t b = g - g * h->G + 1; /* the next bucket */
 
     /* g < 2 & g >= 2 have different formula */
     return (g < 2) * ((1 << h->m) * b - 1) +
         (g >= 2) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b - 1);
 }
+
+/************************
+ * Non-thread-safe APIs *
+ ************************/
+void histo_u32_reset(struct histo_u32 *h);
+histo_rstatus_e histo_u32_record(struct histo_u32 *h, uint64_t value, uint32_t count);
+/* the following functions return the bucket for the percentile(s) requested.
+ * If the histogram is too sparse for the percentile specified, the next
+ * (higher) non-empty bucket is returned.
+ *
+ * It is upon the caller to translate bucket to value(s), for example by using
+ * bucket_low/high to get the value range.
+ */
+histo_rstatus_e histo_u32_report(uint64_t *bucket, const struct histo_u32 *h, double p);
+/* when using percentile_profile, min/max buckets are always updated/returned */
+histo_rstatus_e histo_u32_report_multi(struct percentile_profile *pp, const struct histo_u32 *h);
 
 #ifdef __cplusplus
 }

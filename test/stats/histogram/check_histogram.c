@@ -191,6 +191,22 @@ START_TEST(test_report_exact)
 }
 END_TEST
 
+START_TEST(test_bucket)
+{
+#define m 0
+#define r 10
+#define n 20
+    struct histo_u32 *histo = histo_u32_create(m, r, n);
+
+    ck_assert_int_eq(histo->nrecord, 0);
+
+    histo_u32_destroy(&histo);
+#undef n
+#undef r
+#undef m
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -208,6 +224,7 @@ metric_suite(void)
     tcase_add_test(tc_histogram, test_record);
     tcase_add_test(tc_histogram, test_report_sparse);
     tcase_add_test(tc_histogram, test_report_exact);
+    tcase_add_test(tc_histogram, test_bucket);
     return s;
 }
 /**************
