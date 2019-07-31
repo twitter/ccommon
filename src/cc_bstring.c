@@ -136,12 +136,12 @@ bstring_atoi64(int64_t *i64, struct bstring *str)
         }
 
         // overflow check
-        if (offset == CC_INT64_MAXLEN - 2 && *i64 == UINT64_MAX / 10 &&
+        if (offset == CC_INT64_MAXLEN - 2 && *i64 == INT64_MAX / 10 &&
                 c > INT64_MAX % 10 + '0') {
             return CC_ERROR;
         }
 
-        *i64 = *i64 * 10ULL + (int64_t)(c - '0');
+        *i64 = *i64 * 10LL + (int64_t)(c - '0');
     }
 
     *i64 = *i64 * sign;
