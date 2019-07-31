@@ -136,15 +136,19 @@ bstring_atoi64(int64_t *i64, struct bstring *str)
         }
 
         // overflow check
-        if (offset == CC_INT64_MAXLEN - 2 && *i64 == INT64_MAX / 10 &&
-                c > INT64_MAX % 10 + '0') {
-            return CC_ERROR;
+        if (offset == CC_INT64_MAXLEN - 2) {
+            if (sign < 0 && *i64 == INT64_MIN / 10 &&
+                    c - '0' > (uint64_t)(-INT64_MIN) % 10) {
+                return CC_ERROR;
+            }
+            if (sign > 0 && *i64 == INT64_MAX / 10 &&
+                    c - '0' > INT64_MAX % 10) {
+                return CC_ERROR;
+            }
         }
 
-        *i64 = *i64 * 10LL + (int64_t)(c - '0');
+        *i64 = *i64 * 10LL + sign * (int64_t)(c - '0');
     }
-
-    *i64 = *i64 * sign;
 
     return CC_OK;
 }
