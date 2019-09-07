@@ -319,7 +319,7 @@ _tcp_accept(struct tcp_conn *sc)
 {
     int sd;
 
-    ASSERT(sc->sd > 0);
+    ASSERT(sc->sd >= 0);
 
     for (;;) { /* we accept at most one tcp_conn with the 'break' at the end */
 #ifdef CC_ACCEPT4
@@ -328,18 +328,17 @@ _tcp_accept(struct tcp_conn *sc)
         sd = accept(sc->sd, NULL, NULL);
 #endif /* CC_ACCEPT4 */
         if (sd < 0) {
-            if (errno == EINTR) {
-                log_debug("accept on sd %d not ready: eintr", sc->sd);
-                continue;
-            }
-
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 log_debug("accept on sd %d not ready: eagain", sc->sd);
                 return -1;
             }
 
-            log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
-            INCR(tcp_metrics, tcp_accept_ex);
+            if (errno == EINTR) {
+                log_debug("accept on sd %d not ready: eintr", sc->sd);
+            } else{
+                log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
+                INCR(tcp_metrics, tcp_accept_ex);
+            }
             continue;
         }
 
@@ -423,19 +422,18 @@ tcp_reject_all(struct tcp_conn *sc)
     for (;;) {
         sd = accept(sc->sd, NULL, NULL);
         if (sd < 0) {
-            if (errno == EINTR) {
-                log_debug("sd %d not ready: eintr", sc->sd);
-                continue;
-            }
-
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 log_debug("sd %d has no more outstanding connections", sc->sd);
                 return;
             }
 
-            log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
-            INCR(tcp_metrics, tcp_reject_ex);
-            return;
+            if (errno == EINTR) {
+                log_debug("sd %d not ready: eintr", sc->sd);
+            } else{
+                log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
+                INCR(tcp_metrics, tcp_reject_ex);
+            }
+            continue;
         }
 
         ret = close(sd);
