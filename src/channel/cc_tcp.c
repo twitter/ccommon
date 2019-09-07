@@ -345,6 +345,7 @@ _tcp_accept(struct tcp_conn *sc)
         break;
     }
 
+    ASSERT(sd >= 0);
     return sd;
 }
 
