@@ -82,7 +82,6 @@ if(BUILD_AND_INSTALL_CHECK)
 
     set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
     set(CMAKE_REQUIRED_INCLUDES "${CHECK_ROOT_DIR}/include")    # these make check link correctly in ccommon and pelikan
-    set(CMAKE_REQUIRED_LIBRARIES "${CHECK_ROOT_DIR}/lib")
 endif()
 
 include(CheckIncludeFiles)
@@ -156,15 +155,6 @@ include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(Check)
-if(NOT CHECK_FOUND)
-    message(WARNING "Check is required to build and run tests")
-endif(NOT CHECK_FOUND)
-if(CHECK_FOUND)
-    check_symbol_exists(ck_assert_int_eq check.h CHECK_WORKING)
-    if(NOT CHECK_WORKING)
-        message(WARNING "Check version too old to build tests")
-    endif(NOT CHECK_WORKING)
-endif(CHECK_FOUND)
 
 if (HAVE_ITT_INSTRUMENTATION)
     if(PKG_CONFIG_FOUND)
@@ -192,10 +182,10 @@ include_directories(
 
 add_subdirectory(src)
 
-if(CHECK_WORKING)
-    include_directories(${include_directories} "${CHECK_INCLUDES}")
+if(CHECK_FOUND)
+    include_directories(${include_directories} ${CHECK_INCLUDES})
     add_subdirectory(test)
-endif(CHECK_WORKING)
+endif(CHECK_FOUND)
 
 
 if(HAVE_RUST)
@@ -221,4 +211,4 @@ message(STATUS "HAVE_SIGNAME: " ${HAVE_SIGNAME})
 
 message(STATUS "HAVE_BACKTRACE: " ${HAVE_BACKTRACE})
 
-message(STATUS "CHECK_WORKING: " ${CHECK_WORKING})
+message(STATUS "CHECK_FOUND: " ${CHECK_FOUND})
