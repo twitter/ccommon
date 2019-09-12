@@ -467,7 +467,7 @@ tcp_reject_all(struct tcp_conn *sc)
             log_error("accept on sd %d failed: %s", sc->sd, strerror(errno));
             INCR(tcp_metrics, tcp_reject_ex);
 
-            return -1;
+            return;
         }
 
         ret = close(sd);
