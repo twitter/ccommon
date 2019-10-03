@@ -3,6 +3,7 @@
 members = [
     "cc_binding",
     "ccommon_rs",
+    "ccommon-derive"
 ]
 
 [profile.release]
