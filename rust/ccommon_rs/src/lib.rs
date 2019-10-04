@@ -54,7 +54,7 @@ mod ccbox;
 mod error;
 
 pub use self::ccbox::CCBox;
-pub use self::error::Error;
+pub use self::error::{Error, AllocationError};
 
 pub type Result<T> = result::Result<T, failure::Error>;
 

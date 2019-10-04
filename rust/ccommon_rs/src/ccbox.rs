@@ -1,9 +1,26 @@
+// ccommon - a cache common library.
+// Copyright (C) 2019 Twitter, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::fmt;
 use std::mem::{self, MaybeUninit};
 use std::ops::*;
 use std::ptr::NonNull;
 
 use cc_binding::{_cc_alloc, _cc_free};
+
+use crate::error::AllocationError;
 
 macro_rules! c_str {
     ($s:expr) => {
@@ -20,23 +37,36 @@ unsafe impl<T: Send + ?Sized> Send for CCBox<T> {}
 unsafe impl<T: Sync + ?Sized> Sync for CCBox<T> {}
 
 impl<T> CCBox<T> {
+    /// Create a new `CCBox` with `val` inside.
+    /// 
+    /// # Panics
+    /// Panics if the underlying allocator fails to allocate
+    /// or if `T` requires an alignment of greater than 16.
     pub fn new(val: T) -> CCBox<T> {
         // Most malloc implementations give 16-byte alignment
         assert!(mem::align_of::<T>() <= 16);
 
         match Self::try_new(val) {
-            Some(x) => x,
-            None => panic!("Failed to allocate memory"),
+            Ok(x) => x,
+            Err(e) => panic!("{}", e),
         }
     }
 
-    pub fn try_new(val: T) -> Option<CCBox<T>> {
+    /// Attempt to create a new `CCBox` with `val` inside.
+    /// 
+    /// Since the underlying allocator does not support
+    /// passing alignments, any allocation with alignment
+    /// greater than 16 will fail. 
+    /// 
+    /// In addition, returns an error whenever the underlying
+    /// allocator returns `NULL`.
+    pub fn try_new(val: T) -> Result<CCBox<T>, AllocationError<T>> {
         if mem::size_of_val(&val) == 0 {
-            return Some(CCBox(NonNull::dangling()));
+            return Ok(CCBox(NonNull::dangling()));
         }
 
         if mem::align_of_val(&val) > 16 {
-            return None;
+            return Err(AllocationError::new());
         }
 
         unsafe {
@@ -48,7 +78,10 @@ impl<T> CCBox<T> {
 
             *ptr = MaybeUninit::new(val);
 
-            Some(CCBox(NonNull::new(ptr as *mut T)?))
+            Ok(CCBox(match NonNull::new(ptr as *mut T) {
+                Some(x) => x,
+                None => return Err(AllocationError::new())
+            }))
         }
     }
 }
@@ -63,8 +96,8 @@ impl<T: ?Sized> CCBox<T> {
     ///
     /// # Safety
     /// For this to be safe the pointer must have been allocated
-    /// using [`_cc_alloc`](ccommon_sys::_cc_alloc). In addition,
-    /// calling `CCBox::from_raw`
+    /// using [`_cc_alloc`](ccommon_sys::_cc_alloc) (this includes
+    /// values allocated through `CCBox::new`).
     pub unsafe fn from_raw(raw: *mut T) -> Self {
         assert!(!raw.is_null());
 
@@ -176,5 +209,13 @@ mod tests {
 
             assert_eq!(ptr1, ptr2);
         }
+    }
+
+    #[test]
+    fn overaligned() {
+        #[repr(align(128))]
+        struct OverAligned(u8);
+
+        assert!(CCBox::try_new(OverAligned(0)).is_err());
     }
 }
