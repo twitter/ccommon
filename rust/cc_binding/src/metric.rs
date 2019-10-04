@@ -41,7 +41,7 @@ impl metric_anon_union {
 
         (&self.bytes).align_to().1.as_ptr()
     }
-    
+
     pub unsafe fn as_mut_ptr<T>(&mut self) -> *mut T {
         assert!(align_of::<T>() <= align_of::<Self>());
         assert!(size_of::<T>() <= size_of::<Self>());

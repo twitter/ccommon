@@ -164,7 +164,7 @@ fn derive_metrics_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
             let ref name = field.ident;
             let label = match is_tuple {
                 true => quote! {},
-                false => quote! { #name: }
+                false => quote! { #name: },
             };
 
             Ok(match get_metric_attr(&field.attrs)? {
@@ -174,7 +174,9 @@ fn derive_metrics_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
                         Some(name) => to_c_str(&name.val),
                         None => match field.ident.as_ref() {
                             Some(name) => to_c_str(&name_as_lit(name)),
-                            None => to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span()))),
+                            None => {
+                                to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span())))
+                            }
                         },
                     };
 
@@ -275,7 +277,7 @@ fn derive_options_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
             let ref name = field.ident;
             let label = match is_tuple {
                 true => quote! {},
-                false => quote! { #name: }
+                false => quote! { #name: },
             };
 
             Ok(match get_option_attr(&field.attrs)? {
@@ -285,7 +287,9 @@ fn derive_options_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
                         Some(name) => to_c_str(&name.val),
                         None => match field.ident.as_ref() {
                             Some(name) => to_c_str(&name_as_lit(name)),
-                            None => to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span()))),
+                            None => {
+                                to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span())))
+                            }
                         },
                     };
 

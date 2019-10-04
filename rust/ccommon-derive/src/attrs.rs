@@ -1,17 +1,32 @@
+// ccommon - a cache common library.
+// Copyright (C) 2019 Twitter, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::parse::*;
-use syn::*;
+use syn::parse_quote;
 use syn::punctuated::*;
 use syn::spanned::Spanned;
-use syn::parse_quote;
-use quote::ToTokens;
-use proc_macro2::TokenStream;
+use syn::*;
 
 use std::mem;
 
 pub struct AttrOption<T> {
     pub name: Ident,
     pub eq: Token![=],
-    pub val: T
+    pub val: T,
 }
 
 pub type EqOption = AttrOption<Lit>;
@@ -30,7 +45,7 @@ pub struct OptionAttr {
 
 enum StrOrExpr {
     Str(LitStr),
-    Expr(Expr)
+    Expr(Expr),
 }
 
 impl Parse for StrOrExpr {
@@ -49,25 +64,25 @@ impl AttrOption<StrOrExpr> {
             StrOrExpr::Str(s) => Ok(EqOption {
                 name: self.name,
                 eq: self.eq,
-                val: Lit::Str(s)
+                val: Lit::Str(s),
             }),
             StrOrExpr::Expr(e) => Err(Error::new(
                 e.span(),
-                "Found expression, expected a literal string"
-            ))
+                "Found expression, expected a literal string",
+            )),
         }
     }
 
     pub fn as_expr(self) -> ExprOption {
         let expr = match self.val {
             StrOrExpr::Str(s) => parse_quote!(#s),
-            StrOrExpr::Expr(e) => e
+            StrOrExpr::Expr(e) => e,
         };
 
         ExprOption {
             name: self.name,
             eq: self.eq,
-            val: expr
+            val: expr,
         }
     }
 }
@@ -77,7 +92,7 @@ impl<T: Parse> Parse for AttrOption<T> {
         Ok(Self {
             name: buf.parse()?,
             eq: buf.parse()?,
-            val: buf.parse()?
+            val: buf.parse()?,
         })
     }
 }
@@ -95,23 +110,25 @@ impl Parse for MetricAttr {
             let seen = match &*param {
                 "desc" => mem::replace(&mut desc, Some(opt)).is_some(),
                 "name" => mem::replace(&mut name, Some(opt)).is_some(),
-                _ => return Err(Error::new(
-                    opt.name.span(),
-                    format!("Unknown option `{}`", opt.name)
-                ))
+                _ => {
+                    return Err(Error::new(
+                        opt.name.span(),
+                        format!("Unknown option `{}`", opt.name),
+                    ))
+                }
             };
 
             if seen {
                 return Err(Error::new(
                     span,
-                    format!("`{}` may only be specified once", param)
+                    format!("`{}` may only be specified once", param),
                 ));
             }
         }
 
         let desc = match desc {
             Some(x) => x,
-            None => return Err(buf.error("Expected a `desc` parameter here"))
+            None => return Err(buf.error("Expected a `desc` parameter here")),
         };
 
         Ok(Self { desc, name })
@@ -133,23 +150,20 @@ impl Parse for OptionAttr {
                 "desc" => mem::replace(&mut desc, Some(val.as_lit()?)).is_some(),
                 "name" => mem::replace(&mut name, Some(val.as_lit()?)).is_some(),
                 "default" => mem::replace(&mut default, Some(val.as_expr())).is_some(),
-                _ => return Err(Error::new(
-                    span,
-                    format!("Unknown option `{}`", param)
-                ))
+                _ => return Err(Error::new(span, format!("Unknown option `{}`", param))),
             };
 
             if seen {
                 return Err(Error::new(
                     span,
-                    format!("`{}` may only be specified once", param)
+                    format!("`{}` may only be specified once", param),
                 ));
             }
         }
 
         let desc = match desc {
             Some(x) => x,
-            None => return Err(buf.error("Expected a `desc` parameter here"))
+            None => return Err(buf.error("Expected a `desc` parameter here")),
         };
 
         Ok(Self {
@@ -159,7 +173,6 @@ impl Parse for OptionAttr {
         })
     }
 }
-
 
 impl<T: ToTokens> ToTokens for AttrOption<T> {
     fn to_tokens(&self, stream: &mut TokenStream) {
@@ -173,7 +186,7 @@ impl ToTokens for StrOrExpr {
     fn to_tokens(&self, stream: &mut TokenStream) {
         match self {
             Self::Str(s) => s.to_tokens(stream),
-            Self::Expr(e) => e.to_tokens(stream)
+            Self::Expr(e) => e.to_tokens(stream),
         }
     }
 }
