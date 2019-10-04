@@ -6,12 +6,11 @@ use ccommon_rs::Options;
 #[derive(Options)]
 #[repr(C)]
 pub struct TestMetrics {
-    #[desc = "A test gauge metric"]
+    #[option(desc = "A test gauge metric")]
     pub m1: Float,
-    #[desc = "A test counter metric"]
+    #[option(desc = "A test counter metric")]
     pub m2: Bool,
-    #[desc = "A test fpn metric"]
-    #[name = "test.other.m3"]
+    #[option(desc = "A test fpn metric", name = "test.other.m3")]
     pub m3: UInt,
 }
 
@@ -19,11 +18,13 @@ pub struct TestMetrics {
 #[repr(C)]
 pub struct Nested {
     pub inner: TestMetrics,
-    #[desc = "Another test metric"]
-    #[name = "nested.other"]
-    #[default(std::ptr::null_mut())]
+    #[option(
+        desc = "Another test metric",
+        name = "nested.other",
+        default = std::ptr::null_mut()
+    )]
     other: Str,
-    #[desc = "Defaulted str"]
+    #[option(desc = "Defaulted str")]
     defaulted: Str,
 }
 

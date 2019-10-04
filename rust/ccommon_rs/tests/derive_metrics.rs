@@ -6,12 +6,11 @@ use ccommon_rs::Metrics;
 #[derive(Metrics)]
 #[repr(C)]
 pub struct TestMetrics {
-    #[desc = "A test gauge metric"]
+    #[metric(desc = "A test gauge metric")]
     pub m1: Gauge,
-    #[desc = "A test counter metric"]
+    #[metric(desc = "A test counter metric")]
     pub m2: Counter,
-    #[desc = "A test fpn metric"]
-    #[name = "test.other.m3"]
+    #[metric(desc = "A test fpn metric", name = "test.other.m3")]
     pub m3: Fpn,
 }
 
@@ -19,8 +18,7 @@ pub struct TestMetrics {
 #[repr(C)]
 pub struct Nested {
     pub inner: TestMetrics,
-    #[desc = "Another test metric"]
-    #[name = "nested.other"]
+    #[metric(desc = "Another test metric", name = "nested.other")]
     other: Gauge,
 }
 

@@ -30,14 +30,12 @@ pub struct Fpn(metric);
 impl Fpn {
     /// Get the value atomically.
     pub fn value(&self) -> f64 {
-        unsafe { std::mem::transmute((*self.0.data.as_ptr::<AtomicU64>()).load(Ordering::Relaxed)) }
+        f64::from_bits(unsafe { (*self.0.data.as_ptr::<AtomicU64>()).load(Ordering::Relaxed) })
     }
 
     /// Update the value atomically.
     pub fn update(&self, val: f64) {
-        unsafe {
-            (*self.0.data.as_ptr::<AtomicU64>()).store(std::mem::transmute(val), Ordering::Relaxed)
-        }
+        unsafe { (*self.0.data.as_ptr::<AtomicU64>()).store(val.to_bits(), Ordering::Relaxed) }
     }
 }
 

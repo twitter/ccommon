@@ -295,6 +295,8 @@ mod impls {
     }
 }
 
+use crate::Options;
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -303,15 +305,13 @@ mod test {
     #[derive(Options)]
     #[repr(C)]
     struct TestOptions {
-        #[desc = "The first test option"]
+        #[option(desc = "The first test option")]
         opt1: Bool,
 
-        #[desc = "The second test option"]
-        #[default(5)]
+        #[option(desc = "The second test option", default = 5)]
         opt2: UInt,
 
-        #[desc = "The third test option"]
-        #[default(35.0)]
+        #[option(desc = "The third test option", default = 35.0)]
         opt3: Float,
     }
 

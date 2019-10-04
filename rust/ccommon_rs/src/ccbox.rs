@@ -38,7 +38,7 @@ unsafe impl<T: Sync + ?Sized> Sync for CCBox<T> {}
 
 impl<T> CCBox<T> {
     /// Create a new `CCBox` with `val` inside.
-    /// 
+    ///
     /// # Panics
     /// Panics if the underlying allocator fails to allocate
     /// or if `T` requires an alignment of greater than 16.
@@ -53,11 +53,11 @@ impl<T> CCBox<T> {
     }
 
     /// Attempt to create a new `CCBox` with `val` inside.
-    /// 
+    ///
     /// Since the underlying allocator does not support
     /// passing alignments, any allocation with alignment
-    /// greater than 16 will fail. 
-    /// 
+    /// greater than 16 will fail.
+    ///
     /// In addition, returns an error whenever the underlying
     /// allocator returns `NULL`.
     pub fn try_new(val: T) -> Result<CCBox<T>, AllocationError<T>> {
@@ -80,7 +80,7 @@ impl<T> CCBox<T> {
 
             Ok(CCBox(match NonNull::new(ptr as *mut T) {
                 Some(x) => x,
-                None => return Err(AllocationError::new())
+                None => return Err(AllocationError::new()),
             }))
         }
     }

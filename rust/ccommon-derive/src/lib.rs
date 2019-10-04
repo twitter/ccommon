@@ -17,21 +17,25 @@
 
 extern crate proc_macro;
 
+mod attrs;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Error, Expr, Fields, Generics, Ident, Lit,
+    parse_macro_input, Attribute, Data, DeriveInput, Error, Field, Fields, Generics, Ident, Lit,
     LitStr,
 };
 
+use self::attrs::*;
+
 /// Derive macro for `Metrics`.
-/// 
+///
 /// Fields in the struct attempting to use this derive macro
 /// must either implement `SingleMetric` or `Metrics`. This is
 /// decided upon based on the field being decorated with the
-/// `desc` attribute.
-/// 
+/// `metric` attribute.
+///
 /// # Example
 /// ```rust,ignore
 /// #[derive(Metrics)]
@@ -39,24 +43,23 @@ use syn::{
 ///     // This metric will have a name of `metric1` and a description
 ///     // of `"The first metric"`.
 ///     // This field requires that `Gauge` implements `SingleMetric`.
-///     #[desc = "The first metric"]
+///     #[metric(desc = "The first metric")]
 ///     metric1: Gauge,
 ///     
 ///     // This metric will have a name of `mymetric.metric2` and a
 ///     // a description of `"The second metric"`.
 ///     // This field requires that `Counter` implements `SingleMetric`.
-///     #[desc = "The second metric"]
-///     #[name = "mymetric.metric2"]
+///     #[metric(desc = "The second metric", "mymetric.metric2")]
 ///     metric2: Counter
 /// }
-/// 
+///
 /// #[derive(Metrics)]
 /// struct OtherMetrics {
 ///     // This field must implement `Metrics`
 ///     my_metrics: MyMetrics
 /// }
 /// ```
-#[proc_macro_derive(Metrics, attributes(desc, name))]
+#[proc_macro_derive(Metrics, attributes(metric))]
 pub fn derive_metrics(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(stream as DeriveInput);
 
@@ -68,13 +71,13 @@ pub fn derive_metrics(stream: proc_macro::TokenStream) -> proc_macro::TokenStrea
 }
 
 /// Derive macro for `Options`.
-/// 
+///
 /// Fields in the struct attempting to use this derive macro
 /// must either implement `SingleOption` or `Options`. Which
 /// one of these will be required is decided by whether the
-/// field is decorated by the `desc` attribute.
-/// 
-/// The following attributes can be used with this macro
+/// field is decorated by the `option` attribute.
+///
+/// The following parameters can be passed to the `option` attribute
 /// - `desc`: Sets the description of the field.
 /// - `name`: Overrides the name of the field, the default
 ///     name is the name of the field within the struct.
@@ -82,7 +85,7 @@ pub fn derive_metrics(stream: proc_macro::TokenStream) -> proc_macro::TokenStrea
 ///     By default, this is `Default::default()` or `std::ptr::null_mut()`
 ///     in the case of strings. This can be any valid rust expression
 ///     that returns the correct type.
-/// 
+///
 /// # Example
 /// ```rust,ignore
 /// #[derive(Options)]
@@ -90,22 +93,23 @@ pub fn derive_metrics(stream: proc_macro::TokenStream) -> proc_macro::TokenStrea
 /// struct MyOptions {
 ///     // This option will have a name of `options.option1`, a description
 ///     // of `Option 1`, and a default value of `false`.
-///     #[desc = "Option 1"]
-///     #[name = "options.option1"]
+///     #[option(desc = "Option 1", name = "options.option1")]
 ///     opt1: Bool,
-/// 
-///     #[desc = "Function result option"]
-///     #[default(example_factory_function())]
+///
+///     #[option(
+///         desc = "Function result option",
+///         default = example_factory_function()
+///     )]
 ///     opt2: UInt
 /// }
-/// 
+///
 /// #[derive(Option)]
 /// #[repr(transparent)]
 /// struct OtherOptions {
 ///     inner: MyOptions
 /// }
 /// ```
-#[proc_macro_derive(Options, attributes(desc, name, default))]
+#[proc_macro_derive(Options, attributes(option))]
 pub fn derive_options(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(stream as DeriveInput);
 
@@ -153,75 +157,69 @@ fn derive_metrics_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
     }
 
     let ident = input.ident;
-    let initializer =
-        match data.fields {
-            Fields::Named(fields) => {
-                let initializers: Vec<_> = fields.named.iter()
-                .map(|field| {
-                    let ref ty = field.ty;
-                    let ref name = field.ident;
-                    Ok(match get_description(&field.attrs)? {
-                        Some(desc) => {
-                            let desc = desc_to_c_str(desc);
-                            let namestr = match get_name(&field.attrs)? {
-                                Some(name) => desc_to_c_str(name),
-                                None => desc_to_c_str(name_as_lit(field.ident.clone().unwrap()))
-                            };
+    let process_field = |is_tuple| {
+        let krate = krate.clone();
+        move |(i, field): (usize, &Field)| {
+            let ref ty = field.ty;
+            let ref name = field.ident;
+            let label = match is_tuple {
+                true => quote! {},
+                false => quote! { #name: }
+            };
 
-                            quote! {
-                                #name: <#ty as #krate::metric::SingleMetric>::new(#namestr, #desc)
-                            }
+            Ok(match get_metric_attr(&field.attrs)? {
+                Some(attr) => {
+                    let desc = to_c_str(&attr.desc.val);
+                    let namestr = match attr.name {
+                        Some(name) => to_c_str(&name.val),
+                        None => match field.ident.as_ref() {
+                            Some(name) => to_c_str(&name_as_lit(name)),
+                            None => to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span()))),
                         },
-                        None => quote! {
-                            #name: <#ty as #krate::metric::Metrics>::new()
-                        }
-                    })
-                })
-                .collect::<Result<_, Error>>()?;
+                    };
 
-                quote! {
-                    Self {
-                        #( #initializers, )*
+                    quote! {
+                        #label <#ty as #krate::metric::SingleMetric>::new(#namestr, #desc)
                     }
                 }
-            }
-            Fields::Unnamed(fields) => {
-                let initializers: Vec<_> = fields
-                    .unnamed
-                    .iter()
-                    .enumerate()
-                    .map(|(i, field)| {
-                        let ref ty = field.ty;
-                        Ok(match get_description(&field.attrs)? {
-                            Some(desc) => {
-                                let desc = desc_to_c_str(desc);
-                                let namestr = match get_name(&field.attrs)? {
-                                    Some(name) => desc_to_c_str(name),
-                                    None => desc_to_c_str(Lit::Str(LitStr::new(
-                                        &format!("{}", i),
-                                        field.span(),
-                                    ))),
-                                };
+                None => quote! {
+                    #label <#ty as #krate::metric::Metrics>::new()
+                },
+            })
+        }
+    };
 
-                                quote! {
-                                    <#ty as #krate::metric::SingleMetric>::new(#namestr, #desc)
-                                }
-                            }
-                            None => quote! {
-                                <#ty as #krate::metric::Metrics>::new()
-                            },
-                        })
-                    })
-                    .collect::<Result<_, Error>>()?;
+    let initializer = match data.fields {
+        Fields::Named(fields) => {
+            let initializers: Vec<_> = fields
+                .named
+                .iter()
+                .enumerate()
+                .map(process_field(false))
+                .collect::<Result<_, Error>>()?;
 
-                quote! {
-                    Self (
-                        #( #initializers, )*
-                    )
+            quote! {
+                Self {
+                    #( #initializers, )*
                 }
             }
-            Fields::Unit => quote!(Self),
-        };
+        }
+        Fields::Unnamed(fields) => {
+            let initializers: Vec<_> = fields
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(process_field(true))
+                .collect::<Result<_, Error>>()?;
+
+            quote! {
+                Self (
+                    #( #initializers, )*
+                )
+            }
+        }
+        Fields::Unit => quote!(Self),
+    };
 
     Ok(quote! {
         unsafe impl #krate::metric::Metrics for #ident {
@@ -270,44 +268,58 @@ fn derive_options_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
     }
 
     let ident = input.ident;
-    let initializer = match data.fields {
-        Fields::Named(fields) => {
-            let initializers: Vec<_> = fields.named.iter()
-                .map(|field| {
-                    let ref ty = field.ty;
-                    let ref name = field.ident;
-                    Ok(match get_description(&field.attrs)? {
-                        Some(desc) => {
-                            let desc = desc_to_c_str(desc);
-                            let namestr = match get_name(&field.attrs)? {
-                                Some(name) => desc_to_c_str(name),
-                                None => desc_to_c_str(name_as_lit(field.ident.clone().unwrap()))
-                            };
+    let process_field = |is_tuple| {
+        let krate = krate.clone();
+        move |(i, field): (usize, &Field)| {
+            let ref ty = field.ty;
+            let ref name = field.ident;
+            let label = match is_tuple {
+                true => quote! {},
+                false => quote! { #name: }
+            };
 
-                            match get_default(&field.attrs)? {
-                                Some(default) => quote! {
-                                    #name: <#ty as #krate::option::SingleOption>::new(
-                                        #default,
-                                        #namestr,
-                                        #desc
-                                    )
-                                },
-                                None => quote! {
-                                    #name: <#ty as #krate::option::SingleOption>::defaulted(#namestr, #desc)
-                                }
-                            }
+            Ok(match get_option_attr(&field.attrs)? {
+                Some(attr) => {
+                    let desc = to_c_str(&attr.desc.val);
+                    let namestr = match attr.name {
+                        Some(name) => to_c_str(&name.val),
+                        None => match field.ident.as_ref() {
+                            Some(name) => to_c_str(&name_as_lit(name)),
+                            None => to_c_str(&Lit::Str(LitStr::new(&format!("{}", i), field.span()))),
+                        },
+                    };
+
+                    match attr.default.map(|x| x.val) {
+                        Some(default) => quote! {
+                            #label <#ty as #krate::option::SingleOption>::new(
+                                #default,
+                                #namestr,
+                                #desc
+                            )
                         },
                         None => quote! {
-                            #name: <#ty as #krate::option::Options>::new()
-                        }
-                    })
-                })
+                            #label <#ty as #krate::option::SingleOption>::defaulted(#namestr, #desc)
+                        },
+                    }
+                }
+                None => quote! {
+                    #label <#ty as #krate::option::Options>::new()
+                },
+            })
+        }
+    };
+
+    let initializer = match data.fields {
+        Fields::Named(fields) => {
+            let initializers: Vec<_> = fields
+                .named
+                .iter()
+                .enumerate()
+                .map(process_field(false))
                 .collect::<Result<_, Error>>()?;
 
             quote! {
-                Self {
-                    #( #initializers, )*
-                }
+                Self { #( #initializers, )* }
             }
         }
         Fields::Unnamed(fields) => {
@@ -315,39 +327,11 @@ fn derive_options_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
                 .unnamed
                 .iter()
                 .enumerate()
-                .map(|(i, field)| {
-                    let ref ty = field.ty;
-                    Ok(match get_description(&field.attrs)? {
-                        Some(desc) => {
-                            let desc = desc_to_c_str(desc);
-                            let namestr = match get_name(&field.attrs)? {
-                                Some(name) => desc_to_c_str(name),
-                                None => desc_to_c_str(Lit::Str(LitStr::new(
-                                    &format!("{}", i),
-                                    field.span(),
-                                ))),
-                            };
-
-                            match get_default(&field.attrs)? {
-                                Some(default) => quote! {
-                                    <#ty as #krate::option::SingleOption>::new(#default, #namestr, #desc)
-                                },
-                                None => quote!{
-                                    <#ty as #krate::option::SingleOption>::defaulted(#namestr, #desc)
-                                }
-                            }
-                        }
-                        None => quote! {
-                            <#ty as #krate::option::Options>::new()
-                        },
-                    })
-                })
+                .map(process_field(true))
                 .collect::<Result<_, Error>>()?;
 
             quote! {
-                Self (
-                    #( #initializers, )*
-                )
+                Self ( #( #initializers, )* )
             }
         }
         Fields::Unit => quote!(Self),
@@ -378,11 +362,11 @@ fn crate_name(name: &'static str) -> Result<TokenStream, Error> {
     Ok(quote! { ::#ident })
 }
 
-fn name_as_lit(name: Ident) -> Lit {
+fn name_as_lit(name: &Ident) -> Lit {
     Lit::Str(LitStr::new(&format!("{}", name), name.span()))
 }
 
-fn desc_to_c_str(desc: Lit) -> TokenStream {
+fn to_c_str(desc: &Lit) -> TokenStream {
     use syn::LitByteStr;
 
     let span = desc.span();
@@ -414,14 +398,14 @@ fn desc_to_c_str(desc: Lit) -> TokenStream {
     }
 }
 
-fn get_default(attrs: &[Attribute]) -> Result<Option<Expr>, Error> {
+fn get_metric_attr(attrs: &[Attribute]) -> Result<Option<MetricAttr>, Error> {
     for attr in attrs {
         let ident = match attr.path.get_ident() {
             Some(x) => x,
             None => continue,
         };
 
-        if ident != "default" {
+        if ident != "metric" {
             continue;
         }
 
@@ -430,70 +414,19 @@ fn get_default(attrs: &[Attribute]) -> Result<Option<Expr>, Error> {
 
     Ok(None)
 }
-fn get_description(attrs: &[Attribute]) -> Result<Option<Lit>, Error> {
-    use syn::Meta;
 
+fn get_option_attr(attrs: &[Attribute]) -> Result<Option<OptionAttr>, Error> {
     for attr in attrs {
         let ident = match attr.path.get_ident() {
             Some(x) => x,
             None => continue,
         };
 
-        if ident != "desc" {
+        if ident != "option" {
             continue;
         }
 
-        let meta = attr.parse_meta()?;
-
-        let lit = match meta {
-            Meta::NameValue(meta) => meta.lit,
-            _ => {
-                return Err(Error::new(
-                    meta.span(),
-                    "Invalid attribute, expected `#[desc = <string-literal>]`",
-                ))
-            }
-        };
-
-        match lit {
-            Lit::Str(x) => return Ok(Some(Lit::Str(x))),
-            Lit::ByteStr(x) => return Ok(Some(Lit::ByteStr(x))),
-            lit => return Err(Error::new(lit.span(), "Expected a string literal")),
-        }
-    }
-
-    Ok(None)
-}
-fn get_name(attrs: &[Attribute]) -> Result<Option<Lit>, Error> {
-    use syn::Meta;
-
-    for attr in attrs {
-        let ident = match attr.path.get_ident() {
-            Some(x) => x,
-            None => continue,
-        };
-
-        if ident != "name" {
-            continue;
-        }
-
-        let meta = attr.parse_meta()?;
-
-        let lit = match meta {
-            Meta::NameValue(meta) => meta.lit,
-            _ => {
-                return Err(Error::new(
-                    meta.span(),
-                    "Invalid attribute, expected `#[name = <string-literal>]`",
-                ))
-            }
-        };
-
-        match lit {
-            Lit::Str(x) => return Ok(Some(Lit::Str(x))),
-            Lit::ByteStr(x) => return Ok(Some(Lit::ByteStr(x))),
-            lit => return Err(Error::new(lit.span(), "Expected a string literal")),
-        }
+        return Ok(Some(attr.parse_args()?));
     }
 
     Ok(None)
