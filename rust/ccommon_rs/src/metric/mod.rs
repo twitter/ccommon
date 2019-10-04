@@ -14,27 +14,29 @@
 // limitations under the License.
 
 //! Types and methods for dealing with ccommon metrics.
-//! 
+//!
 //! To use this any collection of metrics (i.e. a struct containing metrics)
 //! should implement the `Metrics` trait through the derive macro. This
 //! will (usually) assert that the struct you are using is equivalent in
 //! memory to an array of `metric` structs.
 
 use std::ffi::CStr;
-use std::fmt;
-use std::ops::{AddAssign, SubAssign};
-use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 
-use cc_binding::{
-    metric, metric_anon_union, metric_describe_all, metric_reset, METRIC_COUNTER, METRIC_FPN,
-    METRIC_GAUGE,
-};
+use cc_binding::{metric, metric_describe_all, metric_reset};
 
 // Sealed trait to prevent SingleMetric from ever being implemented
 // from outside of this crate.
 mod private {
     pub trait Sealed {}
 }
+
+mod counter;
+mod fpn;
+mod gauge;
+
+pub use self::counter::Counter;
+pub use self::fpn::Fpn;
+pub use self::gauge::Gauge;
 
 /// A single metric value.
 ///
@@ -125,246 +127,21 @@ pub trait MetricExt: Metrics {
     }
 
     /// Reset all metrics to their default values.
-    /// 
+    ///
     /// This means that all 3 types of metrics are reset to 0.
-    /// 
+    ///
     /// Internally this calls out to `metric_reset`.
     fn reset_all(&mut self) {
-        unsafe {
-            metric_reset(
-                self.as_mut_ptr(),
-                Self::num_metrics() as u32
-            )
-        }
+        unsafe { metric_reset(self.as_mut_ptr(), Self::num_metrics() as u32) }
     }
 }
 
 impl<T: Metrics> MetricExt for T {}
 
-/// An atomic counter metric.
-///
-/// Exposes `incr` and `decr` operations that can also be
-/// used via operators `+=` and `-=`.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct Counter(metric);
-
-impl Counter {
-    fn as_ref(&self) -> &AtomicU64 {
-        unsafe { &*self.0.data.as_ptr::<AtomicU64>() }
-    }
-
-    /// Increment the counter by `n` atomically.
-    pub fn incr_n(&self, n: u64) {
-        self.as_ref().fetch_add(n, Ordering::Relaxed);
-    }
-    
-    /// Increment the counter by `1` atomically.
-    pub fn incr(&self) {
-        self.incr_n(1)
-    }
-
-    /// Decrement the counter by `n` atomically.
-    pub fn decr_n(&self, n: u64) {
-        self.as_ref().fetch_sub(n, Ordering::Relaxed);
-    }
-
-    /// Decrement the counter by `1` atomically.
-    pub fn decr(&self) {
-        self.decr_n(1)
-    }
-
-    /// Atomically store a value in the counter.
-    pub fn update(&self, val: u64) {
-        self.as_ref().store(val, Ordering::Relaxed)
-    }
-
-    /// Atomically get the value out of the counter.
-    pub fn value(&self) -> u64 {
-        self.as_ref().load(Ordering::Relaxed)
-    }
-}
-
-impl self::private::Sealed for Counter {}
-
-unsafe impl SingleMetric for Counter {
-    fn new(name: &CStr, desc: &CStr) -> Self {
-        Self(metric {
-            name: name.as_ptr() as *mut i8,
-            desc: desc.as_ptr() as *mut i8,
-            type_: METRIC_COUNTER,
-            data: metric_anon_union::counter(0),
-        })
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.desc) }
-    }
-}
-
-impl fmt::Debug for Counter {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Counter")
-            .field("name", unsafe { &CStr::from_ptr(self.0.name as *const i8) })
-            .field("desc", unsafe { &CStr::from_ptr(self.0.desc as *const i8) })
-            .field("counter", &self.value())
-            .finish()
-    }
-}
-
-impl AddAssign<u64> for Counter {
-    fn add_assign(&mut self, val: u64) {
-        self.incr_n(val);
-    }
-}
-
-impl SubAssign<u64> for Counter {
-    fn sub_assign(&mut self, val: u64) {
-        self.decr_n(val);
-    }
-}
-
-/// A `f64` metric that can be updated atomically.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct Fpn(metric);
-
-impl Fpn {
-    /// Get the value atomically.
-    pub fn value(&self) -> f64 {
-        unsafe { std::mem::transmute((*self.0.data.as_ptr::<AtomicU64>()).load(Ordering::Relaxed)) }
-    }
-
-    /// Update the value atomically.
-    pub fn update(&self, val: f64) {
-        unsafe {
-            (*self.0.data.as_ptr::<AtomicU64>()).store(std::mem::transmute(val), Ordering::Relaxed)
-        }
-    }
-}
-
-impl self::private::Sealed for Fpn {}
-
-unsafe impl SingleMetric for Fpn {
-    fn new(name: &CStr, desc: &CStr) -> Self {
-        Self(metric {
-            name: name.as_ptr() as *mut i8,
-            desc: desc.as_ptr() as *mut i8,
-            type_: METRIC_FPN,
-            data: metric_anon_union::gauge(0),
-        })
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.desc) }
-    }
-}
-
-impl fmt::Debug for Fpn {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Fpn")
-            .field("name", unsafe { &CStr::from_ptr(self.0.name as *const i8) })
-            .field("desc", unsafe { &CStr::from_ptr(self.0.desc as *const i8) })
-            .field("fpn", &self.value())
-            .finish()
-    }
-}
-
-/// A gauge metric that can be updated atomically.
-///
-/// Exposes `incr`, `decr`, and `update`. `incr` and `decr`
-/// can be used through operators `+=` and `-=`.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct Gauge(metric);
-
-impl Gauge {
-    fn as_ref(&self) -> &AtomicI64 {
-        unsafe { &*self.0.data.as_ptr::<AtomicI64>() }
-    }
-
-    /// Increment the gauge atomically by `n`.
-    pub fn incr_n(&self, n: i64) {
-        self.as_ref().fetch_add(n, Ordering::Relaxed);
-    }
-
-    /// Increment the gauge atomically by `1`.
-    pub fn incr(&self) {
-        self.incr_n(1)
-    }
-
-    /// Decrement the gauge atomically by `n`.
-    pub fn decr_n(&self, n: i64) {
-        self.as_ref().fetch_sub(n, Ordering::Relaxed);
-    }
-
-    /// Decrement the gauge atomically by `1`.
-    pub fn decr(&self) {
-        self.decr_n(1)
-    }
-
-    /// Set the value of the gauge atomically.
-    pub fn update(&self, val: i64) {
-        self.as_ref().store(val, Ordering::Relaxed)
-    }
-
-    /// Get the value of the gauge atomically.
-    pub fn value(&self) -> i64 {
-        self.as_ref().load(Ordering::Relaxed)
-    }
-}
-
-impl self::private::Sealed for Gauge {}
-unsafe impl SingleMetric for Gauge {
-    fn new(name: &CStr, desc: &CStr) -> Self {
-        Self(metric {
-            name: name.as_ptr() as *mut i8,
-            desc: desc.as_ptr() as *mut i8,
-            type_: METRIC_GAUGE,
-            data: metric_anon_union::gauge(0),
-        })
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.desc) }
-    }
-}
-
-impl fmt::Debug for Gauge {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Counter")
-            .field("name", unsafe { &CStr::from_ptr(self.0.name as *const i8) })
-            .field("desc", unsafe { &CStr::from_ptr(self.0.desc as *const i8) })
-            .field("counter", &self.value())
-            .finish()
-    }
-}
-
-impl AddAssign<i64> for Gauge {
-    fn add_assign(&mut self, val: i64) {
-        self.incr_n(val);
-    }
-}
-
-impl SubAssign<i64> for Gauge {
-    fn sub_assign(&mut self, val: i64) {
-        self.decr_n(val);
-    }
-}
-
 /// Impls of Metrics for cc_bindings types
 mod impls {
-    use cc_binding::*;
     use super::Metrics;
+    use cc_binding::*;
 
     macro_rules! c_str {
         ($s:expr) => {
@@ -537,8 +314,6 @@ mod impls {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod test {
