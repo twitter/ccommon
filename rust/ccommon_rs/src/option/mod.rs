@@ -16,12 +16,9 @@
 //! Types and methods for dealing with ccommon options.
 
 use std::ffi::CStr;
-use std::fmt;
 
 use cc_binding::{
-    option, option_describe_all, option_free, option_load_default, option_load_file,
-    option_print_all, option_val_u, OPTION_TYPE_BOOL, OPTION_TYPE_FPN, OPTION_TYPE_STR,
-    OPTION_TYPE_UINT,
+    option, option_describe_all, option_load_default, option_load_file, option_print_all,
 };
 
 // Sealed trait to prevent SingleOption from ever being implemented
@@ -31,6 +28,16 @@ mod private {
 }
 
 use self::private::Sealed;
+
+mod boolean;
+mod fpn;
+mod string;
+mod uint;
+
+pub use self::boolean::Bool;
+pub use self::fpn::Float;
+pub use self::string::Str;
+pub use self::uint::UInt;
 
 /// A single option.
 ///
@@ -189,250 +196,10 @@ pub trait OptionExt: Options {
 
 impl<T: Options> OptionExt for T {}
 
-/// A boolean option.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct Bool(option);
-
-impl Sealed for Bool {}
-
-unsafe impl SingleOption for Bool {
-    type Value = bool;
-
-    fn new(default: bool, name: &'static CStr, desc: &'static CStr) -> Self {
-        Self(option {
-            name: name.as_ptr() as *mut _,
-            set: false,
-            type_: OPTION_TYPE_BOOL,
-            default_val: option_val_u { vbool: default },
-            val: option_val_u { vbool: default },
-            description: desc.as_ptr() as *mut _,
-        })
-    }
-    fn defaulted(name: &'static CStr, desc: &'static CStr) -> Self {
-        Self::new(Default::default(), name, desc)
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.description) }
-    }
-    fn value(&self) -> Self::Value {
-        unsafe { self.0.val.vbool }
-    }
-    fn default(&self) -> Self::Value {
-        unsafe { self.0.default_val.vbool }
-    }
-    fn is_set(&self) -> bool {
-        self.0.set
-    }
-
-    fn set_value(&mut self, val: Self::Value) {
-        self.0.set = true;
-        self.0.val = option_val_u { vbool: val }
-    }
-}
-
-impl fmt::Debug for Bool {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Bool")
-            .field("name", &self.name())
-            .field("desc", &self.desc())
-            .field("value", &self.value())
-            .field("default", &self.default())
-            .field("is_set", &self.is_set())
-            .finish()
-    }
-}
-
-/// An unsigned integer option.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct UInt(option);
-
-impl Sealed for UInt {}
-
-unsafe impl SingleOption for UInt {
-    type Value = cc_binding::uintmax_t;
-
-    fn new(default: Self::Value, name: &'static CStr, desc: &'static CStr) -> Self {
-        Self(option {
-            name: name.as_ptr() as *mut _,
-            set: false,
-            type_: OPTION_TYPE_UINT,
-            default_val: option_val_u { vuint: default },
-            val: option_val_u { vuint: default },
-            description: desc.as_ptr() as *mut _,
-        })
-    }
-    fn defaulted(name: &'static CStr, desc: &'static CStr) -> Self {
-        Self::new(Default::default(), name, desc)
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.description) }
-    }
-    fn value(&self) -> Self::Value {
-        unsafe { self.0.val.vuint }
-    }
-    fn default(&self) -> Self::Value {
-        unsafe { self.0.default_val.vuint }
-    }
-    fn is_set(&self) -> bool {
-        self.0.set
-    }
-
-    fn set_value(&mut self, val: Self::Value) {
-        self.0.set = true;
-        self.0.val = option_val_u { vuint: val }
-    }
-}
-
-impl fmt::Debug for UInt {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("UInt")
-            .field("name", &self.name())
-            .field("desc", &self.desc())
-            .field("value", &self.value())
-            .field("default", &self.default())
-            .field("is_set", &self.is_set())
-            .finish()
-    }
-}
-
-/// A floating-point option.
-#[derive(Copy, Clone)]
-#[repr(transparent)]
-pub struct Float(option);
-
-impl Sealed for Float {}
-
-unsafe impl SingleOption for Float {
-    type Value = f64;
-
-    fn new(default: Self::Value, name: &'static CStr, desc: &'static CStr) -> Self {
-        Self(option {
-            name: name.as_ptr() as *mut _,
-            set: false,
-            type_: OPTION_TYPE_FPN,
-            default_val: option_val_u { vfpn: default },
-            val: option_val_u { vfpn: default },
-            description: desc.as_ptr() as *mut _,
-        })
-    }
-    fn defaulted(name: &'static CStr, desc: &'static CStr) -> Self {
-        Self::new(Default::default(), name, desc)
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.description) }
-    }
-    fn value(&self) -> Self::Value {
-        unsafe { self.0.val.vfpn }
-    }
-    fn default(&self) -> Self::Value {
-        unsafe { self.0.default_val.vfpn }
-    }
-    fn is_set(&self) -> bool {
-        self.0.set
-    }
-
-    fn set_value(&mut self, val: Self::Value) {
-        self.0.set = true;
-        self.0.val = option_val_u { vfpn: val }
-    }
-}
-
-impl fmt::Debug for Float {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Float")
-            .field("name", &self.name())
-            .field("desc", &self.desc())
-            .field("value", &self.value())
-            .field("default", &self.default())
-            .field("is_set", &self.is_set())
-            .finish()
-    }
-}
-
-/// A string option.
-///
-/// Note that this type wraps a C string.
-#[repr(transparent)]
-pub struct Str(option);
-
-impl Sealed for Str {}
-
-unsafe impl SingleOption for Str {
-    type Value = *mut std::os::raw::c_char;
-
-    fn new(default: Self::Value, name: &'static CStr, desc: &'static CStr) -> Self {
-        Self(option {
-            name: name.as_ptr() as *mut _,
-            set: false,
-            type_: OPTION_TYPE_STR,
-            default_val: option_val_u { vstr: default },
-            val: option_val_u { vstr: default },
-            description: desc.as_ptr() as *mut _,
-        })
-    }
-    fn defaulted(name: &'static CStr, desc: &'static CStr) -> Self {
-        Self::new(std::ptr::null_mut(), name, desc)
-    }
-
-    fn name(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.name) }
-    }
-    fn desc(&self) -> &'static CStr {
-        unsafe { CStr::from_ptr(self.0.description) }
-    }
-    fn value(&self) -> Self::Value {
-        unsafe { self.0.val.vstr }
-    }
-    fn default(&self) -> Self::Value {
-        unsafe { self.0.default_val.vstr }
-    }
-    fn is_set(&self) -> bool {
-        self.0.set
-    }
-
-    fn set_value(&mut self, val: Self::Value) {
-        self.0.set = true;
-        self.0.val = option_val_u { vstr: val }
-    }
-}
-
-// TODO(sean): Debug print the string pointer
-impl fmt::Debug for Str {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_struct("Str")
-            .field("name", &self.name())
-            .field("desc", &self.desc())
-            .field("value", &self.value())
-            .field("default", &self.default())
-            .field("is_set", &self.is_set())
-            .finish()
-    }
-}
-
-impl Drop for Str {
-    fn drop(&mut self) {
-        unsafe { option_free(self as *mut _ as *mut option, 1) }
-    }
-}
-
 /// Implementations of Options for cc_bindings types
 mod impls {
-    use cc_binding::*;
     use super::Options;
+    use cc_binding::*;
 
     macro_rules! c_str {
         ($s:expr) => {
@@ -445,7 +212,9 @@ mod impls {
             option_val_u { vbool: $default }
         };
         (OPTION_TYPE_UINT, $default:expr) => {
-            option_val_u { vuint: $default.into() }
+            option_val_u {
+                vuint: $default.into(),
+            }
         };
         (OPTION_TYPE_FPN, $default:expr) => {
             option_val_u { vfpn: $default }
