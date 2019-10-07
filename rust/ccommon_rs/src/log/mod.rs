@@ -1,5 +1,5 @@
 // ccommon - a cache common library.
-// Copyright (C) 2018 Twitter, Inc.
+// Copyright (C) 2019 Twitter, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,20 +15,9 @@
 
 //!
 
-// Needed to allow derive macros within this crate
-extern crate self as ccommon_rs;
+// Backend for the standard logging shim
+mod debug;
+mod shim;
 
-#[cfg(feature = "derive")]
-pub use ccommon_derive::{Metrics, Options};
-
-pub mod bstring;
-pub mod buf;
-pub mod log;
-pub mod metric;
-pub mod option;
-
-mod ccbox;
-mod error;
-
-pub use self::ccbox::CCBox;
-pub use self::error::{AllocationError, Error};
+pub use self::debug::DebugLogger;
+pub use self::shim::{init, rust_log_setup, rust_log_teardown, set_panic_handler};
