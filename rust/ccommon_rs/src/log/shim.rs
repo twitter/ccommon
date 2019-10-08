@@ -127,14 +127,18 @@ pub fn init() -> Result<(), SetLoggerError> {
 }
 
 /// Set the global panic handler to one which logs the
-/// panic at `LOG_CRIT` level in addition to printing
-/// the panic info to stderr.
-///
-/// This is meant to be
+/// panic at `LOG_CRIT` level before calling the original
+/// panic hook.
 pub fn set_panic_handler() {
-    use backtrace::Backtrace;
     use cc_binding::LOG_CRIT;
-    use std::io::{Cursor, Seek, SeekFrom};
+
+    use std::env;
+    use std::io::Cursor;
+
+    // After logging the message we want to call whatever existing
+    // panic hook was in place. In most cases this should be the
+    // default hook.
+    let old_hook = panic::take_hook();
 
     panic::set_hook(Box::new(move |info: &PanicInfo| {
         let mut buffer = [0u8; LOG_MAX_LEN as usize + 1];
@@ -166,8 +170,6 @@ pub fn set_panic_handler() {
             let _ = write!(&mut cursor, "thread '{}' panicked at '{}'", name, msg);
         };
 
-        let count = cursor.seek(SeekFrom::Current(0)).unwrap_or(0) as usize;
-
         if !ptr.is_null() {
             // Ensure that the panic message is logged
             // TODO(sean): Do we want to log the backtrace as well?
@@ -194,15 +196,9 @@ pub fn set_panic_handler() {
             }
         }
 
-        // Print out our message to stdout.
-        // If this panics then we weren't going to be able to print anything anyway.
-        std::io::stderr()
-            .write(&buffer[0..count])
-            .expect("Failed to write to stderr");
-        // Unconditionally print a backtrace. The infrastructure
-        // would be compiled into std anyway so it's more useful
-        // to have it printed by default.
-        eprintln!("{:?}", Backtrace::new());
+        // If possible, have the stdlib display a backtrace
+        let _ = env::set_var("RUST_BACKTRACE", "full");
+        old_hook(info)
     }))
 }
 

@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//!
-
 // Needed to allow derive macros within this crate
 extern crate self as ccommon_rs;
 

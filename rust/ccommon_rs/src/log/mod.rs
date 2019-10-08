@@ -37,7 +37,7 @@
 //! [`set_panic_handler`][4] to set a panic hook which
 //! will utilize common's logging infrastructure in addition to printing
 //! to stderr.
-//! 
+//!
 //! [0]: ccommon_rs::log::init
 //! [1]: ccommon_rs::log::rust_log_setup
 //! [2]: ccommon_rs::log::rust_log_teardown
