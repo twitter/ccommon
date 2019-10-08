@@ -196,9 +196,14 @@ pub fn set_panic_handler() {
             }
         }
 
+        let old_val = env::var_os("RUST_BACKTRACE");
         // If possible, have the stdlib display a backtrace
         let _ = env::set_var("RUST_BACKTRACE", "full");
-        old_hook(info)
+        old_hook(info);
+
+        if let Some(var) = old_val {
+            let _ = env::set_var("RUST_BACKTRACE", var);
+        }
     }))
 }
 
