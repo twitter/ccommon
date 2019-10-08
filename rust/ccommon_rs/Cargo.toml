@@ -17,7 +17,6 @@ crate-type = ["staticlib", "rlib"]
 cc_binding = { path = "../cc_binding" }
 libc = "0.2.0"
 log = "0.4.0"
-rusty-fork = "0.2.0"
 backtrace = "0.3.38"
 
 [dependencies.ccommon-derive]
@@ -25,4 +24,5 @@ path = "../ccommon-derive"
 optional = true
 
 [dev-dependencies]
+rusty-fork = "0.2.0"
 gag = "0.1.10"
