@@ -136,7 +136,7 @@ function(cargo_build)
     if(CARGO_BIN AND CARGO_STATIC)
         message(
             FATAL_ERROR 
-            "Cannot create a cargo target that has is "
+            "Cannot create a cargo target that has "
             "both a binary and a static library. Use multiple "
             "targets instead."
         )
