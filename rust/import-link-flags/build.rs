@@ -48,7 +48,8 @@ fn process_flags(flags: &str) {
         }
 
         if flag.starts_with("-l") || flag.starts_with("-L") {
-            println!("cargo:rustc-flags={}", flag);
+            println!("cargo:rustc-flags={} {}", &flag[0..2], &flag[2..]);
+            continue;
         }
 
         let path = Path::new(flag);
@@ -59,7 +60,7 @@ fn process_flags(flags: &str) {
         }
 
         if let Some(parent) = path.parent() {
-            println!("cargo:rustc-flags=-L{}", parent.display());
+            println!("cargo:rustc-flags=-L {}", parent.display());
         }
 
         let filename = match path.file_name() {
@@ -67,7 +68,7 @@ fn process_flags(flags: &str) {
             None => panic!("Attempted to link to a directory: {}", path.display()),
         };
 
-        println!("cargo:rustc-flags=-l{}", Path::new(filename).display());
+        println!("cargo:rustc-flags=-l {}", Path::new(filename).display());
     }
 
     if let Some(prev) = prev {
