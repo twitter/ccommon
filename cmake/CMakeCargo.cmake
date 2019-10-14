@@ -228,6 +228,8 @@ function(cargo_build)
         "\""
     )
     
+    # TODO(sean): disambiguate this based on bin/lib so that multiple targets in
+    #             the same directory don't clash.
     set(CMAKE_${CARGO_NAME}_LINK_EXECUTABLE "${LINK_COMMAND}" CACHE INTERNAL "")
     set(CMAKE_${CARGO_NAME}_CREATE_STATIC_LIBRARY "${LINK_COMMAND}" CACHE INTERNAL "")
     set(CMAKE_${CARGO_NAME}_CREATE_SHARED_LIBRARY "${LINK_COMMAND}" CACHE INTERNAL "")

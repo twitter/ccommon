@@ -4,6 +4,13 @@ use std::io::Read;
 use std::env;
 use std::fs::File;
 
+/// Modify the flags into a format that rustc actually supports.
+/// 
+/// The problem here is that cmake prefers to pass full paths to
+/// libraries whereas rustc wants us to split up link directories
+/// and link libraries while possible. This method splits up any
+/// paths in the command line that aren't already behind -l/-L
+/// flags.
 fn process_flags(flags: &str) {
     eprintln!("{}", flags);
 
@@ -14,7 +21,7 @@ fn process_flags(flags: &str) {
         if flag == "" {
             continue;
         }
-        
+
         if let Some(prevflag) = prev {
             println!("cargo:rustc-flags={} {}", prevflag, flag);
             prev = None;
