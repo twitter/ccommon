@@ -3,7 +3,8 @@
 members = [
     "cc_binding",
     "ccommon_rs",
-    "ccommon-derive"
+    "ccommon-derive",
+    "import-link-flags"
 ]
 
 [profile.release]
@@ -17,6 +18,3 @@ codegen-units = 1
 [profile.dev]
 debug = true
 opt-level = 0
-
-[term]
-verbose = true
