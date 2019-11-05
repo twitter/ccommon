@@ -3,8 +3,7 @@
 members = [
     "cc_binding",
     "ccommon_rs",
-    "ccommon-derive",
-    "import-link-flags"
+    "ccommon-derive"
 ]
 
 [profile.release]
