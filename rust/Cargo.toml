@@ -3,7 +3,8 @@
 members = [
     "cc_binding",
     "ccommon_rs",
-    "ccommon-derive"
+    "ccommon-derive",
+    "ccommon-backend"
 ]
 
 [profile.release]
@@ -17,3 +18,6 @@ codegen-units = 1
 [profile.dev]
 debug = true
 opt-level = 0
+
+[profile.test]
+debug = true
