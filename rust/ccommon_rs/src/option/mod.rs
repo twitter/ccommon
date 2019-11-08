@@ -173,7 +173,7 @@ pub trait OptionExt: Options {
     fn print_all(&self) {
         unsafe {
             option_print_all(&mut std::io::stdout(), self.as_slice())
-                .expect("Error printing to stdout")
+                .expect("Failed to write to stdout")
         }
     }
 
