@@ -30,7 +30,7 @@ macro_rules! c_str {
 }
 
 /// Error for when a config file fails to parse.
-/// 
+///
 /// This covers everything from an IO error to running out of memory
 /// to a missing colon within a line.
 pub struct ParseError<'a> {
@@ -61,18 +61,21 @@ impl<'a> ParseError<'a> {
             data: ParseErrorType::InvalidBool,
         }
     }
+
     fn invalid_uint(span: Span<'a>) -> Self {
         Self {
             span,
             data: ParseErrorType::InvalidUInt,
         }
     }
+
     fn invalid_fpn(span: Span<'a>) -> Self {
         Self {
             span,
             data: ParseErrorType::InvalidFloat,
         }
     }
+
     fn string_contained_null(span: Span<'a>) -> Self {
         Self {
             span,
@@ -86,24 +89,28 @@ impl<'a> ParseError<'a> {
             data: ParseErrorType::InvalidKey,
         }
     }
+
     fn missing_colon(span: Span<'a>) -> Self {
         Self {
             span,
             data: ParseErrorType::NoColonInLine,
         }
     }
+
     fn unknown_option_type(span: Span<'a>) -> Self {
         Self {
             span,
             data: ParseErrorType::UnknownOptionType,
         }
     }
+
     fn ioerror(err: IOError) -> Self {
         Self {
             span: Span::new(&[], 0),
             data: ParseErrorType::IOError(err),
         }
     }
+
     fn oom() -> Self {
         Self {
             span: Span {
@@ -139,7 +146,7 @@ enum ParseErrorType {
     OutOfMemory,
 }
 
-/// The type of the parse error, 
+/// The type of the parse error,
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum ParseErrorKind {
     /// Tried to parse a bool, but it wasn't valid.
@@ -159,7 +166,7 @@ pub enum ParseErrorKind {
     /// An option had an unrecognized option type.
     UnknownOptionType,
     /// Was unable to allocate memory when it was needed while parsing.
-    /// 
+    ///
     /// Note that this doesn't apply to all OOM cases.
     OutOfMemory,
     /// An IO error occurred when reading from the stream.
