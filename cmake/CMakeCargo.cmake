@@ -134,12 +134,12 @@ function(cargo_build)
 
     string(REPLACE "-" "_" LIB_NAME ${CARGO_NAME})
     if(NOT (DEFINED CARGO_TARGET_DIR))
-        set(CARGO_TARGET_DIR ${CMAKE_BINARY_DIR}/target)
+        set(CARGO_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/target)
     endif()
 
     if(CARGO_BIN AND CARGO_STATIC)
         message(
-            FATAL_ERROR 
+            FATAL_ERROR
             "Cannot create a cargo target that has "
             "both a binary and a static library. Use multiple "
             "targets instead."
@@ -152,15 +152,13 @@ function(cargo_build)
     # The CONFIGURE_DEPENDS flag will rerun the glob at build time if the
     # the build system supports it.
     file(
-        GLOB_RECURSE
-        CRATE_SOURCES
-        CONFIGURE_DEPENDS
-        "*.rs"
+        GLOB_RECURSE CRATE_SOURCES
+        CONFIGURE_DEPENDS "*.rs"
     )
 
     # Clean the target directory when make clean is run
-    set_directory_properties(PROPERTIES 
-        ADDITIONAL_CLEAN_FILES 
+    set_directory_properties(PROPERTIES
+        ADDITIONAL_CLEAN_FILES
         ${CARGO_TARGET_DIR}
     )
 
@@ -201,9 +199,7 @@ function(cargo_build)
 
     # Arguments to cargo
     set(CRATE_ARGS "")
-    set(TEST_ARGS "")
     list(APPEND CRATE_ARGS "--target" ${CRATE_TARGET})
-    list(APPEND TEST_ARGS "--target" ${CRATE_TARGET})
 
     if(CARGO_BIN)
         list(APPEND CRATE_ARGS "--bin" ${CARGO_NAME})
@@ -215,12 +211,10 @@ function(cargo_build)
 
     if(${CRATE_BUILD_TYPE} STREQUAL "release")
         list(APPEND CRATE_ARGS "--release")
-        list(APPEND TEST_ARGS "--release")
     endif()
 
     # Convert CRATE_ARGS from a list to a string
     string(REPLACE ";" " " CRATE_ARGS_STR "${CRATE_ARGS}")
-    string(REPLACE ";" " " TEST_ARGS_STR "${TEST_ARGS}")
 
     set(LINK_FLAGS_FILE "${CMAKE_CURRENT_BINARY_DIR}/${CARGO_NAME}.linkflags.txt")
 
@@ -257,8 +251,8 @@ function(cargo_build)
     #
     # "Docs" for the expansion rules can be found here
     # https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/Build-Rules
-    set(LINK_COMMAND "<CMAKE_COMMAND> -P ${FILE_LIST_DIR}/CargoLink.cmake 'TARGET=<TARGET>' 'LINK_FLAGS=<LINK_FLAGS>' 'LINK_LIBRARIES=<LINK_LIBRARIES>' 'FLAGS=${CRATE_ARGS_STR}' 'OUTPUT=${OUTPUT_FILE}' 'CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}' 'LINK_FLAGS_FILE=${LINK_FLAGS_FILE}' -- ${FORWARDED_VARS}")
-
+    set(LINK_COMMAND "<CMAKE_COMMAND> -P ${FILE_LIST_DIR}/CargoLink.cmake 'TARGET=<TARGET>' 'LINK_FLAGS=<LINK_FLAGS>' 'LINK_LIBRARIES=<LINK_LIBRARIES>' 'FLAGS=${CRATE_ARGS_STR}' 'OUTPUT=${OUTPUT_FILE}' 'CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}' 'LINK_FLAGS_FILE=${LINK_FLAGS_FILE}' -- ${FORWARDED_ARGS}")
+    
     foreach(VAR ${FORWARDED_VARS})
         string(APPEND LINK_COMMAND " ${VAR}")
     endforeach()
@@ -285,6 +279,22 @@ function(cargo_build)
         PROPERTY
         HEADER_FILE_ONLY ON
     )
+    
+    # CMake doesn't seem to add dependencies on the crate
+    # sources. This means that making changes to a rust
+    # target is rather painful. 
+    # 
+    # We work around this by creating a stamp file that depends
+    # on all the source files in the crate. When a source file
+    # is modified, the stamp file is updated, and this is picked
+    # up since we set the stamp file as a link dependency of
+    # library/binary.
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
+        DEPENDS ${CRATE_SOURCES}
+        COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
+        COMMENT "checking whether crate sources are up-to-date"
+    )
 
     # Targets
     if(CARGO_BIN)
@@ -292,12 +302,15 @@ function(cargo_build)
         add_executable(
             ${CARGO_NAME}
             ${CRATE_SOURCES}
+            # Needed so that this file is usable in LINK_DEPENDENCY
+            ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
         )
-        
+
         # Ensure that we use our custom "linker"
         set_target_properties(
             ${CARGO_NAME} PROPERTIES
             LINKER_LANGUAGE ${CARGO_NAME}
+            LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
         )
 
         target_compile_options(${CARGO_NAME} PRIVATE ${CRATE_ARGS})
@@ -307,12 +320,15 @@ function(cargo_build)
             ${CARGO_NAME}
             STATIC
             ${CRATE_SOURCES}
+            ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
         )
 
         # Ensure that we use our custom "linker"
         set_target_properties(
             ${CARGO_NAME} PROPERTIES
             LINKER_LANGUAGE ${CARGO_NAME}
+            # Needed so that this file is usable in LINK_DEPENDENCY
+            LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/up-to-date.stamp
         )
 
         target_compile_options(${CARGO_NAME} PRIVATE ${CRATE_ARGS})
@@ -325,11 +341,21 @@ function(cargo_build)
             INTERFACE
         )
 
+        if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
+            # This is required for dependency detection to work correctly.
+            # However, nothing breaks on a clean build if you don't have it
+            # so we don't make it required.
+            set_target_properties(
+                ${CARGO_NAME} PROPERTIES
+                INTERFACE_LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.stamp
+            )
+        endif()
+
         # However, we still want to build the library, so define a custom command for that
         add_custom_command(
-            # Dummy file to ensure that the command always runs
-            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/DOES_NOT_EXIST
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build.stamp
             COMMAND ${CARGO_ENV_COMMAND} cargo build ${CRATE_ARGS}
+            COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/build.stamp
             DEPENDS ${CRATE_SOURCES}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMENT "running cargo for target ${CARGO_NAME}"
@@ -337,8 +363,8 @@ function(cargo_build)
 
         add_custom_target(
             ${CARGO_NAME}-build
-            ALL DEPENDS 
-            ${CMAKE_CURRENT_BINARY_DIR}/DOES_NOT_EXIST
+            ALL DEPENDS
+            ${CMAKE_CURRENT_BINARY_DIR}/build.stamp
         )
 
         add_dependencies(${CARGO_NAME} ${CARGO_NAME}-build)
@@ -359,13 +385,14 @@ function(cargo_build)
     if(NOT CARGO_NO_TEST)
         add_test(
             NAME test-${CARGO_NAME}
-            COMMAND ${CMAKE_COMMAND} -P "${FILE_LIST_DIR}/CargoTest.cmake"
+            COMMAND ${CMAKE_COMMAND} -P "${FILE_LIST_DIR}/CargoTest.cmake" 
+                ${FORWARDED_VARS}
                 "LINK_FLAGS_FILE=${LINK_FLAGS_FILE}"
-                "FLAGS=${TEST_ARGS_STR}"
+                "FLAGS=${CRATE_ARGS_STR}"
                 "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
                 "CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}"
                 --
-                ${FORWARDED_VARS}
+                ${FORWARDED_ARGS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
     endif()
