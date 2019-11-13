@@ -156,6 +156,8 @@ function(cargo_build)
         CONFIGURE_DEPENDS "*.rs"
     )
 
+    list(APPEND CRATE_SOURCES Cargo.toml)
+
     # Clean the target directory when make clean is run
     set_directory_properties(PROPERTIES
         ADDITIONAL_CLEAN_FILES
@@ -200,14 +202,6 @@ function(cargo_build)
     # Arguments to cargo
     set(CRATE_ARGS "")
     list(APPEND CRATE_ARGS "--target" ${CRATE_TARGET})
-
-    if(CARGO_BIN)
-        list(APPEND CRATE_ARGS "--bin" ${CARGO_NAME})
-    elseif(CARGO_STATIC)
-        list(APPEND CRATE_ARGS "--lib")
-    else()
-        list(APPEND CRATE_ARGS "--lib")
-    endif()
 
     if(${CRATE_BUILD_TYPE} STREQUAL "release")
         list(APPEND CRATE_ARGS "--release")
