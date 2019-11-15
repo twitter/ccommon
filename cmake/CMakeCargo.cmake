@@ -245,7 +245,7 @@ function(cargo_build)
     #
     # "Docs" for the expansion rules can be found here
     # https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/Build-Rules
-    set(LINK_COMMAND "<CMAKE_COMMAND> -P ${FILE_LIST_DIR}/CargoLink.cmake 'TARGET=<TARGET>' 'LINK_FLAGS=<LINK_FLAGS>' 'LINK_LIBRARIES=<LINK_LIBRARIES>' 'FLAGS=${CRATE_ARGS_STR}' 'OUTPUT=${OUTPUT_FILE}' 'CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}' 'LINK_FLAGS_FILE=${LINK_FLAGS_FILE}' -- ${FORWARDED_ARGS}")
+    set(LINK_COMMAND "<CMAKE_COMMAND> -P ${FILE_LIST_DIR}/CargoLink.cmake 'TARGET=<TARGET>' 'LINK_FLAGS=<LINK_FLAGS>' 'LINK_LIBRARIES=<LINK_LIBRARIES>' 'FLAGS=${CRATE_ARGS_STR}' 'OUTPUT=${OUTPUT_FILE}' 'CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}' 'LINK_FLAGS_FILE=${LINK_FLAGS_FILE}' -- ${FORWARDED_VARS}")
     
     foreach(VAR ${FORWARDED_VARS})
         string(APPEND LINK_COMMAND " ${VAR}")
@@ -380,13 +380,12 @@ function(cargo_build)
         add_test(
             NAME test-${CARGO_NAME}
             COMMAND ${CMAKE_COMMAND} -P "${FILE_LIST_DIR}/CargoTest.cmake" 
-                ${FORWARDED_VARS}
                 "LINK_FLAGS_FILE=${LINK_FLAGS_FILE}"
                 "FLAGS=${CRATE_ARGS_STR}"
                 "CMAKE_CURRENT_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
                 "CMAKE_CURRENT_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}"
                 --
-                ${FORWARDED_ARGS}
+                ${FORWARDED_VARS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
     endif()
