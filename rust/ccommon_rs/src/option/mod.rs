@@ -250,7 +250,7 @@ mod impls {
                         Self {
                             $(
                                 $field: option {
-                                    name: c_str!($desc),
+                                    name: c_str!(stringify!($field)),
                                     set: false,
                                     type_: $type,
                                     default_val: initialize_option_value!($type, $default),
