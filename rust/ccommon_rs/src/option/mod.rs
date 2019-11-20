@@ -14,6 +14,9 @@
 // limitations under the License.
 
 //! Types and methods for dealing with ccommon options.
+//! 
+//! See the docs on the `Options` macro to see how to create
+//! new options structs.
 
 use std::ffi::CStr;
 
