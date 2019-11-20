@@ -14,7 +14,7 @@
 // limitations under the License.
 
 //! Types and methods for dealing with ccommon options.
-//! 
+//!
 //! See the docs on the `Options` macro to see how to create
 //! new options structs.
 
@@ -189,6 +189,7 @@ pub trait OptionExt: Options {
 
     /// Load options from a file.
     #[deprecated(note = "Use load instead - this interface is unsafe")]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     fn load_from_libc_file(&mut self, file: *mut libc::FILE) -> Result<(), crate::Error> {
         use ccommon_backend::compat::CFileRef;
         use std::io::BufReader;
