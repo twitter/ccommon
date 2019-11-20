@@ -162,7 +162,11 @@ fn derive_metrics_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
         move |(i, field): (usize, &Field)| {
             let ty = &field.ty;
             let name = &field.ident;
-            let label = if is_tuple { quote! {} } else { quote! { #name: } };
+            let label = if is_tuple {
+                quote! {}
+            } else {
+                quote! { #name: }
+            };
 
             Ok(match get_metric_attr(&field.attrs)? {
                 Some(attr) => {
@@ -271,7 +275,11 @@ fn derive_options_impl(input: DeriveInput) -> Result<proc_macro2::TokenStream, E
         move |(i, field): (usize, &Field)| {
             let ty = &field.ty;
             let name = &field.ident;
-            let label = if is_tuple { quote! {} } else { quote! { #name: } };
+            let label = if is_tuple {
+                quote! {}
+            } else {
+                quote! { #name: }
+            };
 
             Ok(match get_option_attr(&field.attrs)? {
                 Some(attr) => {

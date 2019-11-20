@@ -54,7 +54,7 @@ fn fmt_value<W: Write>(writer: &mut W, val: option_val, ty: option_type) -> Resu
 }
 
 /// Print a single option.
-/// 
+///
 /// # Safety
 /// This function assumes that the description and name
 /// pointers within the options always point to a valid
@@ -74,7 +74,7 @@ pub unsafe fn option_print<W: Write>(writer: &mut W, opt: &option) -> Result<()>
 }
 
 /// Print all options.
-/// 
+///
 /// # Safety
 /// This function assumes that the description and name
 /// pointers within the options always point to a valid
@@ -89,7 +89,7 @@ pub unsafe fn option_print_all<W: Write>(writer: &mut W, options: &[option]) -> 
 }
 
 /// Describe a single option.
-/// 
+///
 /// # Safety
 /// This function assumes that the description and name
 /// pointers within the options always point to a valid
@@ -105,7 +105,7 @@ pub unsafe fn option_describe<W: Write>(writer: &mut W, opt: &option) -> Result<
 }
 
 /// Describe all options.
-/// 
+///
 /// # Safety
 /// This function assumes that the description and name
 /// pointers within the options always point to a valid
