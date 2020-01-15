@@ -130,7 +130,7 @@ fn main() {
         .whitelist_function("_cc_.*")
         .whitelist_type("rstatus_i")
         .whitelist_type("err_i")
-        
+
         .whitelist_type("buf_.*")
         .whitelist_type("buf")
         .whitelist_var("BUF_.*")
@@ -144,7 +144,7 @@ fn main() {
         .whitelist_var("CHANNEL_.*")
         .whitelist_type("ch_id_i")
         .whitelist_type("ch_level_e")
-        
+
         .whitelist_var("PIPE_.*")
         .whitelist_type("pipe_.*")
         .whitelist_function("pipe_.*")
@@ -158,7 +158,7 @@ fn main() {
         .whitelist_type("log_.*")
         .whitelist_function("log_.*")
         .whitelist_var("LOG_.*")
-        
+
         .whitelist_type("sockio_.*")
         .whitelist_function("sockio_.*")
 
