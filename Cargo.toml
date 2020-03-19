@@ -1,0 +1,33 @@
+[workspace]
+members = [
+	"rust/ccommon-backend",
+	"rust/ccommon-derive",
+	"rust/ccommon-rs",
+    "rust/ccommon-sys",
+]
+
+[profile.dev]
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 1
+
+[profile.bench]
+opt-level = 3
+debug = true
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+incremental = false
+
+[profile.release]
+opt-level = 3
+debug = true
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+incremental = false
