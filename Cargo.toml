@@ -1,9 +1,9 @@
 [workspace]
 members = [
-	"rust/ccommon-backend",
-	"rust/ccommon-derive",
-	"rust/ccommon-rs",
-    "rust/ccommon-sys",
+  "rust/ccommon-backend",
+  "rust/ccommon-derive",
+  "rust/ccommon-rs",
+  "rust/ccommon-sys",
 ]
 
 [profile.dev]
