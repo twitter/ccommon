@@ -22,7 +22,7 @@ realpath() { python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$
 TOPLEVEL="$(cd "$(dirname "$(realpath "$0" >/dev/null || exit 1)")" && git rev-parse --show-toplevel)" || die 'failed to find TOPLEVEL'
 
 
-CHECK_VERSION=0.12.0
+CHECK_VERSION=0.14.0
 CHECK_TARBALL="check-${CHECK_VERSION}.tar.gz"
 CHECK_DIR="check-${CHECK_VERSION}"
 CHECK_LOG="build-check.log"
