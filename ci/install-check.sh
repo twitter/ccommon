@@ -30,22 +30,16 @@ CHECK_LOG="build-check.log"
 echo "building and installing check" >&2
 
 (
-  echo "cd..." >&2 &&
   cd "$TEMP" &&
-    echo "wget..." >&2 &&
     wget "https://github.com/libcheck/check/releases/download/${CHECK_VERSION}/${CHECK_TARBALL}" &&
-    echo "tar..." >&2 &&
     tar xfz "${CHECK_TARBALL}" &&
-    echo "cd..." >&2 &&
     cd "${CHECK_DIR}" &&
-    echo "configure.." >&2 &&
-    ./configure --prefix="${CHECK_PREFIX}" &&
-    echo "make.." >&2 &&
+    mkdir build &&
+    cd build &&
+    cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" .. &&
     make &&
-    echo "install.." >&2 &&
     make install
-)
-#) >$TEMP/${CHECK_LOG} 2>&1
+) >$TEMP/${CHECK_LOG} 2>&1
 
 RESULT=$?
 if [[ $RESULT -ne 0 ]]; then
