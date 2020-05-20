@@ -122,7 +122,7 @@ endif()
 if (HAVE_TEST)
     enable_testing()
     # first we try default ways of finding gmodules
-    find_package(Check)
+    find_package(CHECK)
     if(CHECK_FOUND)
         check_symbol_exists(ck_assert_int_eq check.h CHECK_WORKING)
     endif(CHECK_FOUND)
@@ -137,7 +137,7 @@ if (HAVE_TEST)
         )
         # use locally built libcheck
         set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
-        find_package(Check)
+        find_package(CHECK)
     endif(NOT CHECK_WORKING)
 
     # use fluxcapacitor to mock time
