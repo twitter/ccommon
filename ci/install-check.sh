@@ -25,6 +25,7 @@ TOPLEVEL="$(cd "$(dirname "$(realpath "$0" >/dev/null || exit 1)")" && git rev-p
 CHECK_VERSION=0.12.0
 CHECK_TARBALL="check-${CHECK_VERSION}.tar.gz"
 CHECK_DIR="check-${CHECK_VERSION}"
+CHECK_LOG="build-check.log"
 
 echo "building and installing check" >&2
 
@@ -36,7 +37,7 @@ echo "building and installing check" >&2
     ./configure --prefix="$CHECK_PREFIX" &&
     make &&
     make install
-) >$TEMP/cmake-build.log 2>&1
+) >$TEMP/${CHECK_LOG} 2>&1
 
 RESULT=$?
 if [[ $RESULT -ne 0 ]]; then
@@ -45,7 +46,7 @@ check build failed! log below:
 
 EOS
 
-  cat $TEMP/cmake-build.log
+  cat $TEMP/${CHECK_LOG}
 else
   echo "Success!" >&2
 fi

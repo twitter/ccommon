@@ -139,6 +139,22 @@ if (HAVE_TEST)
         set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
         find_package(Check)
     endif(NOT CHECK_WORKING)
+
+    # use fluxcapacitor to mock time
+    if(OS_PLATFORM STREQUAL "OS_LINUX")
+        set(FLUXCAP_PREFIX "${CMAKE_BINARY_DIR}/fluxcapacitor")
+        execute_process(
+            COMMAND "bash" "${PROJECT_SOURCE_DIR}/ci/install-fluxcapacitor.sh" "${FLUXCAP_PREFIX}"
+            TIMEOUT 60  # if this doesn't build in 60 seconds something is hosed
+            RESULT_VARIABLE FLUXCAP_RETCODE
+        )
+        if(FLUXCAP_RETCODE) # non-zero means error
+            message(STATUS "fluxcapacitor failed, return code: " ${FLUXCAP_RETCODE})
+        else(FLUXCAP_RETCODE)
+            set(FLUXCAP_BINARY "${FLUXCAP_PREFIX}/fluxcapacitor")
+            message(STATUS "fluxcapacitor available at: " ${FLUXCAP_BINARY})
+        endif(FLUXCAP_RETCODE)
+    endif(OS_PLATFORM STREQUAL "OS_LINUX")
 endif(HAVE_TEST)
 
 if (HAVE_ITT_INSTRUMENTATION)
