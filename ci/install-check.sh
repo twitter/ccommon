@@ -37,9 +37,10 @@ echo "building and installing check" >&2
     mkdir build &&
     cd build &&
     cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" .. &&
-    make &&
+    make -j &&
     make install
-) >$TEMP/${CHECK_LOG} 2>&1
+)
+#) >$TEMP/${CHECK_LOG} 2>&1
 
 RESULT=$?
 if [[ $RESULT -ne 0 ]]; then
