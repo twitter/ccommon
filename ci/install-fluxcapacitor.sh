@@ -48,7 +48,7 @@ EOS
 
   cat $TEMP/${FLUXCAP_LOG}
 else
-  cp "$TEMP/${FLUXCAP_DIR}/fluxcapacitor" ${FLUXCAP_PREFIX}/
+  rsync -a "$TEMP/${FLUXCAP_DIR}/fluxcapacitor" ${FLUXCAP_PREFIX}/
   echo "Success!" >&2
 fi
 
