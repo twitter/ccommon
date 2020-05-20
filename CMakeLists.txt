@@ -134,10 +134,15 @@ if (HAVE_TEST)
         execute_process(
             COMMAND "bash" "${PROJECT_SOURCE_DIR}/ci/install-check.sh" "${LIBCHECK_PREFIX}"
             TIMEOUT 300  # if this doesn't build in 5 minutes something is hosed
+            RESULT_VARIABLE LIBCHECK_RETCODE
         )
-        # use locally built libcheck
-        set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
-        find_package(CHECK)
+        if(LIBCHECK_RETCODE) # non-zero means error
+            message(STATUS "build libcheck failed, return code: " ${LIBCHECK_RETCODE})
+        else(LIBCHECK_RETCODE)
+            # use locally built libcheck
+            set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
+            find_package(CHECK)
+        endif(LIBCHECK_RETCODE)
     endif(NOT CHECK_WORKING)
 
     # use fluxcapacitor to mock time
@@ -149,7 +154,7 @@ if (HAVE_TEST)
             RESULT_VARIABLE FLUXCAP_RETCODE
         )
         if(FLUXCAP_RETCODE) # non-zero means error
-            message(STATUS "fluxcapacitor failed, return code: " ${FLUXCAP_RETCODE})
+            message(STATUS "build fluxcapacitor failed, return code: " ${FLUXCAP_RETCODE})
         else(FLUXCAP_RETCODE)
             set(FLUXCAP_BINARY "${FLUXCAP_PREFIX}/fluxcapacitor")
             message(STATUS "fluxcapacitor available at: " ${FLUXCAP_BINARY})
