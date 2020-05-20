@@ -37,6 +37,7 @@ echo "building and installing check" >&2
     mkdir build &&
     cd build &&
     cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" .. &&
+    cat src/check.h &&
     make -j &&
     make install
 )
