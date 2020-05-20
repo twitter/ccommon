@@ -31,11 +31,17 @@ echo "building and installing check" >&2
 
 (
   cd "$TEMP" &&
+    echo "wget..." &&
     wget "https://github.com/libcheck/check/releases/download/${CHECK_VERSION}/${CHECK_TARBALL}" &&
+    echo "tar..." &&
     tar xfz "${CHECK_TARBALL}" &&
+    echo "cd..." &&
     cd "${CHECK_DIR}" &&
-    ./configure --prefix="$CHECK_PREFIX" &&
+    echo "configure.." &&
+    ./configure --prefix="${CHECK_PREFIX}" &&
+    echo "make.." &&
     make &&
+    echo "install.." &&
     make install
 ) >$TEMP/${CHECK_LOG} 2>&1
 
