@@ -39,8 +39,7 @@ echo "building and installing check" >&2
     cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" -DDISABLE_SUBUNIT=ON .. &&
     make -j &&
     make install
-)
-#) >$TEMP/${CHECK_LOG} 2>&1
+) >$TEMP/${CHECK_LOG} 2>&1
 
 RESULT=$?
 if [[ $RESULT -ne 0 ]]; then
