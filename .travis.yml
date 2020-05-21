@@ -20,21 +20,11 @@ matrix:
   include:
     - name: "gcc-7 on Linux"
       compiler: gcc
-      addons:
-        apt:
-          <<: *apt
-          packages:
-            - libsubunit-dev
 
     - name: "gcc-7 on Linux, Rust enabled"
       compiler: gcc
       env:
         - RUST_ENABLED=1
-      addons:
-        apt:
-          <<: *apt
-          packages:
-            - libsubunit-dev
 
     - os: osx
       osx_image: xcode11.4
@@ -42,11 +32,6 @@ matrix:
 
     - name: "cargo build"
       language: rust
-      addons:
-        apt:
-          <<: *apt
-          packages:
-            - libsubunit-dev
       script:
         - ./ci/cargo.sh
 
