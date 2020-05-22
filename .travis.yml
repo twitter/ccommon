@@ -12,8 +12,7 @@ addons:
 # see https://docs.travis-ci.com/user/customizing-the-build#Rows-that-are-Allowed-to-Fail
 env:
   - ALLOWED_TO_FAIL=0
-  global:
-    - MAKEFLAGS="-j 2"
+  - MAKEFLAGS="-j 2"
 
 # travis currently does not support directly setting gcc/clang with versions
 # (e.g. gcc-4.8) as value for the compiler key. So we will have to manually
