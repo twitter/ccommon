@@ -36,7 +36,7 @@ echo "building and installing check" >&2
     cd "${CHECK_DIR}" &&
     mkdir build &&
     cd build &&
-    cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" -DDISABLE_SUBUNIT=ON .. &&
+    cmake -DCMAKE_INSTALL_PREFIX="${CHECK_PREFIX}" .. &&
     make -j &&
     make install
 ) >$TEMP/${CHECK_LOG} 2>&1
