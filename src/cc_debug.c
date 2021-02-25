@@ -50,6 +50,9 @@ static char * level_str[] = {
     "VVERB"
 };
 
+pthread_key_t pthread_name_key;
+
+
 static void
 debug_stacktrace(int skip_count)
 {
@@ -83,7 +86,11 @@ debug_stacktrace(int skip_count)
 void
 debug_assert(const char *cond, const char *file, int line, int panic)
 {
-    log_stderr("[tid=%p] assert '%s' failed @ (%s, %d)", pthread_self(), cond, file, line); 
+    char *pname = (char *) pthread_getspecific(pthread_name_key); 
+    if (pname == NULL) {
+        pname = "undefined";
+    }
+    log_stderr("[tid=%s] assert '%s' failed @ (%s, %d)", pname, cond, file, line); 
     if (panic) {
         debug_stacktrace(1);
         abort();
@@ -203,9 +210,13 @@ _log(struct debug_logger *dl, const char *file, int line, int level, const char 
     local = localtime(&t);
     timestr = asctime(local);
 
-    len += cc_scnprintf(buf + len, size - len, "[%.*s][tid=%p][%s] %s:%d ",
-            strlen(timestr) - 1, timestr, (unsigned long) pthread_self(),
-            level_str[level], file, line);
+    char *pname = (char *) pthread_getspecific(pthread_name_key); 
+    if (pname == NULL) {
+        pname = "undefined";
+    }
+
+    len += cc_scnprintf(buf + len, size - len, "[%.*s][tid=%s][%s] %s:%d ",
+            strlen(timestr) - 1, timestr, pname, evel_str[level], file, line);
 
     va_start(args, fmt);
     len += cc_vscnprintf(buf + len, size - len, fmt, args);
