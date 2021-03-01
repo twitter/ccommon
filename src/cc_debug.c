@@ -36,6 +36,7 @@
 #define BACKTRACE_DEPTH 64
 #define DEBUG_MODULE_NAME "ccommon::debug"
 
+
 struct debug_logger default_logger;
 struct debug_logger *dlog = &default_logger;
 static bool debug_init = false;
@@ -49,6 +50,17 @@ static char * level_str[] = {
     "VERB",
     "VVERB"
 };
+
+static char tname_buf[16];
+
+static inline char *
+_thread_name(void)
+{
+    /* we do not expect the following to fail ever, because buffer is sufficiently long */
+    pthread_getname_np(pthread_self(), tname_buf, 16);
+
+    return tname_buf;
+}
 
 
 static void
@@ -77,17 +89,14 @@ debug_stacktrace(int skip_count)
 
     /* when segfault happens, currently it will loop printing
      * stack trace forever, add abort to stop this */
-    abort();    
+    abort();
 #endif
 }
 
 void
 debug_assert(const char *cond, const char *file, int line, int panic)
 {
-    char pname[16] = "noName"; 
-    pthread_getname_np(pthread_self(), pname, 16);
-
-    log_stderr("[tid=%s] assert '%s' failed @ (%s, %d)", pname, cond, file, line); 
+    log_stderr("[%s] assert '%s' failed @ (%s, %d)", _thread_name(), cond, file, line);
     if (panic) {
         debug_stacktrace(1);
         abort();
@@ -207,11 +216,8 @@ _log(struct debug_logger *dl, const char *file, int line, int level, const char 
     local = localtime(&t);
     timestr = asctime(local);
 
-    char pname[16] = "noName"; 
-    pthread_getname_np(pthread_self(), pname, 16);
-
-    len += cc_scnprintf(buf + len, size - len, "[%.*s][tid=%s][%s] %s:%d ",
-            strlen(timestr) - 1, timestr, pname, level_str[level], file, line);
+    len += cc_scnprintf(buf + len, size - len, "[%.*s][%s][%s] %s:%d ",
+            strlen(timestr) - 1, timestr, _thread_name(), level_str[level], file, line);
 
     va_start(args, fmt);
     len += cc_vscnprintf(buf + len, size - len, fmt, args);
