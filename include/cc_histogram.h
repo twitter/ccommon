@@ -62,22 +62,22 @@ static inline uint64_t
 bucket_low(const struct histo_u32 *h, uint64_t bucket)
 {
     uint64_t g = bucket >> (h->r - h->m - 1); /* bucket offset in terms of G */
-    uint64_t b = g - g * h->G;
+    uint64_t b = bucket - g * h->G;
 
-    /* g < 2 & g >= 2 have different formula */
-    return (g < 2) * ((1 << h->m) * b) +
-        (g >= 2) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b);
+    /* first group has a different formula */
+    return (g == 0) * ((1 << h->m) * b) +
+        (g > 0) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b);
 }
 
 static inline uint64_t
 bucket_high(const struct histo_u32 *h, uint64_t bucket)
 {
     uint64_t g = bucket >> (h->r - h->m - 1); /* offset as multiplers of G */
-    uint64_t b = g - g * h->G + 1; /* the next bucket */
+    uint64_t b = bucket - g * h->G + 1; /* the next bucket */
 
-    /* g < 2 & g >= 2 have different formula */
-    return (g < 2) * ((1 << h->m) * b - 1) +
-        (g >= 2) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b - 1);
+    /* first group has a different formula */
+    return (g == 0) * ((1 << h->m) * b - 1) +
+        (g > 0) * ((1 << (h->r + g - 2)) + (1 << (h->m + g - 1)) * b - 1);
 }
 
 /************************
